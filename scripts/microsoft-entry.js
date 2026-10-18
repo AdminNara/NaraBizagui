@@ -1,6 +1,7 @@
 import { PublicClientApplication, InteractionRequiredAuthError, EventType } from '@azure/msal-browser';
 import { MicrosoftFiles } from '../microsoft-files.js';
 import { MicrosoftAccount } from './microsoft-account.js';
+import { MicrosoftWorkspace } from './microsoft-workspace.js';
 
 // OAuth client identifiers are public application identifiers, not client secrets.
 const clientId = 'f6e8c708-7319-4fde-8220-af052e371621';
@@ -16,5 +17,6 @@ window.NaraMicrosoft = { create() {
     });
     window.addEventListener('focus', () => auth.synchronize());
     window.addEventListener('pageshow', () => auth.synchronize());
-    return { auth, files: new MicrosoftFiles(auth) };
+    const files = new MicrosoftFiles(auth);
+    return { auth, files, workspace: new MicrosoftWorkspace(auth, files) };
 } };

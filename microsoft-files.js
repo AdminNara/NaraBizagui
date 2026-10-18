@@ -63,6 +63,11 @@ export class MicrosoftFiles {
   async children(folder, nextLink) {
     return this.request(nextLink || `drives/${id(folder.driveId)}/items/${id(folder.id)}/children?$select=id,name,folder,file,size,eTag,parentReference,webUrl&$top=100`);
   }
+  async folder(folder) {
+    const item = await this.request(`drives/${id(folder.driveId)}/items/${id(folder.id)}?$select=id,name,folder,root,parentReference`);
+    if (!item.folder || !item.id || !item.name) throw problem('INVALID_TARGET', 'Microsoft no devolvió una carpeta disponible.');
+    return item;
+  }
   async siteDrives(siteUrl, { authorize = false } = {}) {
     const path = sharePointPath(siteUrl);
     const accountId = this.accountId();
@@ -111,6 +116,7 @@ export class MicrosoftFileHandle {
       this.cache = text;
     }
     this.etag = meta.eTag; this.name = meta.name;
+    this.parent = meta.parentReference ? { id: meta.parentReference.id, name: meta.parentReference.name } : null;
     const snapshot = this.cache;
     return { name: meta.name, size: meta.size, text: async () => snapshot };
   }
