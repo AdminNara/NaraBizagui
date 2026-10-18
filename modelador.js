@@ -375,6 +375,7 @@ async function pollBrowserFile() {
     const same=()=>browserFiles.handle===handle&&browserDocumentVersion===version;
     if(!same() || saving || loadingDiagram)return;
     handle.pollDelay=15000;
+    window.naraAutoSave?.retrySafe();
     if(!source)return;
     if(source.hash===browserFiles.hash){if(microsoft)browserFiles.version=handle.etag;return;}
     const canUpdate=()=>same()&&!saving&&editSequence===sequence&&!browserEditPending();

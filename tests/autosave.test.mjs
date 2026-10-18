@@ -50,6 +50,10 @@ test('conflicts and ambiguous writes stop retries even when more changes occur',
 test('only known pre-write network failures can resume when connectivity returns',async()=>{
   const f=scheduler();f.auto.refresh();f.auto.block(Object.assign(new Error('offline'),{code:'NETWORK_ERROR'}));f.auto.retrySafe();await f.auto.flush();assert.equal(f.writes(),1);
 });
+test('safe retries respect Microsoft Retry-After even if connectivity returns earlier',async()=>{
+  const f=scheduler();let now=0;f.auto.now=()=>now;f.auto.refresh();f.auto.block(Object.assign(new Error('wait'),{code:'THROTTLED',retryAfterMs:90000}));
+  f.auto.retrySafe();await f.auto.flush();assert.equal(f.writes(),0);now=90001;f.auto.retrySafe();await f.auto.flush();assert.equal(f.writes(),1);
+});
 test('a new draft discovered during serialization defers without a permanent pause',async()=>{
   const f=scheduler();f.auto.save=async()=>{f.s.pending=true;throw Object.assign(new Error('draft'),{code:'AUTO_DEFERRED'});};
   await f.auto.flush();assert.equal(f.auto.blocked,null);assert.equal(f.renders.at(-1)[0],'draft');

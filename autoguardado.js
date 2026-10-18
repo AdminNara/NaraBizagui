@@ -1,16 +1,17 @@
 'use strict';
 // Only schedules the existing verified save path. Never chooses a destination.
 class NaraAutoSave {
-  constructor({state,save,render,delay=2000,setTimer=(fn,ms)=>setTimeout(fn,ms),clearTimer=id=>clearTimeout(id)}) {
-    Object.assign(this,{state,save,render,delay,setTimer,clearTimer});
+  constructor({state,save,render,delay=2000,setTimer=(fn,ms)=>setTimeout(fn,ms),clearTimer=id=>clearTimeout(id),now=()=>Date.now()}) {
+    Object.assign(this,{state,save,render,delay,setTimer,clearTimer,now});
     this.enabled=true;this.running=false;this.timer=null;this.blocked=null;this.target=null;this.document=null;
   }
   cancel(){if(this.timer!==null)this.clearTimer(this.timer);this.timer=null;}
   schedule(delay){this.cancel();this.timer=this.setTimer(()=>{this.timer=null;void this.flush();},delay);}
   reset(){this.blocked=null;this.refresh();}
   enable(value){this.enabled=value;this.refresh();}
-  block(error){this.blocked=error;this.cancel();this.refresh();}
-  retrySafe(){if(['NETWORK_ERROR','THROTTLED'].includes(this.blocked?.code)){this.blocked=null;this.refresh();}}
+  record(error){this.blocked=error;this.retryAt=error.code==='THROTTLED'?this.now()+(error.retryAfterMs||60000):0;}
+  block(error){this.record(error);this.cancel();this.refresh();}
+  retrySafe(){if(this.blocked?.code==='NETWORK_ERROR'||this.blocked?.code==='THROTTLED'&&this.now()>=this.retryAt){this.blocked=null;this.refresh();}}
   bind(s){if(s.target!==this.target||s.document!==this.document){this.target=s.target;this.document=s.document;this.blocked=null;this.cancel();}}
   refresh(edited=false){
     const s=this.state();
@@ -30,7 +31,7 @@ class NaraAutoSave {
     if(s.busy||s.pending||s.saving){this.refresh();return false;}
     this.running=true;this.render('saving','Guardando…');
     try{return await this.save(s);}
-    catch(error){if(error.code!=='AUTO_DEFERRED')this.blocked=error;return false;}
+    catch(error){if(error.code!=='AUTO_DEFERRED')this.record(error);return false;}
     finally{this.running=false;this.refresh();}
   }
 }
