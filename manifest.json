@@ -1,5 +1,5 @@
 {
-  "index.html": "9665d3567f04891e5d21cc2772a78a75650ff38b36d9f3216986c464a249ed01",
+  "index.html": "82e73342a890fb8ed33e3fa4c3cc5728900a13748085e5888a60cbe00340ab1f",
   "modelador.js": "31d9f68d0eebf72e3d03755c684b3e6e891697b75a4d4620588a3184e830cc9c",
   "modelador.css": "373ca594fbe8fac891ba880fa612d2466d310aad0d022c9ea46f3da87ee4db14",
   "archivos.js": "283c1b72bfdaa48e849f2910eb35471c4550df0873d090fc477f4874c4edc3f6",
@@ -20,6 +20,8 @@
   "vendor/sheets-import.js": "fca983fa20ca86c0a9ca94f4a3fce3f0b030012a7a327eee9f6691437df5ef02",
   "vendor/bpmn-js.css": "b09861c8e703076475cb6d406dc396c7c8bf3046512cdf07231bf418ec3be30d",
   "vendor/SHEETS_LICENSES.txt": "ff488a72a9e9fbce428771fc0c10fc37cdd6e2567f478f4b1eda2d6dbe053346",
+  "favicon.ico": "a447de01e87f26dd663e086db862ae287b01f758aae57d9c87407c2b0ec89645",
+  "assets/favicon-nb.png": "3a52e8adae4d77c783900e7f9ba6281fe9dfb956095154594052f10e3f2a9e3c",
   "workspace.css": "e07ff9bebf435b594b49c06583d729302f1c373c3571477c577a5593be082e3c",
   "workspace-ui.js": "463bb15564f6750675af4fa24007fe0a20e081132a6e1a0efadfacc2b3ede50b",
   "instant-edit.js": "a5b55f83b2dea6746c323313990cf18b91993aa770aed446d433a6d188dca1a2",
