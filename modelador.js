@@ -1,0 +1,672 @@
+'use strict';
+const byId = id => document.getElementById(id);
+function DocumentPalette(palette) {
+  this.getPaletteEntries = () => entries => {
+    const next = {};
+    function addDocuments() {
+      for (const format of ['Excel', 'Word', 'Manual', 'Datos']) next['create.project-' + format.toLowerCase()] = {
+        group: 'data', className: 'project-document-tool project-document-' + format.toLowerCase(), title: format,
+        action: {click: event => beginDocument(event, format), dragstart: event => beginDocument(event, format)}
+      };
+    }
+    function addStage() {
+      next['create.project-stage'] = {
+        group: 'swimlanes', className: 'project-stage-tool', title: 'Etapa',
+        action: {click: () => appendStage()}
+      };
+    }
+    let added = false;
+    for (const [id, entry] of Object.entries(entries)) {
+      if (id === 'create.data-object') { addDocuments(); added = true; continue; }
+      if (id !== 'create.data-store') {
+        next[id] = {...entry};
+        if (/^create\.(start-event|intermediate-event|end-event|exclusive-gateway|task|subprocess-expanded)$/.test(id)) next[id].group='flow';
+        if (id==='create.participant-expanded') { next[id].group='swimlanes';addStage(); }
+      }
+    }
+    if (!added) addDocuments();
+    if (!next['create.project-stage']) addStage();
+    next['create.project-comment']={group:'artifact',className:'bpmn-icon-text-annotation',title:'Comentario',action:{click:event=>beginComment(event),dragstart:event=>beginComment(event)}};
+    return next;
+  };
+  palette.registerProvider(500, this);
+}
+DocumentPalette.$inject = ['palette'];
+const documentPaletteModule = {__init__: ['projectDocumentPalette'], projectDocumentPalette: ['type', DocumentPalette]};
+const modeler = new BpmnJS({
+  additionalModules: [documentPaletteModule],
+  container: '#canvas',
+  textRenderer: {
+    defaultStyle: {fontFamily: 'Arial', fontSize: 16},
+    externalStyle: {fontFamily: 'Arial', fontSize: 14}
+  }
+});
+window.bpmnModeler = modeler;
+window.diagramReady = false;
+window.diagramError = null;
+// Agrupa los cambios nativos para poder deshacer toda la columna en un paso.
+function AddStageHandler(modeling, elementFactory, bpmnFactory, canvas, elementRegistry) {
+  this.preExecute = context => {
+    const stages = elementRegistry.getAll().filter(isStage).sort((a,b) => a.x-b.x);
+    const pools = elementRegistry.getAll().filter(e => e.type === 'bpmn:Participant');
+    const first = stages[0], last = stages.at(-1);
+    const x = last ? Math.max(...stages.map(e => e.x+e.width)) : pools.length ? Math.min(...pools.map(e => e.x))+60 : 140;
+    const y = first ? Math.min(...stages.map(e => e.y)) : pools.length ? Math.min(...pools.map(e => e.y))-64 : 75;
+    const bottom = stages.length ? Math.max(...stages.map(e => e.y+e.height)) : pools.length ? Math.max(...pools.map(e => e.y+e.height)) : y+900;
+    const width = last?.width || 500, height = Math.max(300,bottom-y);
+    const prefix = activeDiagram?.stagePrefix || 'Stage_';
+    let number = stages.length+1;
+    while (elementRegistry.get(prefix+'Etapa_'+number)) number += 1;
+    const shape = elementFactory.createShape({type:'bpmn:Group', businessObject:bpmnFactory.create('bpmn:Group',{id:prefix+'Etapa_'+number}), width, height});
+    context.stage = modeling.createShape(shape,{x:x+width/2,y:y+height/2},canvas.getRootElement());
+    modeling.resizeShape(context.stage,{x,y,width,height});
+    modeling.updateLabel(context.stage,String(number).padStart(2,'0')+' · NUEVA ETAPA');
+    for (const pool of pools) {
+      if (pool.x+pool.width < x+width) modeling.resizeShape(pool,{x:pool.x,y:pool.y,width:x+width-pool.x,height:pool.height});
+    }
+    for (const lane of elementRegistry.getAll().filter(e => e.type === 'bpmn:Lane')) {
+      if (lane.x+lane.width < x+width) modeling.resizeShape(lane,{x:lane.x,y:lane.y,width:x+width-lane.x,height:lane.height});
+    }
+  };
+  this.execute = () => [];
+  this.revert = () => [];
+}
+AddStageHandler.$inject = ['modeling','elementFactory','bpmnFactory','canvas','elementRegistry'];
+modeler.get('commandStack').registerHandler('project.stage.add',AddStageHandler);
+function isStage(element) { return element.type === 'bpmn:Group' && element.id.startsWith(activeDiagram?.stagePrefix || 'Stage_'); }
+function appendStage() {
+  if (!ready) return;
+  try {
+    const context = {};
+    modeler.get('commandStack').execute('project.stage.add',context);
+    modeler.get('selection').select(context.stage);
+    togglePanel('right',false); showDetail('properties'); focusStage(context.stage.id);
+    byId('elementName').focus(); byId('elementName').select();
+    status('Etapa agregada al final. Cambia su nombre en Propiedades y pulsa Aplicar; Guarda para conservarla.');
+  } catch (error) { status('No se pudo agregar la etapa: '+error.message); }
+}
+let selected = null;
+let ready = false;
+let dirty = false;
+let project = null;
+let activeDiagram = null;
+let baseSha256 = null;
+let sessionToken = '';
+let files = [];
+let filePolling = false;
+let loadingDiagram = false;
+let detached = false;
+let documentDefaultUse = 'Referencia';
+let editSequence = 0;
+let saving = false;
+let keepDocumentDraft = null;
+let documentSelectionId = null;
+let standalone = false;
+const browserFiles = new BrowserBpmnFiles();
+window.browserBpmnFiles = browserFiles;
+function fileUrl(file) { return file.url; }
+async function api(url, options = {}) {
+  const response = await fetch(url, {cache:'no-store', ...options});
+  const result = await response.json();
+  if (!response.ok) {
+    if (response.status === 409) showExternalChange(result.error);
+    throw new Error(result.error || 'No se pudo completar la operación');
+  }
+  return result;
+}
+function showExternalChange(message) {
+  byId('externalChange').hidden = false;
+  byId('externalChangeText').textContent = message || 'El BPMN cambió fuera de esta ventana. Tus cambios locales siguen disponibles.';
+}
+function renderStageNavigation() {
+  const nav = byId('stageNavigation'); nav.replaceChildren();
+  const all = document.createElement('button'); all.textContent = 'Vista general'; all.dataset.stage = 'all'; all.className = 'active'; all.onclick = fit; nav.appendChild(all);
+  const stages = modeler.get('elementRegistry').getAll().filter(e => e.type === 'bpmn:Group' && e.id.startsWith(activeDiagram?.stagePrefix || 'Stage_')).sort((a,b) => a.x-b.x);
+  stages.forEach(stage => {
+    const button = document.createElement('button'); button.textContent = stageName(stage); button.dataset.stage = stage.id; button.onclick = () => focusStage(stage.id); nav.appendChild(button);
+  });
+}
+function updateProjectContext() {
+  byId('diagramTitle').textContent = activeDiagram.title;
+  byId('projectName').textContent = project.name;
+  byId('diagramTitle').title = 'Proceso: ' + activeDiagram.title;
+  document.title = activeDiagram.title + ' · NaraBizagui by NaraLab';
+  byId('diagramSelect').value = activeDiagram.id;
+  files = project.files.filter(file => (activeDiagram.files || []).includes(file.id));
+  renderFiles();
+  byId('pendingList').replaceChildren();
+  (activeDiagram.pending || []).forEach(text => { const li = document.createElement('li'); li.textContent = text; byId('pendingList').appendChild(li); });
+  byId('processNote').textContent = activeDiagram.note || '';
+  byId('sourceNote').textContent = project.sourcesNote || '';
+}
+async function loadProjectDiagram(id, allowDiscard = false) {
+  if (loadingDiagram) return;
+  if (dirty && !allowDiscard && !confirm('Hay cambios sin guardar. ¿Cargar el archivo y descartar esos cambios?')) {
+    byId('diagramSelect').value = activeDiagram?.id || '';
+    return;
+  }
+  const next = project.diagrams.find(item => item.id === id);
+  if (!next) throw new Error('El diagrama no está registrado en este proyecto');
+  loadingDiagram = true; window.diagramReady = false;
+  try {
+    const result = await api('/api/diagrams/' + id);
+    activeDiagram = next; detached = false;
+    updateProjectContext();
+    await openDiagram(result.xml);
+    if (window.diagramError) throw new Error(window.diagramError);
+    baseSha256 = result.sha256;
+    byId('externalChange').hidden = true;
+  } finally { loadingDiagram = false; window.diagramReady = ready; }
+}
+async function pollFile() {
+  if (standalone || detached) { await pollBrowserFile();return; }
+  if (filePolling || loadingDiagram || saving || detached || !activeDiagram || !ready) return;
+  filePolling = true;
+  try {
+    const result = await api('/api/diagrams/' + activeDiagram.id);
+    if (saving || loadingDiagram || result.sha256 === baseSha256) return;
+    if (dirty) showExternalChange();
+    else {
+      await openDiagram(result.xml);
+      if (!window.diagramError) { baseSha256 = result.sha256; status('Diagrama actualizado desde el archivo del proyecto.'); }
+    }
+  } catch (error) { status('No se pudo comprobar el archivo: ' + error.message); }
+  finally { filePolling = false; }
+}
+async function bootstrap() {
+  if (new URLSearchParams(location.search).get('modo')==='archivos' || document.querySelector('meta[name="narabizagui-mode"]')?.content==='browser') {await startStandalone();return;}
+  // En alojamiento estático no hay API ni catálogo de documentos del cliente.
+  const health=await fetch('/api/health',{cache:'no-store'}).catch(()=>null);
+  if (!health?.ok || !(health.headers.get('content-type')||'').includes('application/json')) {await startStandalone();return;}
+  project = await api('/api/project'); sessionToken = project.token;
+  byId('projectName').textContent = project.name;
+  byId('diagramSelect').replaceChildren();
+  project.diagrams.forEach(item => byId('diagramSelect').appendChild(new Option(item.shortTitle || item.title, item.id)));
+  await loadProjectDiagram(project.defaultDiagram || project.diagrams[0].id, true);
+  window.projectReady = true;
+  setInterval(pollFile, 3000);
+}
+function browserFileContext(name) {
+  detached=true;activeDiagram=null;files=[];renderFiles();baseSha256=null;
+  byId('projectName').textContent='Archivo';byId('diagramTitle').textContent=name;byId('diagramTitle').title=name;
+  document.title=name+' · NaraBizagui by NaraLab';
+  byId('diagramSelect').hidden=true;byId('reloadDiagram').disabled=!browserFiles.handle;
+  byId('pendingList').replaceChildren();byId('processNote').textContent='';byId('sourceNote').textContent='';
+  byId('fileModeHint').textContent='Abre archivos del equipo o de carpetas sincronizadas con OneDrive/SharePoint. Guardar actualiza el archivo elegido; Guardar como permite elegir otra ubicación.';
+}
+async function startStandalone() {
+  standalone=true;project={name:'',files:[],diagrams:[]};window.fileMode='browser';
+  byId('fileModeLink').hidden=true;
+  await newBrowserDiagram(true);window.projectReady=true;setInterval(pollFile,3000);
+  status('Abre un BPMN o crea un proceso. Los archivos se manejan en tu equipo.');
+}
+async function newBrowserDiagram(force=false) {
+  if (!force && dirty && !confirm('Hay cambios sin guardar. ¿Crear otro diagrama y descartarlos?')) return;
+  await modeler.createDiagram();const {xml}=await modeler.saveXML({format:true});
+  await browserFiles.attach({name:'Sin título.bpmn',xml,handle:null});
+  browserFileContext(browserFiles.name);await openDiagram(xml);byId('externalChange').hidden=true;
+}
+async function acceptBrowserSource(source) {
+  browserFiles.validate(source.xml);
+  const previousDirty=dirty;
+  const previous=ready ? (await modeler.saveXML({format:true})).xml : null;
+  await openDiagram(source.xml);
+  if(window.diagramError){const reason=window.diagramError;if(previous){await openDiagram(previous);setDirty(previousDirty);}throw new Error(reason);}
+  await browserFiles.attach(source);browserFileContext(source.name);
+  byId('externalChange').hidden=true;
+  status(browserFiles.handle ? 'Archivo abierto. Guardar actualiza este archivo; se detectan cambios externos.' : 'Archivo abierto. Usa Guardar como para elegir destino.');
+}
+async function openBrowserFile() {
+  if (!window.showOpenFilePicker) {byId('open').click();return;}
+  if (dirty && !confirm('Hay cambios sin guardar. ¿Abrir otro archivo y descartarlos?')) return;
+  try {await acceptBrowserSource(await browserFiles.pickOpen());}
+  catch(error){if(error.name!=='AbortError')status(error.message);}
+}
+async function saveBrowserFile(saveAs=false) {
+  if(saving)return;
+  if(!window.showSaveFilePicker){await exportBpmn();status('Este navegador descarga una copia. Para guardar directamente usa Edge o Chrome de escritorio.');return;}
+  try {
+    // El selector debe abrirse desde el clic, antes de preparar el XML.
+    const handle=saveAs || !browserFiles.handle ? await browserFiles.pickSave(browserFiles.name) : browserFiles.handle;
+    if(handle.requestPermission && await handle.requestPermission({mode:'readwrite'})!=='granted')throw new Error('No se concedió permiso para guardar este archivo.');
+    saving=true;const sequence=editSequence;
+    const {xml}=await modeler.saveXML({format:true});await browserFiles.save(xml,handle);
+    if(sequence===editSequence)setDirty(false);
+    browserFileContext(browserFiles.name);byId('externalChange').hidden=true;
+    status('Archivo guardado · Revisión anterior conservada en Historial local.');
+  } catch(error){if(error.code==='EXTERNAL_CHANGE')showExternalChange(error.message);if(error.name!=='AbortError')status(error.message);}
+  finally{saving=false;}
+}
+async function reloadBrowserFile() {
+  if(!browserFiles.handle){status('Abre el archivo de nuevo para leer su última versión.');return;}
+  if(dirty && !confirm('Hay cambios sin guardar. ¿Cargar el archivo y descartarlos?'))return;
+  loadingDiagram=true;
+  try{await acceptBrowserSource(await browserFiles.read());}catch(error){status(error.message);}finally{loadingDiagram=false;}
+}
+async function pollBrowserFile() {
+  if(!browserFiles.handle || filePolling || loadingDiagram || saving || !ready)return;
+  filePolling=true;
+  try{
+    const source=await browserFiles.read();
+    if(saving || loadingDiagram || source.hash===browserFiles.hash)return;
+    if(dirty)showExternalChange();else await acceptBrowserSource(source);
+  }catch(error){status('No se pudo leer el archivo abierto: '+error.message);}finally{filePolling=false;}
+}
+async function showHistory() {
+  const items=byId('historyItems');items.replaceChildren();
+  try{
+    const revisions=await browserFiles.revisions();
+    if(!revisions.length)items.textContent='Todavía no hay revisiones de archivos guardados desde este navegador.';
+    for(const revision of revisions){const row=document.createElement('div');row.className='history-row';const label=document.createElement('span');label.textContent=revision.name+' · '+new Date(revision.date).toLocaleString();const button=document.createElement('button');button.textContent='Descargar copia';button.onclick=()=>download(revision.xml,'application/xml',revision.name.replace(/\.bpmn$/i,'')+'_anterior.bpmn');row.append(label,button);items.appendChild(row);}
+    byId('historyDialog').showModal();
+  }catch(error){status('No se pudo abrir el historial: '+error.message);}
+}
+function status(message) { byId('status').textContent = message; }
+function setDirty(value) {
+  dirty = value;
+  byId('dirtyState').textContent = value ? 'Cambios sin guardar' : 'Sin cambios pendientes';
+  byId('dirtyState').classList.toggle('dirty', value);
+}
+function showRibbon(name) {
+  setRibbonCollapsed(false);
+  document.querySelectorAll('[data-ribbon]').forEach(button => {
+    const active = button.dataset.ribbon === name;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-selected', String(active));
+  });
+  document.querySelectorAll('[data-content]').forEach(panel => panel.hidden = panel.dataset.content !== name);
+}
+function setRibbonCollapsed(collapsed) {
+  byId('ribbon').hidden = collapsed;
+  byId('toggleRibbon').textContent = collapsed ? '⌄' : '⌃';
+  byId('toggleRibbon').setAttribute('aria-expanded', String(!collapsed));
+  const label = collapsed ? 'Expandir barra superior' : 'Minimizar barra superior';
+  byId('toggleRibbon').setAttribute('aria-label', label); byId('toggleRibbon').title = label;
+  requestAnimationFrame(() => modeler.get('canvas').resized());
+}
+function showDetail(name) {
+  byId('workspace').classList.remove('right-hidden');
+  byId('rightPanel').hidden = false;
+  byId('showRight').hidden = true;
+  if (innerWidth <= 850) byId('workspace').classList.add('mobile-detail');
+  byId('propertiesPanel').hidden = name !== 'properties';
+  byId('filesPanel').hidden = name !== 'files';
+  for (const [id, tab] of [['tabProperties', 'properties'], ['tabFiles', 'files']]) {
+    byId(id).classList.toggle('active', name === tab);
+    byId(id).setAttribute('aria-selected', String(name === tab));
+  }
+  requestAnimationFrame(() => modeler.get('canvas').resized());
+}
+function togglePanel(side, explicit) {
+  const workspace = byId('workspace');
+  const hidden = explicit === undefined ? !workspace.classList.contains(side + '-hidden') : explicit;
+  workspace.classList.toggle(side + '-hidden', hidden);
+  byId(side + 'Panel').hidden = hidden;
+  byId(side === 'left' ? 'showLeft' : 'showRight').hidden = !hidden;
+  if (side === 'right' && hidden) workspace.classList.remove('mobile-detail');
+  requestAnimationFrame(() => modeler.get('canvas').resized());
+}
+function markStage(id) {
+  document.querySelectorAll('[data-stage]').forEach(button => button.classList.toggle('active', button.dataset.stage === id));
+}
+function fit() {
+  modeler.get('canvas').zoom('fit-viewport', 'auto');
+  markStage('all');
+}
+function focusStage(id) {
+  if (id === 'all') { fit(); return; }
+  const stage = modeler.get('elementRegistry').get(id);
+  if (!stage) { status('Esta etapa no está en el modelo abierto.'); return; }
+  const canvas = modeler.get('canvas');
+  const size = canvas.getSize();
+  const zoom = Math.min(0.95, (size.width - 70) / (stage.width + 40));
+  canvas.zoom(zoom);
+  const view = canvas.viewbox();
+  canvas.viewbox({x: stage.x - (view.width - stage.width) / 2, y: 55, width: view.width, height: view.height});
+  markStage(id);
+}
+function zoom(value) {
+  const canvas = modeler.get('canvas');
+  canvas.zoom(Math.max(0.1, Math.min(2, value)));
+  markStage('');
+}
+function mountPalette() {
+  const palette = document.querySelector('#canvas .djs-palette') || document.querySelector('#paletteHost .djs-palette');
+  if (palette) byId('paletteHost').appendChild(palette);
+  const labels = {
+    'hand-tool': 'Desplazar', 'lasso-tool': 'Seleccionar', 'space-tool': 'Espacio', 'global-connect-tool': 'Conectar',
+    'create.start-event': 'Inicio', 'create.intermediate-event': 'Intermedio', 'create.end-event': 'Fin',
+    'create.exclusive-gateway': 'Decisión', 'create.task': 'Tarea', 'create.subprocess-expanded': 'Subproceso',
+    'create.data-object': 'Documento', 'create.data-store': 'Datos', 'create.participant-expanded': 'Participante', 'create.group': 'Grupo', 'create.project-stage': 'Etapa', 'create.project-comment': 'Comentario'
+  };
+  document.querySelectorAll('#paletteHost .entry').forEach(entry => {
+    const label = labels[entry.dataset.action] || entry.title;
+    entry.dataset.label = label;
+    entry.title = entry.dataset.action === 'create.project-stage' ? 'Etapa · agregar columna al final' : label;
+    entry.setAttribute('aria-label', label);
+  });
+  const attribution = document.querySelector('#canvas .bjs-powered-by') || document.querySelector('#attributionHost .bjs-powered-by');
+  if (attribution) byId('attributionHost').appendChild(attribution);
+}
+const documentFormats = {
+  Excel: {letter: 'X', color: '#277653'}, Word: {letter: 'W', color: '#326aa6'},
+  Manual: {letter: 'M', color: '#a97836'}, Datos: {letter: 'D', color: '#6b66a0'}, Documento: {letter: '', color: '#667b8b'}
+};
+function isDocument(el) { return el && ['bpmn:DataObjectReference', 'bpmn:DataStoreReference'].includes(el.type); }
+function documentInfo(el) {
+  const parts = (el.businessObject.dataState?.name || '').split(' · ');
+  return {format: documentFormats[parts[0]] ? parts[0] : 'Documento', use: ['Entrada', 'Salida', 'Entrada/Salida', 'Referencia'].includes(parts[1]) ? parts[1] : 'Referencia'};
+}
+function documentState(format, use) {
+  return modeler.get('bpmnFactory').create('bpmn:DataState', {name: format + ' · ' + use});
+}
+function beginDocument(event, format) {
+  const shape = modeler.get('elementFactory').createShape({type: format === 'Datos' ? 'bpmn:DataStoreReference' : 'bpmn:DataObjectReference'});
+  shape.businessObject.name = format === 'Manual' ? 'Documento manual' : format === 'Datos' ? 'Datos' : 'Archivo ' + format;
+  shape.businessObject.dataState = documentState(format, documentDefaultUse);
+  shape.businessObject.dataState.$parent = shape.businessObject;
+  modeler.get('create').start(event, shape);
+  status('Coloca el documento y selecciona Entrada o Salida en Propiedades.');
+}
+function beginComment(event) {
+  const shape=modeler.get('elementFactory').createShape({type:'bpmn:TextAnnotation'});
+  shape.businessObject.text='Comentario';modeler.get('create').start(event,shape);
+  status('Coloca el comentario. Puedes editarlo en Propiedades y conectarlo con una asociación.');
+}
+function decorateDocuments() {
+  const registry = modeler.get('elementRegistry');
+  const svgNS = 'http://www.w3.org/2000/svg';
+  for (const el of registry.getAll().filter(isDocument)) {
+    const visual = registry.getGraphics(el)?.querySelector('.djs-visual');
+    if (!visual) continue;
+    visual.querySelector('.document-format-mark')?.remove();
+    const info = documentInfo(el), format = documentFormats[info.format];
+    if (!format.letter) continue;
+    const group = document.createElementNS(svgNS, 'g'); group.classList.add('document-format-mark'); group.setAttribute('pointer-events', 'none');
+    const box = document.createElementNS(svgNS, 'rect');
+    for (const [key, value] of Object.entries({x: 4, y: 14, width: Math.max(26, el.width - 8), height: 19, rx: 2, fill: format.color})) box.setAttribute(key, value);
+    const label = document.createElementNS(svgNS, 'text');
+    for (const [key, value] of Object.entries({x: el.width / 2, y: 28, 'text-anchor': 'middle', fill: '#fff', 'font-family': 'Arial', 'font-size': '15', 'font-weight': '700'})) label.setAttribute(key, value);
+    label.textContent = format.letter;
+    const io = document.createElementNS(svgNS, 'text');
+    for (const [key, value] of Object.entries({x: el.width / 2, y: el.height - 2, 'text-anchor': 'middle', fill: '#355972', 'font-family': 'Arial', 'font-size': '9', 'font-weight': '700'})) io.setAttribute(key, value);
+    io.textContent = {Entrada: 'E', Salida: 'S', 'Entrada/Salida': 'E/S', Referencia: 'R'}[info.use];
+    group.append(box, label, io); visual.appendChild(group);
+  }
+}
+function populateDocumentActivities() {
+  const target = byId('documentActivity'); target.replaceChildren(new Option('Seleccionar actividad', ''));
+  for (const el of modeler.get('elementRegistry').getAll().filter(e => /Task$/.test(e.type))) target.appendChild(new Option((el.businessObject.name || el.id).replaceAll('\n', ' '), el.id));
+}
+function linkDocument() {
+  if (!isDocument(selected)) return;
+  const registry = modeler.get('elementRegistry'), activity = registry.get(byId('documentActivity').value);
+  if (!activity) { status('Selecciona la actividad relacionada.'); return; }
+  const use = byId('documentUse').value;
+  const info = documentInfo(selected), format = byId('documentFormat').value;
+  if (format !== info.format || use !== info.use) modeler.get('modeling').updateProperties(selected, {dataState: documentState(format, use)});
+  const directions = use === 'Salida' ? [[activity, selected]] : use === 'Entrada/Salida' ? [[selected, activity], [activity, selected]] : [[selected, activity]];
+  const modeling = modeler.get('modeling');
+  try {
+    for (const [source, target] of directions) {
+      if (registry.getAll().some(e => e.source?.id === source.id && e.target?.id === target.id)) continue;
+      if (use === 'Referencia') modeling.connect(source, target, {type: 'bpmn:Association', associationDirection: 'None'});
+      else modeling.connect(source, target);
+    }
+    status('Documento vinculado a la actividad. Guarda una copia BPMN para conservarlo.');
+  } catch (error) { status('No se pudo vincular: ' + error.message); }
+}
+function applyDocumentControls() {
+  if (!isDocument(selected)) return;
+  const document = selected;
+  const format = byId('documentFormat').value, use = byId('documentUse').value;
+  documentDefaultUse = use;
+  keepDocumentDraft = {id:document.id, name:byId('elementName').value, description:byId('elementDocumentation').value};
+  const registry = modeler.get('elementRegistry'), modeling = modeler.get('modeling');
+  const relations = registry.getAll().filter(e => e.source && e.target && ((e.source.id === document.id && /Task$/.test(e.target.type)) || (e.target.id === document.id && /Task$/.test(e.source.type))) && ['bpmn:DataInputAssociation','bpmn:DataOutputAssociation','bpmn:Association'].includes(e.type));
+  const activities = [...new Set(relations.map(e => e.source.id === document.id ? e.target.id : e.source.id))];
+  modeling.updateProperties(document, {dataState:documentState(format,use)});
+  relations.forEach(connection => modeling.removeConnection(connection));
+  for (const id of activities) {
+    const task = registry.get(id);
+    if (use === 'Entrada' || use === 'Entrada/Salida') modeling.connect(document, task);
+    if (use === 'Salida' || use === 'Entrada/Salida') modeling.connect(task, document);
+    if (use === 'Referencia') modeling.connect(document, task, {type:'bpmn:Association',associationDirection:'None'});
+  }
+  decorateDocuments();
+  status('Uso actualizado: ' + use + (activities.length ? ' · Dirección de conexiones actualizada.' : ' · Elige una actividad y pulsa Conectar con la actividad.'));
+}
+function stageName(stage) {
+  return stage.businessObject.categoryValueRef?.value || stage.businessObject.categoryValue?.value || stage.businessObject.name || '';
+}
+function decorateStages() {
+  const registry = modeler.get('elementRegistry');
+  for (const el of registry.getAll().filter(e => e.id.startsWith(activeDiagram?.stagePrefix || 'Stage_') && e.type === 'bpmn:Group')) {
+    const gfx = registry.getGraphics(el);
+    const visual = gfx?.querySelector('.djs-visual');
+    if (!visual) continue;
+    const outline = visual.querySelector('rect:not(.stage-header-fill)');
+    if (outline) {
+      outline.setAttribute('fill', 'none');
+      outline.setAttribute('stroke', '#c6d5e1');
+      outline.setAttribute('stroke-width', '1.4');
+      outline.setAttribute('stroke-dasharray', '6,5');
+      outline.setAttribute('rx', '0');
+    }
+    let header = visual.querySelector('.stage-header-fill');
+    if (!header) {
+      header = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      header.classList.add('stage-header-fill');
+      visual.insertBefore(header, visual.firstChild);
+    }
+    for (const [key, value] of Object.entries({x: 0, y: 0, width: el.width, height: 64, fill: '#e9f2f9', stroke: 'none'})) header.setAttribute(key, value);
+    const label = registry.get(el.id + '_label');
+    const labelGfx = label ? registry.getGraphics(label) : null;
+    labelGfx?.querySelectorAll('text').forEach(t => {
+      t.setAttribute('font-size', '18px'); t.setAttribute('font-weight', '600'); t.setAttribute('fill', '#214b6a');
+      t.style.fontSize = '18px'; t.style.fontWeight = '600';
+    });
+  }
+}
+function roleFor(el) {
+  const lanes = modeler.get('elementRegistry').getAll().filter(e => e.type === 'bpmn:Lane' && (e.businessObject.flowNodeRef || []).some(ref => ref.id === el.id));
+  if (lanes.length) return lanes.map(e => e.businessObject.name).join(' / ');
+  if (el.type === 'bpmn:Lane') return el.businessObject.name;
+  return '—';
+}
+function phaseFor(el) {
+  const x = el.x + (el.width || 0) / 2;
+  const phase = modeler.get('elementRegistry').getAll().find(e => e.type === 'bpmn:Group' && e.id.startsWith(activeDiagram?.stagePrefix || 'Stage_') && x >= e.x && x < e.x + e.width);
+  return phase ? stageName(phase) : '—';
+}
+function updateProperties(el) {
+  selected = el && el.businessObject ? el : null;
+  byId('emptySelection').hidden = Boolean(selected);
+  byId('propertyForm').hidden = !selected;
+  byId('delete').disabled = !selected;
+  if (!selected) return;
+  const bo = selected.businessObject;
+  const typeNames = {'bpmn:ManualTask': 'Actividad', 'bpmn:Task': 'Actividad', 'bpmn:SendTask': 'Actividad de envío', 'bpmn:ExclusiveGateway': 'Decisión', 'bpmn:DataObjectReference': 'Documento', 'bpmn:Lane': 'Carril', 'bpmn:Group': isStage(selected) ? 'Etapa' : 'Grupo', 'bpmn:Participant': 'Participante', 'bpmn:TextAnnotation': 'Nota'};
+  const name = selected.type === 'bpmn:Group' ? stageName(selected) : selected.type === 'bpmn:TextAnnotation' ? bo.text : bo.name || '';
+  byId('elementType').textContent = typeNames[selected.type] || selected.type.replace('bpmn:', '');
+  byId('propertyHeading').textContent = name.replaceAll('\n', ' ') || 'Elemento sin nombre';
+  byId('elementName').value = name;
+  byId('elementDocumentation').value = (bo.documentation || []).map(d => d.text || '').join('\n\n');
+  byId('elementRole').textContent = roleFor(selected);
+  byId('elementStage').textContent = phaseFor(selected);
+  byId('documentFields').hidden = !isDocument(selected);
+  if (isDocument(selected)) {
+    const info = documentInfo(selected);
+    byId('documentFormat').value = info.format; byId('documentUse').value = info.use;
+    const previousActivity = byId('documentActivity').value;
+    const sameDocument = documentSelectionId === selected.id;
+    const related = [...new Set(modeler.get('elementRegistry').getAll().filter(e => e.source && e.target && ((e.source.id === selected.id && /Task$/.test(e.target.type)) || (e.target.id === selected.id && /Task$/.test(e.source.type)))).map(e => e.source.id === selected.id ? e.target.id : e.source.id))];
+    populateDocumentActivities();
+    byId('documentActivity').value = sameDocument && previousActivity ? previousActivity : related.length === 1 ? related[0] : '';
+    documentSelectionId = selected.id;
+  } else {
+    documentSelectionId = null;
+  }
+  const targets = byId('selectedFiles');
+  targets.replaceChildren();
+  for (const file of files.filter(f => f.nodes.includes(selected.id))) {
+    const link = document.createElement('a'); link.href = fileUrl(file); link.textContent = '▤ ' + file.title; link.title = file.filename;
+    targets.appendChild(link);
+  }
+}
+function renderFiles() {
+  byId('fileCards').replaceChildren();
+  for (const file of files) {
+    const card = document.createElement('article'); card.className = 'file-card';
+    for (const [tag, cls, value] of [['div', 'file-stage', file.stage], ['h3', '', file.title], ['p', '', file.use], ['p', 'file-details', file.sheets]]) {
+      const el = document.createElement(tag); el.className = cls; el.textContent = value; card.appendChild(el);
+    }
+    const actions = document.createElement('div'); actions.className = 'file-actions';
+    const open = document.createElement('a'); open.href = fileUrl(file); open.textContent = 'Abrir archivo'; open.title = file.filename;
+    const locate = document.createElement('button'); locate.textContent = 'Ver etapa'; locate.onclick = () => focusStage(file.phase);
+    actions.append(open, locate); card.appendChild(actions); byId('fileCards').appendChild(card);
+  }
+}
+function download(content, type, filename) {
+  const url = URL.createObjectURL(new Blob([content], {type}));
+  const link = document.createElement('a'); link.href = url; link.download = filename;
+  document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+async function exportBpmn() {
+  const {xml} = await modeler.saveXML({format: true});
+  download(xml, 'application/xml', activeDiagram ? activeDiagram.exportName+'.bpmn' : browserFiles.name);
+  status('Copia BPMN exportada.');
+}
+async function saveBpmn() {
+  if (standalone || detached || !activeDiagram) { await saveBrowserFile(); return; }
+  const {xml} = await modeler.saveXML({format: true});
+  const sequence = editSequence;
+  saving = true;
+  try {
+    const result = await api('/api/diagrams/' + activeDiagram.id, {method:'POST', headers:{'Content-Type':'application/json','X-Modelador-Token':sessionToken}, body:JSON.stringify({xml,baseSha256})});
+    baseSha256 = result.sha256;
+    if (editSequence === sequence) setDirty(false);
+    byId('externalChange').hidden = true;
+    status('Guardado en el proyecto' + (result.historyCreated ? ' · Revisión anterior conservada en historial.' : '.') + (dirty ? ' Hay cambios nuevos pendientes.' : ''));
+  } finally { saving = false; }
+}
+async function exportSvg() {
+  decorateStages(); decorateDocuments(); const {svg} = await modeler.saveSVG();
+  download(svg, 'image/svg+xml', (activeDiagram?.exportName || 'diagrama') + '.svg'); status('Imagen SVG exportada.');
+}
+async function exportPng() {
+  decorateStages(); decorateDocuments(); const {svg} = await modeler.saveSVG();
+  const url = URL.createObjectURL(new Blob([svg], {type: 'image/svg+xml'}));
+  try {
+    const image = new Image(); await new Promise((resolve, reject) => { image.onload = resolve; image.onerror = reject; image.src = url; });
+    const canvas = document.createElement('canvas'); canvas.width = image.naturalWidth * 2; canvas.height = image.naturalHeight * 2;
+    const ctx = canvas.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob(blob => { if (blob) { download(blob, 'image/png', (activeDiagram?.exportName || 'diagrama') + '.png'); status('Imagen PNG exportada.'); } }, 'image/png');
+  } finally { URL.revokeObjectURL(url); }
+}
+async function openDiagram(xml) {
+  ready = false; window.diagramReady = false; window.diagramError = null;
+  try {
+    const result = await modeler.importXML(xml);
+    window.importWarnings = result.warnings || [];
+    mountPalette(); decorateStages(); decorateDocuments(); renderStageNavigation(); fit(); updateProperties(null); setDirty(false);
+    ready = true; window.diagramReady = true;
+    status('Modelo editable · ' + window.importWarnings.length + ' advertencias de importación · Revisión del proceso pendiente');
+    refreshActions();
+  } catch (error) { window.diagramError = error.message; status('No se pudo abrir: ' + error.message); }
+}
+window.openDiagram = openDiagram;
+window.decorateStages = decorateStages;
+window.decorateDocuments = decorateDocuments;
+function refreshActions() {
+  const stack = modeler.get('commandStack'); byId('undo').disabled = !stack.canUndo(); byId('redo').disabled = !stack.canRedo();
+}
+document.querySelectorAll('[data-ribbon]').forEach(button => button.onclick = () => showRibbon(button.dataset.ribbon));
+byId('toggleRibbon').onclick = () => setRibbonCollapsed(!byId('ribbon').hidden);
+byId('documentUse').onchange = applyDocumentControls;
+byId('documentFormat').onchange = applyDocumentControls;
+byId('connectDocument').onclick = linkDocument;
+document.querySelectorAll('[data-fit]').forEach(button => button.onclick = fit);
+document.querySelectorAll('[data-stage]').forEach(button => button.onclick = () => focusStage(button.dataset.stage));
+document.querySelectorAll('[data-files]').forEach(button => button.onclick = () => showDetail('files'));
+byId('tabProperties').onclick = () => showDetail('properties');
+byId('tabFiles').onclick = () => showDetail('files');
+byId('properties').onclick = () => showDetail('properties');
+byId('showPending').onclick = () => { showDetail('properties'); byId('pendingBox').open = true; byId('pendingBox').scrollIntoView({block: 'nearest'}); };
+byId('toggleLeft').onclick = () => togglePanel('left'); byId('hideLeft').onclick = () => togglePanel('left', true); byId('showLeft').onclick = () => togglePanel('left', false);
+byId('toggleRight').onclick = () => togglePanel('right'); byId('hideRight').onclick = () => togglePanel('right', true); byId('showRight').onclick = () => { togglePanel('right', false); showDetail('properties'); };
+byId('undo').onclick = () => modeler.get('commandStack').undo(); byId('redo').onclick = () => modeler.get('commandStack').redo();
+byId('delete').onclick = () => { if (selected) modeler.get('modeling').removeElements([selected]); };
+byId('plus').onclick = () => zoom(modeler.get('canvas').zoom() * 1.2); byId('minus').onclick = () => zoom(modeler.get('canvas').zoom() / 1.2);
+byId('actualSize').onclick = () => zoom(1); byId('zoomValue').onclick = fit; byId('zoomRange').oninput = event => zoom(Number(event.target.value) / 100);
+byId('save').onclick = () => saveBpmn().catch(error => status(error.message));
+byId('saveAs').onclick = () => saveBrowserFile(true);
+byId('newFile').onclick = () => newBrowserDiagram().catch(error=>status(error.message));
+byId('openFile').onclick = openBrowserFile;
+byId('fileHistory').onclick = showHistory;
+byId('closeHistory').onclick = () => byId('historyDialog').close();
+byId('exportBpmn').onclick = () => exportBpmn().catch(error => status(error.message));
+byId('diagramSelect').onchange = event => loadProjectDiagram(event.target.value).catch(error => status(error.message));
+byId('reloadDiagram').onclick = () => (detached ? reloadBrowserFile() : loadProjectDiagram(activeDiagram?.id || project.defaultDiagram)).catch(error => status(error.message));
+byId('exportLocalChanges').onclick = () => exportBpmn().catch(error => status(error.message));
+byId('loadDiskChanges').onclick = () => (detached ? reloadBrowserFile() : loadProjectDiagram(activeDiagram?.id || project.defaultDiagram)).catch(error => status(error.message));
+byId('exportSvg').onclick = () => exportSvg().catch(error => status(error.message));
+byId('exportPng').onclick = () => exportPng().catch(error => status(error.message));
+byId('open').onchange = async event => {
+  const file = event.target.files[0];
+  if (file && (!dirty || confirm('Hay cambios sin guardar. ¿Abrir el archivo y descartar esos cambios?'))) {
+    try{await acceptBrowserSource({name:file.name,xml:await file.text(),handle:null});}catch(error){status(error.message);}
+  }
+  event.target.value = '';
+};
+byId('propertyForm').onsubmit = event => {
+  event.preventDefault(); if (!selected) return;
+  keepDocumentDraft = null;
+  const modeling = modeler.get('modeling');
+  if (selected.type === 'bpmn:TextAnnotation') modeling.updateProperties(selected, {text: byId('elementName').value});
+  else modeling.updateLabel(selected, byId('elementName').value);
+  const description = byId('elementDocumentation').value;
+  const previousDescription = (selected.businessObject.documentation || []).map(d => d.text || '').join('\n\n');
+  if (isDocument(selected)) {
+    const format = byId('documentFormat').value, use = byId('documentUse').value, info = documentInfo(selected);
+    if (format !== info.format || use !== info.use) modeling.updateProperties(selected, {dataState: documentState(format, use)});
+  }
+  if (description !== previousDescription) {
+    const documentation = description ? [modeler.get('moddle').create('bpmn:Documentation', {text: description})] : [];
+    modeling.updateProperties(selected, {documentation});
+  }
+  decorateStages(); decorateDocuments(); updateProperties(selected); status('Cambios aplicados. Guarda una copia BPMN para conservarlos.');
+};
+const eventBus = modeler.get('eventBus');
+eventBus.on('selection.changed', event => {
+  if (event.newSelection[0]?.id !== selected?.id) keepDocumentDraft = null;
+  updateProperties(event.newSelection[0] || null); if (event.newSelection.length) showDetail('properties');
+});
+eventBus.on('commandStack.changed', () => {
+  if (ready) { setDirty(true); editSequence += 1; }
+  refreshActions(); decorateStages(); decorateDocuments(); renderStageNavigation();
+  queueMicrotask(() => {
+    if (selected) {
+      updateProperties(modeler.get('elementRegistry').get(selected.id) || null);
+      if (keepDocumentDraft?.id === selected?.id) {
+        byId('elementName').value = keepDocumentDraft.name;
+        byId('elementDocumentation').value = keepDocumentDraft.description;
+      }
+    }
+  });
+});
+eventBus.on('canvas.viewbox.changed', event => {
+  const value = Math.round(event.viewbox.scale * 100); byId('zoomValue').textContent = value + ' %'; byId('zoomRange').value = String(value);
+});
+document.addEventListener('keydown', event => {
+  if (!(event.ctrlKey || event.metaKey)) return;
+  if (event.key.toLowerCase() === 's') { event.preventDefault(); saveBpmn().catch(error => status(error.message)); return; }
+  if (['INPUT', 'TEXTAREA'].includes(event.target.tagName)) return;
+  if (event.key.toLowerCase() === 'z') { event.preventDefault(); modeler.get('commandStack')[event.shiftKey ? 'redo' : 'undo'](); }
+  if (event.key.toLowerCase() === 'y') { event.preventDefault(); modeler.get('commandStack').redo(); }
+});
+window.addEventListener('beforeunload', event => { if (dirty) { event.preventDefault(); event.returnValue = ''; } });
+window.addEventListener('resize', () => modeler.get('canvas').resized());
+window.addEventListener('focus', () => pollFile());
+document.addEventListener('visibilitychange', () => {if(document.visibilityState==='visible')pollFile();});
+bootstrap().catch(error => { window.diagramError = error.message; status(error.message); });

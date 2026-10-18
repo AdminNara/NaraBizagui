@@ -1,0 +1,11 @@
+.runtime/
+__pycache__/
+node_modules/
+*.log
+*.pid
+*.bpmn
+*.xlsx
+*.docx
+*.vtt
+.env
+.env.*
