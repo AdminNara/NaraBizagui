@@ -26,7 +26,13 @@ Aplica `operation:{type:"properties",elementId:"ID",values:{...}}`; solo se acep
 
 ## Bloques y alias
 
-`narabizagui_edit_batch` admite hasta 50 operaciones de `capabilities.batchOperations`, exclusivamente BPMN. Las operaciones de archivo, borrado, hojas, etapas, carriles y ER quedan fuera del bloque; usa sus herramientas individuales con revisiones propias.
+`narabizagui_edit_batch` admite hasta 200 operaciones de `capabilities.batchOperations`, exclusivamente BPMN, con un coste estructural máximo de 500. Permite procesos completos con actividades, decisiones, eventos, condiciones, bucles, documentación, geometría y enlaces. Añade `matrix` para participante/carriles/etapas y `clear` con `scope:"active"` para limpiar esa hoja. `lane_split/lane_add` se agrupan también. Los cambios de archivo, hojas y ER siguen separados; las mutaciones no se paralelizan ni se ejecutan una por una cuando pueden agruparse.
+
+La matriz devuelve alias `pool`, `lane1…`, `stage1…` y las claves de figuras. Un paso posterior usa `parentId:"@lane2"` para asignación nativa de responsable. Un `create` de `bpmn:SubProcess` acepta `expanded:true`; puedes redimensionarlo y crear sus figuras internas con su alias dentro del mismo bloque. Las conexiones internas deben permanecer en su ámbito BPMN. El MCP recibe el plan entero, lo prevalida, aplica y devuelve IDs, revisión, validación y duración. `fit:true` encaja el conjunto sin una llamada de navegador.
+
+Para una geometría ya dimensionada, `create` y `resize` aceptan `autoResize:false`: conserva los contenedores previstos y exige que las figuras creadas quepan en su padre. El comportamiento nativo de ampliación automática se conserva si se omite. `requireValid:true` rechaza el bloque cuando la auditoría de la copia contiene errores, sin cambiar el lienzo; devuelve incidencias y `previewElements` para corregir la disposición. `dryRun` también devuelve esa geometría. Los IDs de la copia no son IDs del documento real.
+
+`clear` + `matrix` + operaciones sobre `@alias` permiten reemplazar solo el contenido autorizado de la hoja en un Deshacer. La matriz es aditiva si no se limpia primero; `poolId` solo reutiliza un participante vacío. La escritura no se fuerza al terminar: comprueba el estado de autoguardado de la respuesta o de una lectura resumida cuando sea necesario.
 
 Un `create`/`connect` puede declarar `as:"revision"`; pasos siguientes referencian `@revision` en IDs. También sirven alias en `values.defaultFlow` y claves `condition:@flujo`. El resultado devuelve los IDs reales en `aliases`. Los IDs del `dryRun` pertenecen a la copia temporal; no los uses como IDs reales.
 

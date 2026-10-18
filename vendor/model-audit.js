@@ -25,6 +25,7 @@ var NaraModelAudit = (() => {
     BPMN_CREATE_TYPES: () => BPMN_CREATE_TYPES,
     EVENT_KINDS: () => EVENT_KINDS,
     PROTOCOL_VERSION: () => PROTOCOL_VERSION,
+    TOOL_CONTRACT: () => TOOL_CONTRACT,
     compareSnapshots: () => compareSnapshots,
     lineHitsBox: () => lineHitsBox,
     planOperations: () => planOperations,
@@ -34,9 +35,10 @@ var NaraModelAudit = (() => {
   });
 
   // plugins/narabizagui/shared/contract.mjs
-  var PROTOCOL_VERSION = 2;
-  var BATCH_LIMIT = 50;
-  var BATCH_OPERATIONS = ["label", "documentation", "create", "connect", "move", "resize", "move_elements", "route", "properties"];
+  var PROTOCOL_VERSION = 3;
+  var TOOL_CONTRACT = "structure-v1";
+  var BATCH_LIMIT = 200;
+  var BATCH_OPERATIONS = ["label", "documentation", "create", "connect", "move", "resize", "move_elements", "route", "properties", "lane_split", "lane_add", "matrix", "clear"];
   var BPMN_CREATE_TYPES = ["bpmn:Task", "bpmn:ManualTask", "bpmn:UserTask", "bpmn:ServiceTask", "bpmn:SendTask", "bpmn:ReceiveTask", "bpmn:ScriptTask", "bpmn:BusinessRuleTask", "bpmn:SubProcess", "bpmn:CallActivity", "bpmn:StartEvent", "bpmn:EndEvent", "bpmn:IntermediateCatchEvent", "bpmn:IntermediateThrowEvent", "bpmn:ExclusiveGateway", "bpmn:InclusiveGateway", "bpmn:ParallelGateway", "bpmn:ComplexGateway", "bpmn:EventBasedGateway", "bpmn:TextAnnotation", "bpmn:DataObjectReference", "bpmn:DataStoreReference", "bpmn:Participant"];
   var EVENT_KINDS = {
     "bpmn:StartEvent": ["Message", "Timer", "Conditional", "Signal"],
@@ -171,7 +173,16 @@ var NaraModelAudit = (() => {
         const a = nodes[i], b = nodes[j];
         if (a.attachedToId !== b.id && b.attachedToId !== a.id && !ancestors(a).has(b.id) && !ancestors(b).has(a.id) && boxesOverlap(a, b)) add("FIGURE_OVERLAP", "warning", [a.id, b.id], "Las figuras se superponen.");
       }
-      for (const f of flows) for (const n of nodes) if (![f.sourceId, f.targetId].includes(n.id) && segments(f).some(([a, b]) => lineHitsBox(a, b, n))) add("FLOW_THROUGH_FIGURE", "error", [f.id, n.id], "La l\xEDnea atraviesa una figura ajena.");
+      for (const f of flows) {
+        const owners = ancestors(f);
+        for (const n of nodes) {
+          if (owners.has(n.id)) {
+            if ((f.waypoints || []).some((p) => p.x < n.x - 0.1 || p.x > n.x + n.width + 0.1 || p.y < n.y - 0.1 || p.y > n.y + n.height + 0.1)) add("FLOW_OUTSIDE_SCOPE", "error", [f.id, n.id], "El recorrido sale de su subproceso contenedor.");
+            continue;
+          }
+          if (![f.sourceId, f.targetId].includes(n.id) && segments(f).some(([a, b]) => lineHitsBox(a, b, n))) add("FLOW_THROUGH_FIGURE", "error", [f.id, n.id], "La l\xEDnea atraviesa una figura ajena.");
+        }
+      }
       for (let i = 0; i < flows.length; i++) for (let j = i + 1; j < flows.length; j++) {
         const a = flows[i], b = flows[j];
         for (const [p, q] of segments(a)) for (const [r, s] of segments(b)) {
@@ -233,7 +244,7 @@ var NaraModelAudit = (() => {
         else if (op.type === "route" && e) delete e.labelBounds;
       }
     }
-    return { sourceRevision: snapshot.revision, originalCount: operations.length, operations: result, skippedIndices: skipped, batchSizeLimit: 50 };
+    return { sourceRevision: snapshot.revision, originalCount: operations.length, operations: result, skippedIndices: skipped, batchSizeLimit: BATCH_LIMIT };
   }
   return __toCommonJS(audit_exports);
 })();

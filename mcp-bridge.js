@@ -9,10 +9,11 @@
   let live = null;
   let pairing = false;
   let reconnecting = false;
+  let contractNotice='';
   const storageKey = 'narabizagui.codex.session.v1';
   function remember(session) {
     try {
-      if (session) sessionStorage.setItem(storageKey, JSON.stringify({ version: 1, port: session.port, id: session.id, token: session.token }));
+      if (session) sessionStorage.setItem(storageKey, JSON.stringify({ version: 1, port: session.port, id: session.id, token: session.token,serverVersion:session.serverVersion,toolContract:session.toolContract }));
       else sessionStorage.removeItem(storageKey);
     } catch { /* The live connection still works when tab storage is unavailable. */ }
   }
@@ -22,12 +23,19 @@
       const stored = JSON.parse(sessionStorage.getItem(storageKey) || 'null');
       if (!stored) return;
       if (stored.version !== 1 || !Number.isInteger(stored.port) || stored.port < 1 || stored.port > 65535 || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(stored.id) || !/^[A-Za-z0-9_-]{43}$/.test(stored.token)) { remember(null); return; }
-      live = { port: stored.port, id: stored.id, token: stored.token, controller: new AbortController() };
+      live = { port: stored.port, id: stored.id, token: stored.token,serverVersion:stored.serverVersion,toolContract:stored.toolContract,controller: new AbortController() };
       reconnecting = true; render(); say('Restableciendo el vínculo de esta pestaña con el MCP local.');
       loop(live);
     } catch { remember(null); }
   }
   const say = text => { message.textContent = text; };
+  window.NaraMcpConnectionInfo=()=>live?{serverVersion:live.serverVersion||'unknown',toolContract:live.toolContract||'legacy',compatible:live.toolContract===(window.NaraModelAudit?.TOOL_CONTRACT||'structure-v1'),recovery:'Una conversación nueva debe cargar el plugin actualizado; instalarlo no recarga las herramientas de un chat abierto.'}:null;
+  function updateContract(session,result){
+    session.serverVersion=result.serverVersion||result.version||session.serverVersion;session.toolContract=result.toolContract||session.toolContract;remember(session);
+    const key=(session.serverVersion||'unknown')+':'+(session.toolContract||'legacy');
+    if(contractNotice===key)return;contractNotice=key;
+    if(!window.NaraMcpConnectionInfo()?.compatible)say('Esta conexión usa herramientas anteriores. Para matrices y cambios estructurales abre una conversación nueva con el plugin actualizado. El documento y las operaciones ya disponibles se conservan.');
+  }
   const activity=(state,message)=>{if(typeof window.dispatchEvent==='function'&&typeof CustomEvent==='function')window.dispatchEvent(new CustomEvent('nara:agent-status',{detail:{state,message}}));};
   function render() {
     button.textContent = live ? reconnecting ? 'Reconectando con Codex' : 'Codex conectado' : 'Conectar con Codex';
@@ -49,8 +57,9 @@
     while (live === session) {
       try {
         const response = await send(session, `/sessions/${session.id}/poll`, { name: document.getElementById('diagramTitle').textContent });
+        updateContract(session,response);
         failures = 0;
-        if (live === session && reconnecting) { reconnecting = false; render(); say('Vínculo restablecido con el MCP local.'); }
+        if (live === session && reconnecting) { reconnecting = false; render(); if(window.NaraMcpConnectionInfo()?.compatible)say('Vínculo restablecido con el MCP local.'); }
         if (live !== session || !response.command) continue;
         const command = response.command;
         let result;
@@ -95,6 +104,7 @@
       remember(session);
       input.value = '';
       say('Esta pestaña está vinculada. Codex puede consultar y editar su diagrama. Puedes desconectarla cuando quieras.');
+      contractNotice='';updateContract(session,result);
       loop(session);
     } catch (error) {
       session.controller.abort();

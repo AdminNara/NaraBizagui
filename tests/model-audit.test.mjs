@@ -20,6 +20,16 @@ test('external labels are checked against figures, lines and other labels',()=>{
  const codes=validateSnapshot({elements}).issues.map(i=>i.code);
  for(const code of ['LABEL_OVER_LINE','LABEL_OVER_FIGURE','LABEL_OVERLAP'])assert.ok(codes.includes(code));
 });
+
+test('internal routes may cross their own expanded subprocess but cannot escape it or cross another figure',()=>{
+ const sub={id:'Sub',type:'bpmn:SubProcess',x:0,y:0,width:300,height:160,parentId:'Process'},a={...node('A',20,60),parentId:'Sub',flowScopeId:'Sub'},b={...node('B',220,60),parentId:'Sub',flowScopeId:'Sub'};
+ const inside={...flow('Inside',[point(60,80),point(220,80)],'A','B'),parentId:'Sub',flowScopeId:'Sub'};
+ const clean=validateSnapshot({elements:[sub,a,b,inside]});assert.ok(!clean.issues.some(i=>i.code==='FLOW_THROUGH_FIGURE'));
+ const obstacle={...node('Obstacle',120,60),parentId:'Sub',flowScopeId:'Sub'};
+ assert.ok(validateSnapshot({elements:[sub,a,b,obstacle,inside]}).issues.some(i=>i.code==='FLOW_THROUGH_FIGURE'&&i.elementIds.includes('Obstacle')));
+ const escaped={...inside,waypoints:[point(60,80),point(60,200),point(220,200),point(220,80)]};
+ assert.ok(validateSnapshot({elements:[sub,a,b,escaped]}).issues.some(i=>i.code==='FLOW_OUTSIDE_SCOPE'));
+});
 test('internal link names are scoped, allow several throws and require a single catch',()=>{
  const event=(id,type,scope,name)=>({id,type,flowScopeId:scope,eventDefinitions:[{type:'bpmn:LinkEventDefinition',name}]});
  const elements=[event('Throw1','bpmn:IntermediateThrowEvent','P','A'),event('Throw2','bpmn:IntermediateThrowEvent','P','A'),event('Catch','bpmn:IntermediateCatchEvent','P','A')];

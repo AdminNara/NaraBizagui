@@ -1,6 +1,18 @@
 # NaraBizagui by NaraLab — plugin local
 
-La versión 0.5.0 incluye cuatro skills, scripts compartidos, nueve herramientas MCP y su puente al editor en una instalación.
+La versión 0.6.0 incluye cuatro skills, scripts compartidos, nueve herramientas MCP y su puente al editor en una instalación. Adapta el ritmo a voz o texto, detecta contratos anteriores y permite construir procesos completos en un solo bloque reversible: matrices, actividades, decisiones, condiciones, eventos y subprocesos con sus conexiones.
+
+## Procesos completos y respuesta ágil
+
+`narabizagui_sessions` informa la versión del servidor y su contrato realmente activos. `read(detail:"summary")` devuelve revisión, capacidades, autoguardado y disponibilidad sin enviar la geometría completa; no sirve para una auditoría integral. `read` puede consultar el modelo durante un guardado y reutiliza la serialización de una revisión sin cambios. Las mutaciones esperan hasta cinco segundos a un guardado/sincronización en curso y comprueban de nuevo la revisión; nunca sobrescriben una edición posterior ni fuerzan un formulario pendiente.
+
+`matrix` crea participante, carriles BPMN nativos, etapas, figuras y conexiones. Recibe `lanes` y `stages` (nombres), `activities` (clave, nombre, tipo opcional, `lane` y `stage` desde uno) y `links` (`from` y `to` con esas claves). Los desplazamientos opcionales `xOffset/yOffset` colocan varias figuras en una celda; deben caber y no superponerse. Puede reutilizar un participante expandido vacío mediante `poolId`. Devuelve alias `pool`, `lane1…`, `stage1…` y claves de actividades; esos nombres de contenedores están reservados. Conserva el contenido previo de la hoja y las demás hojas.
+
+`clear` requiere `scope:"active"` y limpia solo la hoja activa, con Deshacer. Ambas operaciones pasan por la misma prevalidación temporal, comprobación de revisión, caché de solicitudes y recuperación de bloques. Para agrupar limpieza y reconstrucción usa `edit_batch`, un UUID estable y operaciones `clear` + `matrix`; se deshacen juntas. Los bloques admiten también `lane_split/lane_add`. `fit:true` encaja al finalizar y `edit(operation:{type:"fit"})` encaja sin cambiar el archivo. Los resultados del bloque incluyen duración y espera del editor; estos tiempos no representan toda la latencia del modelo o de voz.
+
+`requireValid:true` impide aplicar un plan con errores de auditoría y devuelve la geometría temporal en `previewElements` para corregirlo. `create` y `resize` admiten `autoResize:false` para mantener contenedores previamente dimensionados; las figuras deben caber dentro de ellos. Se conserva el ajuste automático nativo cuando se omite.
+
+La conexión de un chat abierto no se actualiza al instalar otro paquete. Si las herramientas cargadas no exponen estas operaciones, conserva el documento y abre una conversación nueva con el plugin actualizado; no anuncies una matriz antes de comprobarlo. Las skills priorizan un borrador visible en voz y una entrega consolidada después de iterar por escrito, siempre subordinadas a la solicitud explícita del usuario. El autoguardado conserva su destino; no se abren selectores ni se crean copias locales por rutina.
 
 | Skill | Objetivo |
 | --- | --- |
@@ -59,7 +71,7 @@ La edición manual de tablas se realiza por celdas en el lienzo (Enter aplica, E
 
 `validate` no edita: el perfil `review` informa las condiciones formales pendientes como avisos; `formal` las exige en las ramas aplicables. Detecta pares de enlaces por proceso/subproceso, referencias de flujos, condiciones, temporizadores, cruces, contactos, líneas sobre figuras y superposición de etiquetas. Devuelve `source`, `coverage`, `complete`, errores y avisos. Una lectura parcial o sin geometría suficiente no acredita revisión integral. No certifica ejecución ni aprobación de negocio.
 
-`edit_batch` agrupa `label`, `documentation`, `create`, `connect`, `move`, `resize`, `move_elements`, `route` y `properties`. `dryRun:true` prueba sobre una copia nativa sin modificar el lienzo. Los alias `as` de creación/conexión se usan como `@alias` en operaciones posteriores. Una revisión modificada durante la prevalidación impide aplicar. Cada bloque confirmado se deshace o rehace una sola vez. No agrupa eliminación, hojas, carriles, etapas ni operaciones ER; estas siguen siendo secuenciales.
+`edit_batch` admite hasta 200 operaciones y un coste estructural de 500. Agrupa creación, conexiones, documentación, condiciones, bucles, eventos, geometría y propiedades; añade matriz, limpieza de hoja y carriles nativos. Un subproceso puede crearse con `expanded:true`, dimensionarse y recibir sus actividades internas por alias en ese mismo bloque. `dryRun:true` prueba sobre una copia nativa sin modificar el lienzo. Los alias `as` se usan como `@alias` en operaciones posteriores, también para referenciar conexiones en condiciones y salidas predeterminadas. Una revisión modificada durante la prevalidación impide aplicar. Cada bloque confirmado se deshace o rehace una sola vez. Hojas, etapas individuales y operaciones ER siguen separadas.
 
 Cada bloque exige `requestId`. Repetir el mismo ID, contenido y revisión recupera el resultado conservado, sin duplicarlo; reutilizarlo con otro contenido se rechaza. La caché conserva los últimos 64 bloques en memoria de esa pestaña y se pierde al recargar. Ante resultado incierto, lee y compara antes de reintentar. Si falla una operación inesperadamente, el editor intenta restaurar y verificar el XML previo; si no puede confirmarlo, conserva la copia y bloquea nuevas mutaciones con `BATCH_RECOVERY_REQUIRED`. No sobrescribe una edición manual posterior para recuperar una confirmación.
 

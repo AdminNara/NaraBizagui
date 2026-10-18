@@ -5,6 +5,7 @@
   function create(modeler) {
     const modeling = modeler.get('modeling'), registry = modeler.get('elementRegistry'), canvas = modeler.get('canvas'), rules = modeler.get('rules');
     const semantic = window.NaraBpmnProperties.create(modeler);
+    const structure=window.NaraMcpStructure?.create(modeler);
     function PositionLabel(modeling) { this.preExecute = c => { modeling.updateLabel(c.element, c.text, c.bounds); const label = c.element.label; if (label) modeling.moveShape(label, { x: c.bounds.x - label.x, y: c.bounds.y - label.y }); }; this.execute = this.revert = () => []; }
     PositionLabel.$inject = ['modeling'];
     modeler.get('commandStack').registerHandler('nara.block.label', PositionLabel);
@@ -21,7 +22,10 @@
     }
     function apply(op) {
       let e;
-      if (op.type === 'create') {
+      if(op.type==='matrix'||op.type==='clear'){
+        if(!structure)fail('El editor necesita el módulo de estructura. Actualiza la pestaña conservando los cambios.');
+        return structure[op.type](op);
+      } else if (op.type === 'create') {
         if (!types.includes(op.bpmnType) || ![op.x,op.y].every(Number.isFinite)) fail('Tipo o posición inválidos.');
         const factory = modeler.get('elementFactory'), bpmnFactory = modeler.get('bpmnFactory');
         const bo = bpmnFactory.create(op.bpmnType, op.bpmnType === 'bpmn:TextAnnotation' ? { text: op.name || '' } : { name: op.name || '' });
@@ -32,10 +36,12 @@
           const definition = bpmnFactory.create('bpmn:' + kind + 'EventDefinition', kind === 'Link' ? { name: op.linkName || '' } : {});
           definition.$parent = bo; bo.eventDefinitions = [definition];
         }
-        const shape = op.bpmnType === 'bpmn:Participant' ? factory.createParticipantShape({ businessObject: bo, isExpanded: true }) : factory.createShape({ type: op.bpmnType, businessObject: bo });
+        if(op.expanded!==undefined&&op.bpmnType!=='bpmn:SubProcess')fail('expanded solo se aplica a subprocesos.');
+        const shape = op.bpmnType === 'bpmn:Participant' ? factory.createParticipantShape({ businessObject: bo, isExpanded: true }) : factory.createShape({ type: op.bpmnType, businessObject: bo,...(op.expanded!==undefined?{isExpanded:op.expanded}:{}) });
         const parent = op.parentId ? element(op.parentId) : canvas.getRootElement();
         if (!rules.allowed('shape.create', { shape, target: parent, position: { x: op.x, y: op.y } })) fail('No se permite crear la figura en ese contenedor.');
-        e = modeling.createShape(shape, { x: op.x, y: op.y }, parent);
+        if(op.autoResize===false&&parent.parent&&(op.x-shape.width/2<parent.x||op.x+shape.width/2>parent.x+parent.width||op.y-shape.height/2<parent.y||op.y+shape.height/2>parent.y+parent.height))fail('La figura debe caber en su contenedor cuando autoResize es false.');
+        e = modeling.createShape(shape, { x: op.x, y: op.y }, parent,op.autoResize===false?{autoResize:false}:undefined);
       } else if (op.type === 'connect') {
         const source = element(op.sourceId), target = element(op.targetId), connection = op.bpmnType ? { type: op.bpmnType } : undefined;
         const allowed = rules.allowed('connection.create', { source, target, connection });
@@ -43,7 +49,14 @@
         e = modeling.connect(source, target, connection);
       } else {
         e = element(op.elementId || op.elementIds?.[0]);
-        if (op.type === 'label') {
+        if(op.type==='lane_split'||op.type==='lane_add'){
+          if(!['bpmn:Participant','bpmn:Lane'].includes(e.type)||e.di?.isExpanded===false)fail('Selecciona un participante expandido o un carril.');
+          if(op.type==='lane_split'){
+            if(!Number.isInteger(op.count)||op.count<2||op.count>10||(e.di?.isHorizontal===false?e.width:e.height)<op.count*60)fail('El contenedor requiere al menos 60 unidades por carril.');
+            structure.prepareLanes(e);
+            modeling.splitLane(e,op.count);
+          }else{if(!['top','bottom','left','right'].includes(op.location))fail('Posición de carril inválida.');structure.prepareLanes(e);e=modeling.addLane(e,op.location);}
+        } else if (op.type === 'label') {
           if (op.bounds && !(e.label || ['bpmn:StartEvent','bpmn:EndEvent','bpmn:IntermediateCatchEvent','bpmn:IntermediateThrowEvent','bpmn:ExclusiveGateway','bpmn:InclusiveGateway','bpmn:ParallelGateway','bpmn:ComplexGateway','bpmn:EventBasedGateway','bpmn:SequenceFlow','bpmn:MessageFlow','bpmn:Association','bpmn:Group','bpmn:DataObjectReference','bpmn:DataStoreReference'].includes(e.type))) fail('La posición requiere una etiqueta externa.');
           if (e.type === 'bpmn:TextAnnotation') modeling.updateProperties(e, { text: op.text });
           else if (op.bounds) modeler.get('commandStack').execute('nara.block.label', { element: e, text: op.text, bounds: op.bounds });
@@ -59,7 +72,7 @@
           if (op.elementIds) modeling.moveElements(shapes, delta, target); else modeling.moveShape(e, delta, target);
         } else if (op.type === 'resize') {
           if (![op.x,op.y,op.width,op.height].every(Number.isFinite) || op.width < 20 || op.height < 20 || !rules.allowed('shape.resize', { shape: e })) fail('Tamaño no admitido.');
-          modeling.resizeShape(e, { x: op.x, y: op.y, width: op.width, height: op.height });
+          modeling.resizeShape(e, { x: op.x, y: op.y, width: op.width, height: op.height },undefined,op.autoResize===false?{autoResize:false}:undefined);
         } else fail('Operación no agrupable: ' + op.type);
       }
       return e;
@@ -74,7 +87,9 @@
         for (const key of ['elementId','parentId','sourceId','targetId']) if (op[key]) op[key] = resolve(op[key]);
         if (op.elementIds) op.elementIds = op.elementIds.map(resolve);
         if (op.values) op.values = Object.fromEntries(Object.entries(op.values).map(([key, v]) => [key.startsWith('condition:@') ? 'condition:' + resolve(key.slice(10)) : key, ['defaultFlow','referenceId'].includes(key) ? resolve(v) : v]));
-        const e = apply(op); affectedIds.push(e?.id); if (op.as) aliases[op.as] = e.id;
+        const e = apply(op);
+        if(e?.aliases){for(const [key,id]of Object.entries(e.aliases)){if(aliases[key])fail('Alias estructural repetido: '+key);aliases[key]=id;}affectedIds.push(...e.affectedIds);}
+        else {affectedIds.push(e?.id);if(op.as)aliases[op.as]=e.id;}
       }
       return { aliases, affectedIds };
     }

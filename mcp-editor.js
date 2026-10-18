@@ -15,9 +15,12 @@
   let revision = crypto.randomUUID();
   for (const event of ['commandStack.changed', 'import.done', 'root.set','nara.sheet.changed']) modeler.get('eventBus').on(event, () => { revision = crypto.randomUUID(); });
   const error = (code, message) => Object.assign(new Error(message), { code });
-  function available() {
-    if (!ready || loadingDiagram || saving || filePolling || window.NaraMicrosoftDialogOpen) throw error('EDITOR_BUSY', 'El visor está cargando, seleccionando o guardando un archivo. Intenta leer de nuevo.');
+  function available(readOnly=false) {
+    if (!ready || loadingDiagram || !readOnly&&(saving || filePolling || window.NaraMicrosoftDialogOpen)) throw Object.assign(error('EDITOR_BUSY', 'El editor necesita terminar su operación de archivo antes de aplicar cambios.'),{retryAfterMs:250,busyReason:loadingDiagram?'loading':saving?'saving':filePolling?'synchronizing':'file_dialog'});
   }
+  async function waitReady(expected){const started=Date.now();while((saving||filePolling)&&ready&&!loadingDiagram&&!window.NaraMicrosoftDialogOpen&&Date.now()-started<5000)await new Promise(resolve=>setTimeout(resolve,50));guard(expected);return Date.now()-started;}
+  const runtime=()=>({connection:window.NaraMcpConnectionInfo?.()||null,readiness:{canEdit:ready&&!loadingDiagram&&!saving&&!filePolling&&!window.NaraMicrosoftDialogOpen&&!formPending(),busyReason:loadingDiagram?'loading':saving?'saving':filePolling?'synchronizing':window.NaraMicrosoftDialogOpen?'file_dialog':formPending()?'form_pending':null},autoSave:{enabled:window.naraAutoSave?.enabled??false,running:saving,dirty,blocked:window.naraAutoSave?.blocked?.code||null}});
+  let serialized=null;
   function formPending() {
     return window.NaraPropertyDraftPending();
   }
@@ -44,24 +47,26 @@
       ...Object.fromEntries(['messageRef','signalRef','errorRef','escalationRef'].filter(k => d[k]).map(k => [k, { id: d[k].id, name: d[k].name, code: d[k].errorCode || d[k].escalationCode }])) }));
     return { id: el.id, type: el.type, name: el.type === 'bpmn:Group' ? stageName(el) : el.type === 'bpmn:TextAnnotation' ? bo.text || '' : bo.name || '', parentId: el.parent?.id, flowScopeId: scope?.id, attachedToId: bo.attachedToRef?.id, calledElement: bo.calledElement, x: el.x, y: el.y, width: el.width, height: el.height, sourceId: el.source?.id, targetId: el.target?.id, waypoints: el.waypoints?.map(p => ({ x: p.x, y: p.y })), labelBounds: label ? { x: label.x, y: label.y, width: label.width, height: label.height } : undefined, documentation: (bo.documentation || []).map(d => d.text || '').join('\n\n'), defaultFlowId: bo.default?.id, condition: expression(bo.conditionExpression), eventDefinitions, semanticProperties: semantic ? Object.fromEntries(semantic.fields.map(f => [f.key, f.value])) : undefined, propertyFields: semantic?.fields, dataState: bo.dataState?.name, visualStyle:window.NaraStylePanel?.read(el)||{}, role: target === modeler ? roleFor(el) : undefined, stage: target === modeler ? phaseFor(el) : undefined };
   }
-  async function read({ includeXml = false, includePropertyFields = false, elementIds } = {}) {
-    available();
+  async function read({ includeXml = false, includePropertyFields = false, elementIds, detail='full' } = {}) {
+    available(true);
     const base = revision;
-    const { xml } = await modeler.saveXML({ format: true });
-    const sha256 = await browserFiles.digest(xml);
+    if(!serialized||serialized.revision!==base){const {xml}=await modeler.saveXML({format:true});const sha256=await browserFiles.digest(xml);if(base===revision)serialized={revision:base,xml,sha256};else throw error('REVISION_CONFLICT','El diagrama cambió durante la lectura. Lee nuevamente.');}
+    const {xml,sha256}=serialized;
     if (base !== revision) throw error('REVISION_CONFLICT', 'El diagrama cambió durante la lectura. Lee nuevamente.');
+    const present=state=>{Object.assign(state,runtime());Object.assign(state.capabilities,{protocolVersion:window.NaraModelAudit?.PROTOCOL_VERSION||3,toolContract:window.NaraModelAudit?.TOOL_CONTRACT||'structure-v1',matrix:state.diagramType==='bpmn'&&Boolean(window.NaraMcpStructure),clearActive:state.diagramType==='bpmn'&&Boolean(window.NaraMcpStructure),fit:true,compactRead:true,waitForAutoSaveMs:5000});if(detail==='summary'){delete state.elements;delete state.dataModel;state.elementsOmitted=true;}return state;};
     const canvas = modeler.get('canvas'), er=window.NaraER,activeSheetId = er?.active() || canvas.getRootElement().id;
     if(er?.active()){
       const dataModel=er.read(),elements=[...dataModel.tables.map(t=>({...t,type:'nara:Entity',height:window.NaraERModel.height(t)})),...dataModel.relationships.map(r=>({...r,type:'nara:Relationship'}))];
       const selectedElements=elementIds?elements.filter(e=>elementIds.includes(e.id)):elements;
-      return {editorVersion:window.NaraAppVersion||'unknown',editorBuild:window.NaraAppBuild||'unknown',capabilities:{protocolVersion:2,semanticProperties:false,structuredValidation:Boolean(window.NaraModelAudit),batch:false,batchLimit:0,batchOperations:[]},revision,sha256,fileName:browserFiles.name,diagramType:'erd',activeSheetId,sheets:modeler.get('naraSheets').list(),dirty,unappliedProperties:formPending(),canSaveToFile:Boolean(browserFiles.handle),selectedIds:er.selected()?[er.selected()]:[],selectedFieldId:er.selectedField(),warnings:(window.importWarnings||[]).map(w=>w.message||String(w)),canUndo:modeler.get('commandStack').canUndo(),canRedo:modeler.get('commandStack').canRedo(),totalElements:elements.length,elementsFiltered:Boolean(elementIds),elementsTruncated:selectedElements.length>2000,elements:selectedElements.slice(0,2000),dataModel,expandedCanvas:window.NaraExpandedCanvas?.()||false,...(includeXml?{xml}:{})};
+      return present({editorVersion:window.NaraAppVersion||'unknown',editorBuild:window.NaraAppBuild||'unknown',capabilities:{protocolVersion:3,semanticProperties:false,structuredValidation:Boolean(window.NaraModelAudit),batch:false,batchLimit:0,batchOperations:[]},revision,sha256,fileName:browserFiles.name,diagramType:'erd',activeSheetId,sheets:modeler.get('naraSheets').list(),dirty,unappliedProperties:formPending(),canSaveToFile:Boolean(browserFiles.handle),selectedIds:er.selected()?[er.selected()]:[],selectedFieldId:er.selectedField(),warnings:(window.importWarnings||[]).map(w=>w.message||String(w)),canUndo:modeler.get('commandStack').canUndo(),canRedo:modeler.get('commandStack').canRedo(),totalElements:elements.length,elementsFiltered:Boolean(elementIds),elementsTruncated:selectedElements.length>2000,elements:selectedElements.slice(0,2000),dataModel,expandedCanvas:window.NaraExpandedCanvas?.()||false,...(includeXml?{xml}:{})});
     }
     const elements = modeler.get('elementRegistry').getAll().filter(e => e.businessObject && !e.labelTarget && canvas.findRoot(e)?.id === activeSheetId);
     const selectedElements = elementIds ? elements.filter(e => elementIds.includes(e.id)) : elements;
-    return { editorVersion:window.NaraAppVersion||'unknown', editorBuild:window.NaraAppBuild||'unknown', capabilities:{protocolVersion:2,semanticProperties:Boolean(window.NaraMcpOperations),structuredValidation:Boolean(window.NaraModelAudit),batch: Boolean(blocks),batchLimit:50,batchOperations:window.NaraMcpOperations?.supported||[]}, recentBatches:blocks?.recent()||[], batchRecovery:blocks?.recovery(includeXml), revision, sha256, fileName: browserFiles.name, diagramType:'bpmn', activeSheetId, sheets: modeler.get('naraSheets').list(), dirty, unappliedProperties: formPending(), canSaveToFile: Boolean(browserFiles.handle), selectedIds: modeler.get('selection').get().map(e => e.id), warnings: (window.importWarnings || []).map(w => w.message || String(w)), canUndo: modeler.get('commandStack').canUndo(), canRedo: modeler.get('commandStack').canRedo(), totalElements: elements.length, elementsFiltered:Boolean(elementIds), elementsTruncated: selectedElements.length > 2000, elements: selectedElements.slice(0, 2000).map(e=>{const result=describe(e);if(!includePropertyFields)delete result.propertyFields;return result;}),expandedCanvas:window.NaraExpandedCanvas?.()||false, ...(includeXml ? { xml } : {}) };
+    return present({ editorVersion:window.NaraAppVersion||'unknown', editorBuild:window.NaraAppBuild||'unknown', capabilities:{protocolVersion:3,semanticProperties:Boolean(window.NaraMcpOperations),structuredValidation:Boolean(window.NaraModelAudit),batch: Boolean(blocks),batchLimit:200,batchOperations:window.NaraMcpOperations?.supported||[]}, recentBatches:blocks?.recent()||[], batchRecovery:blocks?.recovery(includeXml), revision, sha256, fileName: browserFiles.name, diagramType:'bpmn', activeSheetId, sheets: modeler.get('naraSheets').list(), dirty, unappliedProperties: formPending(), canSaveToFile: Boolean(browserFiles.handle), selectedIds: modeler.get('selection').get().map(e => e.id), warnings: (window.importWarnings || []).map(w => w.message || String(w)), canUndo: modeler.get('commandStack').canUndo(), canRedo: modeler.get('commandStack').canRedo(), totalElements: elements.length, elementsFiltered:Boolean(elementIds), elementsTruncated: selectedElements.length > 2000, elements:detail==='summary'?[]:selectedElements.slice(0, 2000).map(e=>{const result=describe(e);if(!includePropertyFields)delete result.propertyFields;return result;}),expandedCanvas:window.NaraExpandedCanvas?.()||false, ...(includeXml ? { xml } : {}) });
   }
   async function edit({ expectedRevision, operation: op }) {
-    guard(expectedRevision);
+    await waitReady(expectedRevision);
+    if(['matrix','clear','lane_add','lane_split'].includes(op.type))return blocks.batch({expectedRevision,requestId:op.requestId||crypto.randomUUID(),operations:[op],fit:true});
     if (blocks && window.NaraMcpOperations.supported.includes(op.type) && !window.NaraER?.active()) {
       const affected = blocks.apply(op); keepDocumentDraft = null;
       if (affected?.parent) modeler.get('selection').select(affected);
@@ -75,6 +80,7 @@
       return { applied: true, ...(await read()) };
     }
     if(op.type==='view'){window.NaraSetFocus(op.expanded);return{applied:true,...(await read())};}
+    if(op.type==='fit'){fit();return{applied:true,viewOnly:true,...(await read({detail:'summary'}))};}
     if(op.type==='style'){const affectedId=window.NaraStylePanel.apply(op.elementId,op.style);return{applied:true,affectedId,...(await read())};}
     if(op.type.startsWith('erd_')){const affectedId=window.NaraER.edit(op);return{applied:true,affectedId,...(await read())};}
     if(window.NaraER?.active()&&['label','move','resize','delete'].includes(op.type)){
@@ -181,7 +187,7 @@
     return { applied: true, affectedId: affected?.id, ...(await read()) };
   }
   async function save({ expectedRevision }) {
-    guard(expectedRevision);
+    await waitReady(expectedRevision);
     const handle = browserFiles.handle;
     if (!handle || !(standalone || detached)) throw error('FILE_SELECTION_REQUIRED', 'Pulsa Guardar como en el visor y elige el destino antes de guardar mediante Codex.');
     if (handle.queryPermission && await handle.queryPermission({ mode: 'readwrite' }) !== 'granted') throw error('FILE_PERMISSION_REQUIRED', 'Pulsa Guardar en el visor para autorizar la escritura del archivo.');
@@ -212,7 +218,7 @@
     } finally { saving = false; window.naraAutoSave?.refresh(); }
   }
   async function exportPng({ expectedRevision, scale = 2 }) {
-    guard(expectedRevision);
+    await waitReady(expectedRevision);
     if (!Number.isFinite(scale) || scale < 0.5 || scale > 3) throw error('INVALID_SCALE', 'La escala debe estar entre 0.5 y 3.');
     decorateStages(); decorateDocuments();
     await document.fonts.ready;
@@ -234,7 +240,7 @@
       return { pngBase64: dataUrl.slice(dataUrl.indexOf(',') + 1), width: canvas.width, height: canvas.height, revision, fileName: browserFiles.name, sheetId, sheetName: modeler.get('naraSheets').list().find(s => s.id === sheetId)?.name, effectiveScale };
     } finally { URL.revokeObjectURL(url); }
   }
-  const blocks = window.NaraMcpBlocks?.create({ modeler, read, guard, describe, getRevision:()=>revision });
+  const blocks = window.NaraMcpBlocks?.create({ modeler, read, guard, waitReady,describe,fit:()=>fit(),getRevision:()=>revision });
   async function validate({ expectedRevision, profile = 'review', geometry = true, maxIssues = 200 }) {
     available(); if (expectedRevision !== revision) throw error('REVISION_CONFLICT', 'Lee la revisión actual antes de validar.');
     const state = await read(); if (expectedRevision !== revision) throw error('REVISION_CONFLICT', 'El diagrama cambió durante la validación.');
