@@ -109,12 +109,14 @@ El selector HTML usado como alternativa abre una copia en memoria y no puede det
 
 ### Plugin con skill y MCP local
 
-El plugin **NaraBizagui by NaraLab**, distribuido mediante **Nara IA Market**, incluye la skill y el MCP en una sola instalación. Requiere Node.js 22 o superior y un host con ejecución local. No requiere instalar las bibliotecas del servidor por separado.
+El plugin **NaraBizagui by NaraLab**, distribuido mediante **Nara IA Market**, incluye cuatro skills especializadas y el MCP en una sola instalación. Requiere Node.js 22 o superior y un host con ejecución local. No requiere instalar las bibliotecas del servidor por separado.
 
 1. Instala NaraBizagui desde el market y actívalo en un chat local.
 2. Pide conectar el diagrama. Codex entrega un código temporal.
 3. En la pestaña elegida pulsa **Conectar con Codex**, pega el código y pulsa **Vincular esta pestaña**. Autoriza el acceso local si el navegador lo solicita.
-4. Codex puede leer, editar con revisión y deshacer, guardar en el archivo autorizado y exportar PNG para el chat o un informe.
+4. Codex puede leer, editar propiedades BPMN, aplicar bloques con revisión y deshacer conjunto, auditar sin modificar, guardar en el archivo autorizado y exportar PNG para el chat o un informe.
+
+La versión 0.5.0 organiza el trabajo en coordinación (`narabizagui`), modelado (`narabizagui-modelar`), auditoría (`narabizagui-validar`) y entrega (`narabizagui-entregar`). Comparten scripts para validar snapshots, comparar revisiones y omitir cambios redundantes. El MCP ofrece nueve herramientas; la auditoría devuelve incidencias con IDs y cobertura, y los bloques prevalidan hasta 50 operaciones compatibles en una copia. Consulta [el contrato y los límites del plugin](plugins/narabizagui/README.md#semántica-auditoría-y-bloques).
 
 El código de vínculo es de un solo uso y vence en cinco minutos. Solo se conecta la pestaña vinculada a esa instancia del plugin. **Desconectar** revoca el vínculo y conserva el trabajo. El puente no ofrece acceso general al disco ni habilita por sí solo uso móvil, acceso entre equipos o Microsoft Graph. Los datos que se consultan mediante MCP se entregan a la conversación del asistente.
 

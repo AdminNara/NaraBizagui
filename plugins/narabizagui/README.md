@@ -1,8 +1,15 @@
 # NaraBizagui by NaraLab — plugin local
 
-0.3.2 incorpora carriles nativos (`lane_add`, `lane_split`), traslado conjunto de figuras (`move_elements`), eventos intermedios de enlace (`create` con `linkName`), recorridos (`route`), posición de etiquetas (`label.bounds`) y apertura protegida de BPMN en una pestaña vacía (`open_bpmn`). Cargar la web actualizada. Los enlaces deben tener una salida y una entrada con igual nombre dentro del mismo proceso; no sustituyen mensajes entre participantes independientes.
+La versión 0.5.0 incluye cuatro skills, scripts compartidos, nueve herramientas MCP y su puente al editor en una instalación.
 
-Incluye la skill `narabizagui`, el servidor MCP y su puente al editor en una instalación. No necesita `npm install` después de instalarlo: el servidor distribuido incluye sus bibliotecas y atribuciones.
+| Skill | Objetivo |
+| --- | --- |
+| `narabizagui` | Coordinar y elegir el recorrido proporcional a la solicitud. |
+| `narabizagui-modelar` | Crear o corregir el modelo mediante MCP, preservando elementos ajenos. |
+| `narabizagui-validar` | Auditar sin modificar, con incidencias y límites de cobertura. |
+| `narabizagui-entregar` | Conservar el editable y exportar PNG con revisión y hoja. |
+
+Las skills comparten el contrato y los analizadores de `shared/`; no duplican reglas ni requieren instalaciones separadas. No necesita `npm install` después de instalarlo: el servidor distribuido incluye sus bibliotecas y atribuciones.
 
 ## Requisitos e instalación
 
@@ -10,9 +17,9 @@ Incluye la skill `narabizagui`, el servidor MCP y su puente al editor en una ins
 - Node.js **22 o superior** disponible como `node` en el entorno del host. El runtime no está incluido; se requiere una vez por equipo.
 - Edge/Chrome de escritorio con acceso local permitido para la web del editor. Otros navegadores deben verificarse antes de declararlos compatibles.
 
-En Plugins selecciona **Nara IA Market → NaraBizagui by NaraLab → Instalar**. La skill y el MCP se instalan juntos. También puede instalarse con el CLI que soporte `codex plugin add narabizagui@nara-ia-market`.
+En Plugins selecciona **Nara IA Market → NaraBizagui by NaraLab → Instalar**. Las cuatro skills y el MCP se instalan juntos. También puede instalarse con el CLI que soporte `codex plugin add narabizagui@nara-ia-market`.
 
-En un chat con el plugin activo pide conectar NaraBizagui. En la pestaña del BPMN pulsa **Conectar con Codex**, pega el código temporal y pulsa **Vincular esta pestaña**. Autoriza el acceso local si el navegador lo solicita. El código vence en cinco minutos y solo se usa una vez. Cerrar el host o reiniciar el MCP requiere volver a vincular. No se inicia un servicio permanente del sistema.
+En un chat con el plugin activo pide conectar NaraBizagui. En la pestaña del BPMN pulsa **Conectar con Codex**, pega el código temporal y pulsa **Vincular esta pestaña**. Autoriza el acceso local si el navegador lo solicita. El código vence en cinco minutos y solo se usa una vez. La misma pestaña recupera el vínculo al recargar mientras el MCP siga activo. Cerrar el host o reiniciar el MCP requiere volver a vincular. No se inicia un servicio permanente del sistema.
 
 ## Herramientas
 
@@ -22,6 +29,8 @@ En un chat con el plugin activo pide conectar NaraBizagui. En la pestaña del BP
 | `narabizagui_sessions` | Pestañas vinculadas a esta instancia. |
 | `narabizagui_read` | Revisión, hojas, elementos de la hoja activa, selección, guardado y XML completo opcional. |
 | `narabizagui_edit` | Una operación nativa con revisión obligatoria y deshacer; incluye crear, renombrar, abrir y vincular hojas. |
+| `narabizagui_validate` | Auditoría semántica y geométrica de la hoja activa, con IDs, revisión y cobertura. |
+| `narabizagui_edit_batch` | Hasta 50 operaciones BPMN compatibles, prevalidación en copia, aliases y un deshacer conjunto. |
 | `narabizagui_save` | Guardado en el archivo autorizado, historial y comprobación. |
 | `narabizagui_export_png` | Hoja activa completa para el chat y archivo PNG temporal para Word/PDF. |
 | `narabizagui_disconnect` | Revocar una pestaña sin perder su trabajo. |
@@ -43,3 +52,17 @@ El PNG tiene fondo blanco y escala ajustable (2 por defecto); se limita a 8192 p
 Desde la raíz del repositorio: `npm ci`, `npm run build`, `npm test`. El paquete instalable es esta carpeta completa; no incluir `node_modules`, `local/`, fuentes de clientes ni códigos de vinculación. Las licencias del servidor se conservan en `server/dist/THIRD_PARTY_NOTICES.txt`.
 
 La edición manual de tablas se realiza por celdas en el lienzo (Enter aplica, Escape cancela, Tab avanza). El panel derecho ofrece formato y posición/tamaño. `style` aplica colores, grosor y texto; `erd_field_move` reordena campos por ID; `stage_split` divide una etapa en dos o tres columnas. La nulabilidad se conserva y es editable mediante `erd_field_upsert`. Las nuevas hojas empiezan vacías.
+
+## Semántica, auditoría y bloques
+
+`read` devuelve `editorVersion`, `editorBuild`, `capabilities`, nombres internos de enlaces, referencias y expresiones de eventos, condiciones, salidas predeterminadas y límites reales de etiquetas externas. `includePropertyFields:true` añade los campos admitidos y sus opciones; `elementIds` filtra una lectura puntual y no sirve para una auditoría integral. `edit` con `properties` utiliza el mismo servicio de validación que la interfaz manual. Los tipos adicionales de eventos se eligen con `create.eventDefinition`; las propiedades posteriores completan su configuración.
+
+`validate` no edita: el perfil `review` informa las condiciones formales pendientes como avisos; `formal` las exige en las ramas aplicables. Detecta pares de enlaces por proceso/subproceso, referencias de flujos, condiciones, temporizadores, cruces, contactos, líneas sobre figuras y superposición de etiquetas. Devuelve `source`, `coverage`, `complete`, errores y avisos. Una lectura parcial o sin geometría suficiente no acredita revisión integral. No certifica ejecución ni aprobación de negocio.
+
+`edit_batch` agrupa `label`, `documentation`, `create`, `connect`, `move`, `resize`, `move_elements`, `route` y `properties`. `dryRun:true` prueba sobre una copia nativa sin modificar el lienzo. Los alias `as` de creación/conexión se usan como `@alias` en operaciones posteriores. Una revisión modificada durante la prevalidación impide aplicar. Cada bloque confirmado se deshace o rehace una sola vez. No agrupa eliminación, hojas, carriles, etapas ni operaciones ER; estas siguen siendo secuenciales.
+
+Cada bloque exige `requestId`. Repetir el mismo ID, contenido y revisión recupera el resultado conservado, sin duplicarlo; reutilizarlo con otro contenido se rechaza. La caché conserva los últimos 64 bloques en memoria de esa pestaña y se pierde al recargar. Ante resultado incierto, lee y compara antes de reintentar. Si falla una operación inesperadamente, el editor intenta restaurar y verificar el XML previo; si no puede confirmarlo, conserva la copia y bloquea nuevas mutaciones con `BATCH_RECOVERY_REQUIRED`. No sobrescribe una edición manual posterior para recuperar una confirmación.
+
+Para analizar copias locales sin conexión: `node <plugin>/shared/snapshot-cli.mjs validate <snapshot.json> [--formal]`, `diff <before.json> <after.json>` o `plan <snapshot.json> <operations.json>`. Solo leen archivos y devuelven JSON; no son otro MCP. El plan elimina únicamente operaciones redundantes demostrables.
+
+Al actualizar, abre un chat nuevo con el plugin para cargar las nueve herramientas y carga la web actualizada después de conservar cualquier trabajo pendiente. Un chat o pestaña que mantenga una versión anterior debe informar sus capacidades reales; la instalación sola no demuestra conexión.

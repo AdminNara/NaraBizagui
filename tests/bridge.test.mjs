@@ -79,7 +79,10 @@ test('bundled plugin starts outside the checkout without npm install and serves 
     await rm(dir, { recursive: true, force: true });
   });
   await client.connect(transport);
-  assert.equal((await client.listTools()).tools.length, 7);
+  const discovered = (await client.listTools()).tools;
+  assert.equal(discovered.length, 9);
+  assert.ok(discovered.some(tool=>tool.name==='narabizagui_validate'));
+  assert.ok(discovered.some(tool=>tool.name==='narabizagui_edit_batch'));
   const connection = (await client.callTool({ name: 'narabizagui_connect', arguments: {} })).structuredContent;
   const [port, code] = connection.pairingCode.split('.');
   const paired = await (await post(port, '/pair', { code })).json();

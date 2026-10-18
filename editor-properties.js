@@ -24,7 +24,9 @@
     'replace-with-receive-task': 'Tarea de recepción', 'replace-with-business-rule-task': 'Tarea de reglas de negocio'
   };
 
+  const editors = new WeakMap();
   function create(modeler) {
+    if (editors.has(modeler)) return editors.get(modeler);
     const modeling = modeler.get('modeling'), factory = modeler.get('bpmnFactory'), stack = modeler.get('commandStack');
     function Transaction() { this.preExecute = context => context.apply(); this.execute = this.revert = () => []; }
     stack.registerHandler('nara.properties.apply', Transaction);
@@ -167,7 +169,8 @@
       if (changed('isCollection')) changes.push(update(element, bo.dataObjectRef, { isCollection: values.isCollection }));
       return changes;
     }
-    return { describe, plan, transaction: apply => stack.execute('nara.properties.apply', { apply }) };
+    const editor = { describe, plan, transaction: apply => stack.execute('nara.properties.apply', { apply }) };
+    editors.set(modeler, editor); return editor;
   }
 
   function mount(modeler, host, basePending) {
