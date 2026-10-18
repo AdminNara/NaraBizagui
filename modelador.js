@@ -241,10 +241,14 @@ async function newBrowserDiagram(force=false) {
   if (!force && (!ready || loadingDiagram || saving)) return status('Espera a que termine la operación del archivo.');
   if (!force && (dirty||window.NaraPropertyDraftPending?.()) && !confirm('Hay cambios sin guardar. ¿Crear otro diagrama y descartarlos?')) return;
   const version = ++browserDocumentVersion;
-  await modeler.createDiagram();modeler.get('modeling').removeElements(modeler.get('elementRegistry').getAll().filter(e=>e.type==='bpmn:StartEvent'));const {xml}=await modeler.saveXML({format:true});
-  await browserFiles.attach({name:'Sin título.bpmn',xml,handle:null});
-  browserFileContext(browserFiles.name);await openDiagram(xml);byId('externalChange').hidden=true;
-  return version;
+  loadingDiagram=true;
+  try{
+    await modeler.createDiagram();modeler.get('modeling').removeElements(modeler.get('elementRegistry').getAll().filter(e=>e.type==='bpmn:StartEvent'));const {xml}=await modeler.saveXML({format:true});
+    await browserFiles.attach({name:'Sin título.bpmn',xml,handle:null});
+    browserFileContext(browserFiles.name);await openDiagram(xml);byId('externalChange').hidden=true;
+    return version;
+  }catch(error){ready=false;window.diagramReady=false;throw error;}
+  finally{loadingDiagram=false;window.naraAutoSave?.refresh();}
 }
 async function acceptBrowserSource(source, canApply = () => true, preserveView = false, savedSource = source) {
   browserFiles.validate(source.xml);
@@ -323,6 +327,7 @@ async function saveBrowserFile(saveAs=false,automatic=false,attempt=0) {
   return false;
 }
 async function reloadBrowserFile() {
+  if(saving||loadingDiagram||filePolling)return status('Espera a que termine la operación del archivo.');
   if(!browserFiles.handle){status('Abre el archivo de nuevo para leer su última versión.');return;}
   if((dirty||window.NaraPropertyDraftPending?.()) && !confirm('Hay cambios sin guardar. ¿Cargar el archivo y descartarlos?'))return;
   loadingDiagram=true;
