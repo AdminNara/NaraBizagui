@@ -122,6 +122,7 @@
       return el;
     }
     function menu(element, name, anchor) {
+      if (name === 'bpmn-replace' && window.NaraPropertyDraftPending?.()) return report('Aplica los cambios de Propiedades antes de cambiar el tipo.');
       selection.select(element);
       const box = anchor?.getBoundingClientRect();
       if (box?.width) lastMenuPoint = { x: Math.max(8,Math.min(box.right + 6, innerWidth - 250)), y: Math.max(8,Math.min(box.top, innerHeight - 280)) };

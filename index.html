@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="vendor/diagram-js.css?v=08ead062d4284cb1">
   <link rel="stylesheet" href="vendor/bpmn.css?v=b4b8f7070233c196">
   <link rel="stylesheet" href="vendor/bpmn-js.css?v=b09861c8e7030764">
-  <link rel="stylesheet" href="modelador.css?v=878a2f37afc2239e">
+  <link rel="stylesheet" href="modelador.css?v=dd3711a29d3250c8">
 </head>
 <body>
   <header class="titlebar">
@@ -65,6 +65,7 @@
         <form id="propertyForm" hidden>
           <span class="eyebrow" id="elementType"></span><h2 id="propertyHeading">Elemento</h2>
           <label for="elementName">Nombre</label><textarea id="elementName" rows="3"></textarea>
+          <div id="semanticFields" class="semantic-properties"></div>
           <div id="documentFields" hidden>
             <div class="document-field-row"><div><label for="documentFormat">Formato</label><select id="documentFormat"><option>Excel</option><option>Word</option><option>Manual</option><option>Datos</option><option>Documento</option></select></div><div><label for="documentUse">Uso</label><select id="documentUse" title="Aplica inmediatamente el uso y la dirección de las conexiones"><option>Entrada</option><option>Salida</option><option>Entrada/Salida</option><option>Referencia</option></select></div></div>
             <label for="documentActivity">Actividad relacionada</label><select id="documentActivity"><option value="">Seleccionar actividad</option></select>
@@ -114,12 +115,13 @@
   <script src="archivos.js?v=053d08cb36b53d8f"></script>
   <dialog id="sheetDialog" class="codex-dialog" aria-labelledby="sheetDialogHeading"><form id="sheetForm"><div class="history-heading"><h2 id="sheetDialogHeading">Nueva hoja de proceso</h2><button type="button" id="closeSheetDialog" aria-label="Cerrar hoja">×</button></div><p id="sheetKindField"><label for="sheetKind">Tipo de hoja</label><select id="sheetKind"><option value="bpmn">Proceso BPMN</option><option value="erd">Modelo de datos · entidad-relación</option></select></p><p><label for="sheetName">Nombre de la hoja</label><input id="sheetName" maxlength="120" required autocomplete="off"></p><button type="submit" id="saveSheetName">Crear hoja</button></form></dialog>
   <script src="vendor/sheets-import.js?v=c0b00ddb98c9b5c3"></script>
-  <script src="editor-tools.js?v=100abbb2c310118f"></script>
+  <script src="editor-tools.js?v=0e76bd9271958373"></script>
   <script src="erd-model.js?v=e373fbf5bec1168a"></script>
   <script src="erd-editor.js?v=8dc4d2b842285cea"></script>
   <script src="sheets.js?v=976ea816940c2076"></script>
   <script src="editor-style.js?v=8e086dc33e594857"></script>
-  <script src="modelador.js?v=16dcb3151136fc26"></script>
+  <script src="editor-properties.js?v=345133142175ca4c"></script>
+  <script src="modelador.js?v=2085e1260c72e5fa"></script>
   <script src="mcp-editor.js?v=f372be2828831bde"></script>
   <script src="mcp-bridge.js?v=80dc1ddad7ae993f"></script>
   <script src="microsoft-ui.js?v=7cfe8a888108ccde"></script>

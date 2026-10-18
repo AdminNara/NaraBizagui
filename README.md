@@ -32,6 +32,17 @@ Las pestañas inferiores representan hojas del mismo BPMN. **＋** crea un proce
 
 Guardar conserva todas las hojas en un solo archivo BPMN 2.0, con sus planos y referencias. SVG y PNG exportan la hoja activa. Otros modeladores pueden presentar estos planos de manera distinta; las pestañas son la navegación de NaraBizagui.
 
+### Propiedades BPMN desde la interfaz
+
+Selecciona una figura o una conexión y abre **Propiedades**. **Cambiar tipo de elemento** abre las opciones nativas permitidas para esa figura. Los campos se adaptan al tipo; **Aplicar cambios** guarda nombre, descripción y configuración en una sola operación que se puede deshacer y rehacer.
+
+- **Enlaces:** crea un evento **Intermedio**, elige **Enlace · salida (flecha rellena)** o **Enlace · entrada (flecha vacía)** y asigna el **Nombre interno del enlace**. La salida y la entrada usan el mismo nombre dentro del mismo proceso o subproceso. El nombre visible puede ser diferente. El panel indica si encuentra la contraparte y evita dos entradas con el mismo nombre en el mismo ámbito. Se pueden configurar los extremos por separado; el aviso permanece hasta completar el par. Conecta la actividad anterior a la salida y la entrada a la siguiente actividad.
+- **Decisiones:** permite elegir el tipo de compuerta, configurar las condiciones de sus salidas y seleccionar una salida predeterminada. La predeterminada se toma si ninguna condición se cumple y no lleva condición propia. Las compuertas paralelas y por eventos muestran su comportamiento, sin ofrecer condiciones que no les corresponden. Una conexión seleccionada permite configurar su condición, lenguaje opcional y marca de salida predeterminada cuando su origen lo admite.
+- **Eventos:** temporizadores por fecha, duración o repetición; condición y lenguaje para eventos condicionales; crear o reutilizar mensajes, señales, errores y escalaciones; código opcional al crear un error o escalación. Los eventos de borde permiten configurar si interrumpen la actividad.
+- **Actividades y documentos:** una ejecución, bucle con condición o instancias secuenciales/paralelas; cantidad de instancias opcional y marca de colección en objetos de datos. Las opciones existentes de documentos y hojas de subprocesos se conservan.
+
+Los campos se serializan como propiedades BPMN 2.0 y no requieren el MCP. Las condiciones y temporizadores deben utilizar las expresiones admitidas por el motor donde se ejecute el proceso; el editor conserva esas expresiones, no las ejecuta. No edites el tipo o guardes mientras tengas cambios pendientes en Propiedades: aplícalos primero.
+
 También se pueden elegir archivos locales de carpetas sincronizadas por OneDrive. En ese caso, el cliente de sincronización gestiona su subida.
 
 ### Conexión directa a Microsoft

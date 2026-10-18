@@ -44,6 +44,7 @@ const modeler = new BpmnJS({
   }
 });
 window.bpmnModeler = modeler;
+const semanticProperties = window.NaraBpmnProperties.mount(modeler, byId('semanticFields'), () => basePropertyDraftPending());
 window.NaraAppVersion = '0.4.0';
 window.diagramReady = false;
 window.diagramError = null;
@@ -507,9 +508,10 @@ function updateProperties(el) {
   byId('emptySelection').hidden = Boolean(selected);
   byId('propertyForm').hidden = !selected;
   byId('delete').disabled = !selected;
+  semanticProperties.render(selected);
   if (!selected) return;
   const bo = selected.businessObject;
-  const typeNames = {'bpmn:ManualTask': 'Actividad', 'bpmn:Task': 'Actividad', 'bpmn:SendTask': 'Actividad de envío', 'bpmn:ExclusiveGateway': 'Decisión', 'bpmn:DataObjectReference': 'Documento', 'bpmn:Lane': 'Carril', 'bpmn:Group': isStage(selected) ? 'Etapa' : 'Grupo', 'bpmn:Participant': 'Participante', 'bpmn:TextAnnotation': 'Nota'};
+  const typeNames = {'bpmn:ManualTask': 'Tarea manual', 'bpmn:Task': 'Tarea', 'bpmn:UserTask': 'Tarea de usuario', 'bpmn:ServiceTask': 'Tarea de servicio', 'bpmn:ScriptTask': 'Tarea de script', 'bpmn:BusinessRuleTask': 'Tarea de reglas de negocio', 'bpmn:SendTask': 'Tarea de envío', 'bpmn:ReceiveTask': 'Tarea de recepción', 'bpmn:ExclusiveGateway': 'Decisión exclusiva', 'bpmn:InclusiveGateway': 'Decisión inclusiva', 'bpmn:ParallelGateway': 'Compuerta paralela', 'bpmn:EventBasedGateway': 'Compuerta por eventos', 'bpmn:ComplexGateway': 'Compuerta compleja', 'bpmn:StartEvent': 'Evento de inicio', 'bpmn:EndEvent': 'Evento de fin', 'bpmn:IntermediateThrowEvent': 'Evento intermedio de salida', 'bpmn:IntermediateCatchEvent': 'Evento intermedio de entrada', 'bpmn:BoundaryEvent': 'Evento de borde', 'bpmn:SequenceFlow': 'Flujo de secuencia', 'bpmn:MessageFlow': 'Flujo de mensaje', 'bpmn:SubProcess': 'Subproceso', 'bpmn:CallActivity': 'Actividad reutilizable', 'bpmn:DataObjectReference': 'Documento', 'bpmn:DataStoreReference': 'Datos', 'bpmn:Lane': 'Carril', 'bpmn:Group': isStage(selected) ? 'Etapa' : 'Grupo', 'bpmn:Participant': 'Participante', 'bpmn:TextAnnotation': 'Nota'};
   const name = selected.type === 'bpmn:Group' ? stageName(selected) : selected.type === 'bpmn:TextAnnotation' ? bo.text : bo.name || '';
   byId('elementType').textContent = typeNames[selected.type] || selected.type.replace('bpmn:', '');
   byId('propertyHeading').textContent = name.replaceAll('\n', ' ') || 'Elemento sin nombre';
@@ -651,8 +653,11 @@ byId('open').onchange = async event => {
 };
 byId('propertyForm').onsubmit = event => {
   event.preventDefault(); if (!selected) return;
+  let semanticChanges;
+  try { semanticChanges = semanticProperties.prepare(); } catch (error) { status(error.message); return; }
   keepDocumentDraft = null;
   const modeling = modeler.get('modeling');
+  semanticProperties.transaction(() => {
   if (selected.type === 'bpmn:TextAnnotation') modeling.updateProperties(selected, {text: byId('elementName').value});
   else modeling.updateLabel(selected, byId('elementName').value);
   const description = byId('elementDocumentation').value;
@@ -665,6 +670,8 @@ byId('propertyForm').onsubmit = event => {
     const documentation = description ? [modeler.get('moddle').create('bpmn:Documentation', {text: description})] : [];
     modeling.updateProperties(selected, {documentation});
   }
+  for (const apply of semanticChanges) apply();
+  });
   decorateStages(); decorateDocuments(); updateProperties(selected); status('Cambios aplicados. Guarda una copia BPMN para conservarlos.');
 };
 const eventBus = modeler.get('eventBus');
@@ -711,13 +718,13 @@ eventBus.on('commandStack.shape.create.postExecuted', event => {
   if (isStage(shape) && !stageName(shape)) modeler.get('modeling').updateLabel(shape, 'Nueva etapa', {x: shape.x + 10, y: shape.y + 8, width: shape.width - 20, height: 32});
 });
 
-window.NaraPropertyDraftPending = () => {
-  if(window.NaraER?.pending())return true;
+function basePropertyDraftPending() {
   if (!selected || byId('propertyForm').hidden) return false;
   const bo = selected.businessObject;
   const name = selected.type === 'bpmn:Group' ? stageName(selected) : selected.type === 'bpmn:TextAnnotation' ? bo.text || '' : bo.name || '';
   return byId('elementName').value !== name || byId('elementDocumentation').value !== (bo.documentation || []).map(d => d.text || '').join('\n\n');
-};
+}
+window.NaraPropertyDraftPending = () => Boolean(window.NaraER?.pending() || basePropertyDraftPending() || semanticProperties.pending());
 eventBus.on('commandStack.changed', () => {
   if (ready) { setDirty(true); editSequence += 1; }
   refreshActions(); window.NaraStylePanel?.refresh(); decorateStages(); decorateDocuments(); renderStageNavigation();
