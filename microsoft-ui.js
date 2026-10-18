@@ -3,7 +3,7 @@
   const { auth, files: cloud } = window.NaraMicrosoft.create();
   const dialog = byId('microsoftDialog'), list = byId('msFileList');
   let mode = 'open', provider = 'onedrive', folder = null, parents = [], nextLink = null;
-  let listingId = 0, busy = false, selected = null;
+  let listingId = 0, busy = false, selected = null, restoring = true;
   const isCloud = () => browserFiles.handle?.storageKind === 'microsoft';
   function message(value, error = false) {
     byId('msMessage').textContent = value; byId('msMessage').classList.toggle('ms-error', error);
@@ -12,7 +12,8 @@
     const connected = Boolean(auth.account);
     byId('msWelcome').hidden = connected; byId('msBrowser').hidden = !connected;
     byId('msAccount').textContent = auth.account?.username || '';
-    byId('connectMicrosoft').textContent = connected ? 'Microsoft conectado' : 'Conectar Microsoft';
+    byId('connectMicrosoft').textContent = restoring ? 'Recuperando Microsoft…' : connected ? 'Microsoft conectado' : 'Conectar Microsoft';
+    byId('connectMicrosoft').disabled = restoring;
     for (const key of ['msConnect','msSwitch','msDisconnect','msOneDrive','msSharePointTab','msSiteOpen','msFileName']) byId(key).disabled = busy;
     byId('msClose').disabled = byId('msCancel').disabled = saving;
     byId('msUp').disabled = busy || !parents.length;
@@ -39,14 +40,14 @@
     listingId++; folder = null; parents = []; nextLink = null; selected = null;
     list.replaceChildren(); byId('msPath').replaceChildren();
   }
-  async function detachCloud() {
+  function detachCloud() {
     if (!isCloud()) return;
-    const { xml } = await modeler.saveXML({ format: true });
-    await browserFiles.attach({ name: browserFiles.name, xml, handle: null });
+    browserFiles.handle = null; browserFiles.hash = null;
     browserFileContext(browserFiles.name); setDirty(true);
     status('La conexión al archivo se cerró. El diagrama sigue abierto como copia sin guardar.');
   }
   function open(which = 'open') {
+    if (restoring) return status('Espera a que termine la recuperación de Microsoft.');
     if (busy || saving || loadingDiagram || filePolling || !ready) return status('Espera a que termine la operación del archivo.');
     if (window.NaraPropertyDraftPending()) return status('Aplica o descarta el texto de Propiedades antes de abrir Microsoft.');
     reset(); mode = which; provider = 'onedrive';
@@ -123,6 +124,7 @@
     if (!dialog.open || current !== listingId) return;
     cloud.assertAccount(account);
     await acceptBrowserSource({ handle, name: file.name, xml }); dialog.close();
+    try { cloud.assertAccount(account); } catch (error) { detachCloud(); throw error; }
     status('BPMN abierto desde Microsoft. Guardar actualiza este archivo.');
   }
   byId('connectMicrosoft').onclick = () => open();
@@ -133,7 +135,7 @@
   dialog.addEventListener('close', () => { reset(); window.NaraMicrosoftDialogOpen = false; });
   byId('msConnect').onclick = byId('msSwitch').onclick = () => run(connect, 'Conectando con Microsoft…');
   byId('msDisconnect').onclick = () => run(async () => {
-    await detachCloud(); await auth.disconnect(); reset(); byId('msAccountMenu').open = false; message('Cuenta desconectada.');
+    await auth.disconnect(); reset(); byId('msAccountMenu').open = false; message('Cuenta desconectada en este navegador.');
   });
   byId('msOneDrive').onclick = () => run(oneDrive);
   byId('msSharePointTab').onclick = () => {
@@ -157,16 +159,24 @@
   byId('msSave').onclick = () => run(async () => {
     if (!folder || mode !== 'save') return;
     if (window.NaraPropertyDraftPending()) throw new Error('Aplica los cambios de Propiedades antes de guardar.');
-    saving = true; controls(); const sequence = editSequence;
+    saving = true; controls(); const sequence = editSequence, account = cloud.accountId();
     try {
       const { xml } = await modeler.saveXML({ format: true }); browserFiles.validate(xml);
       const handle = await cloud.create(folder, byId('msFileName').value, xml);
+      cloud.assertAccount(account);
       await browserFiles.attach({ handle, name: handle.name, xml }); browserFileContext(handle.name);
+      try { cloud.assertAccount(account); } catch (error) { detachCloud(); throw error; }
       if (sequence === editSequence) setDirty(false);
       byId('externalChange').hidden = true; dialog.close(); status('BPMN guardado en Microsoft · Contenido comprobado.');
     } finally { saving = false; }
   }, 'Guardando y comprobando…');
   window.NaraMicrosoftUI = { saveAs: () => open('save') };
-  auth.initialized.catch(() => message('No se pudo preparar Microsoft. Conserva tu BPMN y recarga la página.',true));
+  auth.onChange(({ previous, account, reason }) => {
+    if (previous && previous !== account) detachCloud();
+    reset(); controls();
+    if (dialog.open && !account) message(reason === 'expired' ? 'Microsoft requiere iniciar sesión de nuevo. Tu diagrama sigue abierto.' : 'La conexión se cerró o cambió en este navegador. Tu diagrama sigue abierto.');
+  });
+  auth.initialized.catch(() => message('No se pudo preparar Microsoft. Conserva tu BPMN y recarga la página.',true))
+    .finally(() => { restoring = false; controls(); });
   controls();
 })();
