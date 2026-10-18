@@ -54,7 +54,7 @@ test('MCP creates several expanded pools that each accept activities and retain 
     } },
     selection: { select() {}, get: () => [] },
     elementRegistry: { get: id => registry.get(id), getAll: () => [...registry.values()] },
-    commandStack: { canUndo: () => registry.size > 1, canRedo: () => false },
+    commandStack: { registerHandler() {}, canUndo: () => registry.size > 1, canRedo: () => false },
     naraSheets: { list: () => [{ id: root.id, name: 'Generic test' }] }
   };
   context.modeler = { get: service => services[service], saveXML: options => moddle.toXML(definitions, options) };

@@ -1,6 +1,17 @@
 'use strict';
 // Adapter for the existing editor. All changes use native commandStack operations.
 (() => {
+  function PositionedLabelHandler(modeling) {
+    this.preExecute = context => {
+      modeling.updateLabel(context.element, context.text, context.bounds);
+      const label = context.element.label;
+      if (label) modeling.moveShape(label, { x: context.bounds.x - label.x, y: context.bounds.y - label.y });
+    };
+    this.execute = () => [];
+    this.revert = () => [];
+  }
+  PositionedLabelHandler.$inject = ['modeling'];
+  modeler.get('commandStack').registerHandler('nara.mcp.positionedLabel', PositionedLabelHandler);
   let revision = crypto.randomUUID();
   for (const event of ['commandStack.changed', 'import.done', 'root.set']) modeler.get('eventBus').on(event, () => { revision = crypto.randomUUID(); });
   const error = (code, message) => Object.assign(new Error(message), { code });
@@ -47,8 +58,10 @@
     let affected;
     if (op.type === 'label') {
       affected = element(op.elementId);
+      if (op.bounds && !['bpmn:StartEvent','bpmn:EndEvent','bpmn:IntermediateCatchEvent','bpmn:IntermediateThrowEvent','bpmn:ExclusiveGateway','bpmn:ParallelGateway','bpmn:SequenceFlow','bpmn:MessageFlow','bpmn:Association','bpmn:Group','bpmn:DataObjectReference','bpmn:DataStoreReference'].includes(affected.type)) throw error('INVALID_OPERATION', 'La posición corresponde a una etiqueta externa.');
       if (affected.type === 'bpmn:TextAnnotation') modeling.updateProperties(affected, { text: op.text });
-      else modeling.updateLabel(affected, op.text, op.bounds);
+      else if (op.bounds) modeler.get('commandStack').execute('nara.mcp.positionedLabel', { element: affected, text: op.text, bounds: op.bounds });
+      else modeling.updateLabel(affected, op.text);
     } else if (op.type === 'documentation') {
       affected = element(op.elementId);
       modeling.updateProperties(affected, { documentation: op.text ? [modeler.get('moddle').create('bpmn:Documentation', { text: op.text })] : [] });
