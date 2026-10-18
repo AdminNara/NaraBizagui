@@ -1,9 +1,9 @@
 {
-  "index.html": "309e5914689c3af11804527d9aaffdfdec15c32e9ad9d638cc3c5d5d93b10a09",
-  "modelador.js": "6a4cbddc2d53f83b5f9a3678f17407a71ca35314a85d3e5aee6b27bee7ae230c",
-  "modelador.css": "722debcac54423ff6c77d8026deee4929149ac2c5263c7a6b3961c79e30879e1",
-  "archivos.js": "1f8b4848490f1796a27d86dbcdd4178fec1226fcdb478e51bfa0e3752ae442c1",
-  "mcp-editor.js": "41c2bc22940f754e202ea33943ab1975ea64a41c5c93509a18b2255f72276c8c",
+  "index.html": "4b05bc525cd52de1225fb37715d94a939597bc66fdeaa74a80e58de828415de1",
+  "modelador.js": "c81ecbb88dcad5696b842d4cf039a1163550af0fd20beffa655a35515b84c05c",
+  "modelador.css": "ebaeae0524b0865d4f3cd6d42a40d24ed67aafa13e938829761f324a420f0a0c",
+  "archivos.js": "053d08cb36b53d8f36fc13a3a989f09d9df8ebff4d1de3bf58e8214e037a3242",
+  "mcp-editor.js": "38344b1709189bd1b30a585c0f5f34aed7374277694a43d4ed80f0de9c1fc281",
   "mcp-bridge.js": "80dc1ddad7ae993fcd951d7f934718566b1f4b7a29ec6433af1e3a10101706f5",
   "editor-tools.js": "78e4d7cbb4c5c30cdf3d723f1eedf651d72ffa5f3f5bf71d89c4b11c3f8f3003",
   "sheets.js": "1372801afdc0c22ef10dd6f1591b0d76ba7aab7f85899c44594d54c70bea889c",
@@ -15,5 +15,11 @@
   "vendor/LICENSE.txt": "5788cf8bd61481776cee1c943595525499a1355c045e9244f92e6c8092c06770",
   "vendor/sheets-import.js": "c0b00ddb98c9b5c3b0131f369a604a3b8c16ac969cb8fbe30fd05b3178f55361",
   "vendor/bpmn-js.css": "b09861c8e703076475cb6d406dc396c7c8bf3046512cdf07231bf418ec3be30d",
-  "vendor/SHEETS_LICENSES.txt": "0834b4df15a8b2056988e10f6864b8ace7475cec3ab2c4285ad0ca61c7c05a35"
+  "vendor/SHEETS_LICENSES.txt": "0834b4df15a8b2056988e10f6864b8ace7475cec3ab2c4285ad0ca61c7c05a35",
+  "microsoft-ui.js": "9df93f6a89e2c71c32a00720d34712ea01b0be5c95033c3a5c716d880efd8586",
+  "microsoft-auth.html": "a9a8e0e292bf579c4e5003dd4fc300ebb94c84beb84ff426d56c65e09d8ecd5e",
+  "assets/microsoft-symbol.svg": "929f48f88c8ca7f3f5d294be47ec4caf51acc28ac25340c19a903125d7ecd84a",
+  "vendor/microsoft-client.js": "1e896eb1bd5e6cff5e3ffc18342a5f343a492e4e00808d079bd648c18e641f10",
+  "vendor/microsoft-auth.js": "f84cbab0d36dd18624baaa3629922b81b5e42a6f977bfaca6e5d70e4dda4a511",
+  "vendor/MICROSOFT_LICENSES.txt": "482d6621b7ef61c7f575247df6316c2c28f735b2477bd575f6391dbefb257d73"
 }

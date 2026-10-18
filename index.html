@@ -14,6 +14,7 @@
     <div class="brand" aria-label="NaraBizagui by NaraLab"><img class="brand-logo unified-brand" src="assets/narabizagui_blanco.png" alt="NaraBizagui by NaraLab"></div>
     <div class="model-title"><span id="projectName" class="project-context"></span><span id="diagramTitle">Abriendo proyecto…</span></div>
     <span id="dirtyState" class="save-state">Sin cambios pendientes</span>
+    <button id="connectMicrosoft" class="codex-button">Conectar Microsoft</button>
     <button id="connectCodex" class="codex-button">Conectar con Codex</button>
   </header>
   <nav class="ribbon-tabs" aria-label="Opciones del modelador">
@@ -30,6 +31,7 @@
     </div>
     <div class="ribbon-content" data-content="archivo" hidden>
       <div class="ribbon-group"><button id="newFile"><span class="button-symbol">＋</span>Nuevo</button><button id="openFile"><span class="button-symbol">▱</span>Abrir BPMN</button><button id="save"><span class="button-symbol">⇩</span>Guardar</button><button id="saveAs"><span class="button-symbol">▱</span>Guardar como</button><button id="exportBpmn"><span class="button-symbol">▱</span>Exportar BPMN</button><button id="fileHistory"><span class="button-symbol">↶</span>Historial local</button><span class="group-caption">Modelo editable</span></div>
+      <div class="ribbon-group"><button id="openMicrosoft">Abrir desde Microsoft</button><button id="saveMicrosoftAs">Guardar en Microsoft como</button><span class="group-caption">OneDrive · SharePoint</span></div>
       <div class="ribbon-group"><button id="exportSvg"><span class="button-symbol">▧</span>Exportar SVG</button><button id="exportPng"><span class="button-symbol">▧</span>Exportar PNG</button><span class="group-caption">Imagen del proceso</span></div>
       <div class="ribbon-hint" id="fileModeHint">Guardar actualiza el archivo. Guardar como elige otro destino.</div>
     </div>
@@ -83,6 +85,22 @@
     <p id="codexMessage" role="status">Solo se conecta la pestaña que vincules. Guardar requiere un archivo elegido y permiso de escritura.</p>
     <button id="codexDisconnect" type="button" hidden>Desconectar esta pestaña</button>
   </dialog>
+  <dialog id="microsoftDialog" class="microsoft-dialog" aria-labelledby="msHeading">
+    <div class="ms-heading"><h2 id="msHeading">Abrir desde Microsoft</h2><button id="msClose" aria-label="Cerrar Microsoft">×</button></div>
+    <section id="msWelcome" class="ms-welcome"><h3>Tus archivos, donde los guardas</h3><p>Abre y guarda BPMN en OneDrive o SharePoint con tu cuenta personal, de trabajo o de estudio.</p><button id="msConnect" class="ms-signin"><img src="assets/microsoft-symbol.svg" width="21" height="21" alt="">Iniciar sesión con Microsoft</button><p class="ms-muted">Microsoft te pedirá acceso a los archivos que tu cuenta puede usar.</p></section>
+    <div id="msBrowser" hidden>
+      <div class="ms-account"><div><span class="ms-account-caption">Cuenta conectada</span><span id="msAccount"></span></div><details id="msAccountMenu"><summary aria-label="Opciones de la cuenta">Cuenta ▾</summary><div class="ms-account-options"><button id="msSwitch">Cambiar cuenta</button><button id="msDisconnect">Desconectar</button></div></details></div>
+      <nav class="ms-locations" aria-label="Ubicación de Microsoft"><button id="msOneDrive" aria-pressed="true">OneDrive</button><button id="msSharePointTab" aria-pressed="false">SharePoint</button></nav>
+      <form id="msSiteForm" class="ms-site-form" hidden><label for="msSiteUrl">Dirección del sitio de SharePoint</label><div><input id="msSiteUrl" type="url" placeholder="https://empresa.sharepoint.com/sites/Procesos" autocomplete="off" required><button id="msSiteOpen" type="submit">Continuar</button></div></form>
+      <div class="ms-folder-bar"><button id="msUp" aria-label="Carpeta anterior" title="Carpeta anterior">↑</button><nav id="msPath" aria-label="Ruta de carpetas"></nav></div>
+      <div id="msFileList" class="ms-file-list" aria-label="Carpetas y archivos BPMN"></div><button id="msMore" class="ms-more" hidden>Cargar más</button>
+      <div id="msSaveFields" class="ms-save-fields" hidden><label for="msFileName">Nombre del archivo</label><input id="msFileName" maxlength="200" autocomplete="off"><span class="ms-muted">Se crea una copia nueva; no se reemplazan archivos existentes.</span></div>
+    </div>
+    <p id="msMessage" role="status" class="ms-message">Conecta una cuenta Microsoft.</p>
+    <footer class="ms-footer"><button id="msCancel">Cancelar</button><button id="msOpen" class="ms-primary" hidden disabled>Abrir</button><button id="msSave" class="ms-primary" hidden disabled>Guardar</button></footer>
+    <details class="ms-privacy"><summary>Permisos y privacidad</summary><p>El permiso de Microsoft permite leer, modificar y eliminar los archivos a los que tu cuenta tiene acceso. NaraBizagui implementa apertura y guardado de BPMN. Para SharePoint se solicita además lectura de sitios.</p><p>Los BPMN se transfieren directamente con Microsoft y no se conservan en el Historial local. Los tokens permanecen en memoria; al recargar tendrás que conectar de nuevo. Si vinculas Codex, el modelo puede enviarse al chat que autorices.</p></details>
+  </dialog>
+  <script src="vendor/microsoft-client.js"></script>
   <script src="archivos.js"></script>
   <dialog id="sheetDialog" class="codex-dialog" aria-labelledby="sheetDialogHeading"><form id="sheetForm"><div class="history-heading"><h2 id="sheetDialogHeading">Nueva hoja de proceso</h2><button type="button" id="closeSheetDialog" aria-label="Cerrar hoja">×</button></div><p><label for="sheetName">Nombre de la hoja</label><input id="sheetName" maxlength="120" required autocomplete="off"></p><button type="submit" id="saveSheetName">Crear hoja</button></form></dialog>
   <script src="vendor/sheets-import.js"></script>
@@ -91,4 +109,5 @@
   <script src="modelador.js"></script>
   <script src="mcp-editor.js?v=20261018-routes"></script>
   <script src="mcp-bridge.js?v=20261017-tab-session"></script>
+  <script src="microsoft-ui.js"></script>
 </body></html>

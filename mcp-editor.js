@@ -5,7 +5,7 @@
   for (const event of ['commandStack.changed', 'import.done', 'root.set']) modeler.get('eventBus').on(event, () => { revision = crypto.randomUUID(); });
   const error = (code, message) => Object.assign(new Error(message), { code });
   function available() {
-    if (!ready || loadingDiagram || saving || filePolling) throw error('EDITOR_BUSY', 'El visor está cargando, comprobando o guardando un archivo. Intenta leer de nuevo.');
+    if (!ready || loadingDiagram || saving || filePolling || window.NaraMicrosoftDialogOpen) throw error('EDITOR_BUSY', 'El visor está cargando, seleccionando o guardando un archivo. Intenta leer de nuevo.');
   }
   function formPending() {
     return window.NaraPropertyDraftPending();
@@ -152,8 +152,8 @@
       if (sequence === editSequence) setDirty(false);
       browserFileContext(browserFiles.name);
       byId('externalChange').hidden = true;
-      status('Archivo guardado por Codex · Escritura comprobada e historial conservado.');
-      return { saved: true, savedRevision: expectedRevision, revision, sha256, fileName: browserFiles.name, dirty };
+      status(handle.storageKind === 'microsoft' ? 'Archivo guardado por Codex en Microsoft · Escritura comprobada.' : 'Archivo guardado por Codex · Escritura comprobada e historial conservado.');
+      return { saved: true, storage: handle.storageKind === 'microsoft' ? 'microsoft' : 'local', savedRevision: expectedRevision, revision, sha256, fileName: browserFiles.name, dirty };
     } catch (cause) {
       if (cause.code === 'EXTERNAL_CHANGE') showExternalChange(cause.message);
       throw cause;

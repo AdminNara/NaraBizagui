@@ -28,7 +28,7 @@ En un chat con el plugin activo pide conectar NaraBizagui. En la pestaña del BP
 
 El puente escucha únicamente en `127.0.0.1`, en un puerto asignado al arrancar. Solo acepta el origen de la web publicada, exige un código aleatorio de un solo uso y autentica cada sesión. No permite ejecución de JavaScript arbitrario ni acceso general al disco. Los comandos que no reciben confirmación no se repiten automáticamente.
 
-El puente es local; los datos consultados mediante MCP se entregan a la conversación del asistente. La web no publica los BPMN en GitHub. El historial está en el navegador, no en el market. El uso desde móviles, el control de otros equipos y Microsoft Graph requieren integraciones distintas.
+El puente es local; los datos consultados mediante MCP se entregan a la conversación del asistente. La web no publica los BPMN en GitHub. El historial de archivos locales está en el navegador, no en el market. Los documentos abiertos con **Conectar Microsoft** se guardan mediante la autorización de esa cuenta y no se conservan en el Historial local. La conexión Microsoft y el vínculo con Codex son independientes. El puente por sí solo no habilita uso móvil ni control de otros equipos.
 
 Un archivo puede tener procesos independientes y detalles de subprocesos en planos BPMN nativos. `sheet_link` usa una actividad de llamada para reutilizar otra hoja y protege subprocesos que ya tienen contenido. La navegación cambia la revisión; guardar conserva todas las hojas.
 

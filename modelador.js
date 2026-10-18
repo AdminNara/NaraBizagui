@@ -200,10 +200,11 @@ async function bootstrap() {
 }
 function browserFileContext(name) {
   detached=true;activeDiagram=null;files=[];baseSha256=null;
-  byId('projectName').textContent='Archivo';byId('diagramTitle').textContent=name;byId('diagramTitle').title=name;
+  const microsoft = browserFiles.handle?.storageKind === 'microsoft';
+  byId('projectName').textContent=microsoft ? 'Microsoft' : 'Archivo';byId('diagramTitle').textContent=name;byId('diagramTitle').title=name;
   document.title=name+' · NaraBizagui by NaraLab';
   byId('diagramSelect').hidden=true;byId('reloadDiagram').disabled=!browserFiles.handle;
-  byId('fileModeHint').textContent='Guardar actualiza el archivo. Guardar como elige otro destino.';
+  byId('fileModeHint').textContent=microsoft ? 'Guardar actualiza el archivo en Microsoft. Exportar BPMN descarga una copia local.' : 'Guardar actualiza el archivo. Guardar como elige otro destino.';
 }
 async function startStandalone() {
   standalone=true;project={name:'',files:[],diagrams:[]};window.fileMode='browser';
@@ -234,8 +235,10 @@ async function openBrowserFile() {
   catch(error){if(error.name!=='AbortError')status(error.message);}
 }
 async function saveBrowserFile(saveAs=false) {
-  if(saving)return;
-  if(!window.showSaveFilePicker){await exportBpmn();status('Este navegador descarga una copia. Para guardar directamente usa Edge o Chrome de escritorio.');return;}
+  if(saving || window.NaraMicrosoftDialogOpen)return;
+  const microsoft=browserFiles.handle?.storageKind==='microsoft';
+  if (microsoft && saveAs) {window.NaraMicrosoftUI.saveAs();return;}
+  if (!microsoft && !window.showSaveFilePicker){await exportBpmn();status('Este navegador descarga una copia. Para guardar directamente usa Edge o Chrome de escritorio.');return;}
   try {
     // El selector debe abrirse desde el clic, antes de preparar el XML.
     const handle=saveAs || !browserFiles.handle ? await browserFiles.pickSave(browserFiles.name) : browserFiles.handle;
@@ -244,7 +247,7 @@ async function saveBrowserFile(saveAs=false) {
     const {xml}=await modeler.saveXML({format:true});await browserFiles.save(xml,handle);
     if(sequence===editSequence)setDirty(false);
     browserFileContext(browserFiles.name);byId('externalChange').hidden=true;
-    status('Archivo guardado · Revisión anterior conservada en Historial local.');
+    status(microsoft ? 'Archivo guardado en Microsoft · Contenido comprobado.' : 'Archivo guardado · Revisión anterior conservada en Historial local.');
   } catch(error){if(error.code==='EXTERNAL_CHANGE')showExternalChange(error.message);if(error.name!=='AbortError')status(error.message);}
   finally{saving=false;}
 }
@@ -252,10 +255,14 @@ async function reloadBrowserFile() {
   if(!browserFiles.handle){status('Abre el archivo de nuevo para leer su última versión.');return;}
   if(dirty && !confirm('Hay cambios sin guardar. ¿Cargar el archivo y descartarlos?'))return;
   loadingDiagram=true;
-  try{await acceptBrowserSource(await browserFiles.read());}catch(error){status(error.message);}finally{loadingDiagram=false;}
+  try{await acceptBrowserSource(await browserFiles.read());if(browserFiles.handle?.storageKind==='microsoft')browserFiles.handle.uncertain=false;}catch(error){status(error.message);}finally{loadingDiagram=false;}
 }
 async function pollBrowserFile() {
   if(!browserFiles.handle || filePolling || loadingDiagram || saving || !ready)return;
+  if(browserFiles.handle.storageKind==='microsoft') {
+    if(window.NaraMicrosoftDialogOpen || Date.now()-(browserFiles.handle.lastPoll||0)<30000)return;
+    browserFiles.handle.lastPoll=Date.now();
+  }
   filePolling=true;
   try{
     const source=await browserFiles.read();

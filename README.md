@@ -32,7 +32,21 @@ Las pestañas inferiores representan hojas del mismo BPMN. **＋** crea un proce
 
 Guardar conserva todas las hojas en un solo archivo BPMN 2.0, con sus planos y referencias. SVG y PNG exportan la hoja activa. Otros modeladores pueden presentar estos planos de manera distinta; las pestañas son la navegación de NaraBizagui.
 
-Se pueden elegir archivos de carpetas de OneDrive/SharePoint sincronizadas. El cliente de sincronización gestiona su subida a Microsoft. No está implementada una conexión directa a Microsoft Graph.
+También se pueden elegir archivos locales de carpetas sincronizadas por OneDrive. En ese caso, el cliente de sincronización gestiona su subida.
+
+### Conexión directa a Microsoft
+
+**Conectar Microsoft** permite autorizar una cuenta corporativa o personal mediante Microsoft Identity Platform. La aplicación utiliza MSAL y código de autorización con PKCE, sin secreto de cliente. **Abrir desde Microsoft** navega OneDrive; para SharePoint se introduce la dirección del sitio y se elige una biblioteca. **Guardar una copia en Microsoft** crea un BPMN con otro nombre. Después, **Guardar** y el guardado por MCP actualizan ese mismo archivo.
+
+El registro de aplicación pertenece a Nara y admite otras organizaciones. Cada usuario autoriza su cuenta; las políticas de su organización pueden exigir aprobación administrativa. Los permisos delegados declarados son `User.Read`, `Files.ReadWrite.All` y `Sites.Read.All`. El acceso a archivos puede abarcar todos los archivos del usuario, incluida su eliminación por el alcance del permiso de Microsoft; la interfaz solo implementa lectura y guardado de BPMN. La lectura de sitios se solicita al elegir **SharePoint**, introducir el sitio y pulsar **Continuar**. No hay permisos de aplicación ni consentimiento administrativo global concedido por esta configuración.
+
+Los tokens y las copias de documentos de Microsoft se mantienen en memoria. Recargar exige conectar de nuevo. Los guardados en Microsoft omiten el Historial local persistente. **Desconectar Microsoft** conserva el diagrama abierto como copia sin guardar; exportarlo o guardarlo localmente permite conservarlo. Conectar con Codex sigue siendo una autorización separada y permite entregar el modelo al chat vinculado.
+
+El guardado envía la revisión `eTag` como `If-Match`, rechaza conflictos y relee el contenido. Un resultado incierto requiere recargar antes de guardar otra vez. No hay colaboración simultánea. Límite: 8 MB por BPMN. Se probaron OAuth, navegación, creación, reapertura y guardado por MCP contra OneDrive real con una cuenta de trabajo y un BPMN genérico, desde el origen local. También se verificaron autorización, bibliotecas y creación con relectura en SharePoint. Los conflictos y cambios de cuenta se cubren con un transporte simulado. **Falta probar cuenta personal, organización externa y carreras simultáneas reales.**
+
+La interfaz muestra primero el inicio de sesión. Después abre OneDrive y ofrece navegación de carpetas, selección de BPMN y acciones Abrir/Guardar. Cambiar cuenta y Desconectar están en el menú de la cuenta; los detalles de permisos están en un apartado desplegable. El [símbolo oficial de Microsoft](https://learn.microsoft.com/en-us/entra/identity-platform/howto-add-branding-in-apps) se conserva sin alteraciones; pertenece a Microsoft y se utiliza para identificar su inicio de sesión.
+
+El retorno de producción es `https://demo.naraconsultores.com/NaraBizagui/microsoft-auth.html`. Para desarrollo está registrado `http://localhost:8767/microsoft-auth.html`; se debe servir esta carpeta en ese origen. La página de retorno usa el puente de MSAL y no debe recibir una cabecera COOP que rompa la ventana de autenticación. La verificación de editor de Microsoft está pendiente; las políticas de otras organizaciones pueden impedir el consentimiento o exigir aprobación de su administrador. El diálogo de conexión describe los permisos y el tratamiento de los documentos.
 
 Los diagramas seleccionados no se suben a este sitio ni a este repositorio. Solo se publica el editor y sus recursos. Cada persona conserva sus archivos y permisos.
 
@@ -63,7 +77,7 @@ La herramienta `narabizagui_export_png` devuelve la hoja activa completa como im
 
 Para desarrollar el plugin: `npm ci`, `npm run build`, `npm test`. El build incluye sus dependencias y licencias en el paquete y actualiza el manifiesto web.
 
-Después de publicar la web, `node scripts/verify-public.mjs` compara los diecisiete recursos distribuidos con el manifiesto y conserva el resultado privado bajo `local/`.
+Después de publicar la web, `node scripts/verify-public.mjs` compara los recursos distribuidos con el manifiesto y conserva el resultado privado bajo `local/`.
 
 La licencia de bpmn-js exige conservar visible el distintivo bpmn.io; se muestra fuera del lienzo. Ver [licencia incluida](vendor/LICENSE.txt).
 

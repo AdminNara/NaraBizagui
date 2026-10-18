@@ -11,6 +11,7 @@
     "node": ">=22"
   },
   "devDependencies": {
+    "@azure/msal-browser": "5.25.1",
     "@modelcontextprotocol/sdk": "1.32.1",
     "bpmn-js": "18.16.0",
     "esbuild": "0.28.2",
