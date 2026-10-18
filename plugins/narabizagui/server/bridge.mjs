@@ -1,7 +1,8 @@
 import http from 'node:http';
 import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
+import { TOOL_CONTRACT } from '../shared/contract.mjs';
 
-export const VERSION = '0.5.0';
+export const VERSION = '0.6.0';
 const token = () => randomBytes(32).toString('base64url');
 const same = (a, b) => {
   if (typeof a !== 'string' || typeof b !== 'string') return false;
@@ -48,7 +49,7 @@ export async function startBridge({ allowedOrigins = ['https://demo.naraconsulto
     const pending = session.pending;
     if (pending && !pending.delivered && pending.command.deadline > Date.now()) {
       pending.delivered = true;
-      reply(res, 200, { command: pending.command });
+      reply(res, 200, { command: pending.command,serverVersion:VERSION,toolContract:TOOL_CONTRACT });
       return true;
     }
     return false;
@@ -76,7 +77,7 @@ export async function startBridge({ allowedOrigins = ['https://demo.naraconsulto
         const id = randomUUID();
         const auth = token();
         sessions.set(id, { id, auth, origin, name: String(input.name || 'Diagrama').slice(0, 180), lastSeen: Date.now(), pending: null, poll: null });
-        return reply(res, 200, { sessionId: id, sessionToken: auth, version: VERSION });
+        return reply(res, 200, { sessionId: id, sessionToken: auth, version: VERSION,toolContract:TOOL_CONTRACT });
       }
       const match = /^\/sessions\/([0-9a-f-]+)\/(poll|result|disconnect)$/.exec(url.pathname);
       const session = match && sessions.get(match[1]);
@@ -97,7 +98,7 @@ export async function startBridge({ allowedOrigins = ['https://demo.naraconsulto
       if (typeof input.name === 'string') session.name = input.name.slice(0, 180);
       if (session.poll) return reply(res, 409, { error: 'Ya hay una consulta activa.' });
       if (deliver(session, res)) return;
-      const timer = setTimeout(() => { session.poll = null; reply(res, 200, { command: null }); }, 15000);
+      const timer = setTimeout(() => { session.poll = null; reply(res, 200, { command: null,serverVersion:VERSION,toolContract:TOOL_CONTRACT }); }, 15000);
       session.poll = { res, timer };
       res.on('close', () => { if (session.poll?.res === res) { clearTimeout(timer); session.poll = null; } });
     } catch (error) { reply(res, error.code === 'TOO_LARGE' ? 413 : 400, { error: error.message }); }
@@ -111,7 +112,7 @@ export async function startBridge({ allowedOrigins = ['https://demo.naraconsulto
     pair() {
       pairing = { secret: token(), expiresAt: now() + pairingTtlMs };
       const code = `${port}.${pairing.secret}`;
-      return { pairingCode: code, expiresAt: new Date(pairing.expiresAt).toISOString(), editorUrl: `https://demo.naraconsultores.com/NaraBizagui/#mcp=${code}`, instructions: 'En la pestaña del BPMN elegido pulsa Conectar con Codex, pega el código y pulsa Vincular. El enlace alternativo abre el editor. Autoriza el acceso local si el navegador lo solicita. Después consulta narabizagui_sessions. El código es de un solo uso y vence en cinco minutos.' };
+      return { serverVersion:VERSION,toolContract:TOOL_CONTRACT,pairingCode: code, expiresAt: new Date(pairing.expiresAt).toISOString(), editorUrl: `https://demo.naraconsultores.com/NaraBizagui/#mcp=${code}`, instructions: 'En la pestaña del BPMN elegido pulsa Conectar con Codex, pega el código y pulsa Vincular. El enlace alternativo abre el editor. Autoriza el acceso local si el navegador lo solicita. Después consulta narabizagui_sessions y compara el contrato activo. El código es de un solo uso y vence en cinco minutos.' };
     },
     list() { return [...sessions.values()].map(s => ({ sessionId: s.id, name: s.name, connected: Date.now() - s.lastSeen < 45000, lastSeen: new Date(s.lastSeen).toISOString(), busy: Boolean(s.pending) })); },
     request(id, action, args) {

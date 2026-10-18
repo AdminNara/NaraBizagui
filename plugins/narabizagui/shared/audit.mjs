@@ -1,5 +1,6 @@
 // Pure snapshot analysis. No editor mutations, network, file access or client data.
-export { PROTOCOL_VERSION, BATCH_LIMIT, BATCH_OPERATIONS, BPMN_CREATE_TYPES, EVENT_KINDS } from './contract.mjs';
+import {BATCH_LIMIT} from './contract.mjs';
+export { PROTOCOL_VERSION, TOOL_CONTRACT, BATCH_LIMIT, BATCH_OPERATIONS, BPMN_CREATE_TYPES, EVENT_KINDS } from './contract.mjs';
 const containers = new Set(['bpmn:Participant', 'bpmn:Lane', 'bpmn:Group', 'bpmn:TextAnnotation', 'bpmn:Collaboration', 'bpmn:Process']);
 const conditional = new Set(['bpmn:ExclusiveGateway', 'bpmn:InclusiveGateway', 'bpmn:ComplexGateway']);
 const same = (a, b) => Math.abs(a - b) < .01;
@@ -95,7 +96,13 @@ export function validateSnapshot(snapshot, { profile = 'review', geometry = true
       const a = nodes[i], b = nodes[j];
       if (a.attachedToId !== b.id && b.attachedToId !== a.id && !ancestors(a).has(b.id) && !ancestors(b).has(a.id) && boxesOverlap(a, b)) add('FIGURE_OVERLAP', 'warning', [a.id, b.id], 'Las figuras se superponen.');
     }
-    for (const f of flows) for (const n of nodes) if (![f.sourceId, f.targetId].includes(n.id) && segments(f).some(([a, b]) => lineHitsBox(a, b, n))) add('FLOW_THROUGH_FIGURE', 'error', [f.id, n.id], 'La línea atraviesa una figura ajena.');
+    for(const f of flows){
+      const owners=ancestors(f);
+      for(const n of nodes){
+        if(owners.has(n.id)){if((f.waypoints||[]).some(p=>p.x<n.x-.1||p.x>n.x+n.width+.1||p.y<n.y-.1||p.y>n.y+n.height+.1))add('FLOW_OUTSIDE_SCOPE','error',[f.id,n.id],'El recorrido sale de su subproceso contenedor.');continue;}
+        if(![f.sourceId,f.targetId].includes(n.id)&&segments(f).some(([a,b])=>lineHitsBox(a,b,n)))add('FLOW_THROUGH_FIGURE','error',[f.id,n.id],'La línea atraviesa una figura ajena.');
+      }
+    }
     for (let i = 0; i < flows.length; i++) for (let j = i + 1; j < flows.length; j++) {
       const a = flows[i], b = flows[j];
       for (const [p, q] of segments(a)) for (const [r, s] of segments(b)) {
@@ -139,5 +146,5 @@ export function planOperations(snapshot, operations) {
       else if (op.type === 'route' && e) delete e.labelBounds;
     }
   }
-  return { sourceRevision: snapshot.revision, originalCount: operations.length, operations: result, skippedIndices: skipped, batchSizeLimit: 50 };
+  return { sourceRevision: snapshot.revision, originalCount: operations.length, operations: result, skippedIndices: skipped, batchSizeLimit: BATCH_LIMIT };
 }

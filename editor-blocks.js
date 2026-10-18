@@ -1,7 +1,7 @@
 'use strict';
 (() => {
   const fail = (code, message) => Object.assign(Error(message), { code });
-  function create({ modeler, read, guard, describe, getRevision }) {
+  function create({ modeler, read, guard, waitReady=async()=>{},fit=()=>{},describe, getRevision }) {
     const runner = window.NaraMcpOperations.create(modeler), stack = modeler.get('commandStack'), requests = new Map();
     let recovery = null;
     function Block() { this.preExecute = c => { c.result = runner.run(c.operations); }; this.execute = this.revert = () => []; }
@@ -25,22 +25,24 @@
         const before = { elements: draft.get('elementRegistry').getAll().filter(e => e.businessObject && !e.labelTarget && draft.get('canvas').findRoot(e) === draft.get('canvas').getRootElement()).map(e => describe(e, draft)) };
         const result = draftRunner.run(operations);
         const after = { diagramType: 'bpmn', elements: draft.get('elementRegistry').getAll().filter(e => e.businessObject && !e.labelTarget && draft.get('canvas').findRoot(e) === draft.get('canvas').getRootElement()).map(e => describe(e, draft)) };
-        return { ...result, diff: window.NaraModelAudit.compareSnapshots(before, after), validation: window.NaraModelAudit.validateSnapshot(after) };
+        return { ...result,previewElements:after.elements,diff: window.NaraModelAudit.compareSnapshots(before, after), validation: window.NaraModelAudit.validateSnapshot(after) };
       } finally { draft.destroy(); host.remove(); }
     }
-    async function batch({ expectedRevision, requestId, operations, dryRun = false }) {
+    async function batch({ expectedRevision, requestId, operations, dryRun = false,fit:shouldFit=false,requireValid=false }) {
+      const started=Date.now();
       if (typeof requestId !== 'string' || !requestId.length || requestId.length > 100) throw fail('INVALID_BATCH', 'El bloque requiere un identificador de solicitud.');
       if (recovery) throw fail('BATCH_RECOVERY_REQUIRED', 'Conserva la copia anterior y revisa el estado antes de continuar.');
-      if (!Array.isArray(operations) || !operations.length || operations.length > 50 || operations.some(op => !runner.supported.includes(op.type))) throw fail('INVALID_BATCH', 'El bloque admite de 1 a 50 operaciones BPMN compatibles.');
+      const limit=window.NaraModelAudit.BATCH_LIMIT;
+      if (!Array.isArray(operations) || !operations.length || operations.length > limit || operations.some(op => !runner.supported.includes(op.type))||operations.reduce((sum,op)=>sum+(op.type==='matrix'?1+(op.lanes?.length||0)+(op.stages?.length||0)+(op.activities?.length||0)+(op.links?.length||0):1),0)>500) throw fail('INVALID_BATCH', 'El bloque admite hasta '+limit+' operaciones BPMN y un coste estructural máximo de 500 elementos/acciones.');
       const fingerprint = JSON.stringify({ expectedRevision, operations }), previous = requests.get(requestId);
       if (!dryRun && previous) {
         if (previous.fingerprint !== fingerprint) throw fail('REQUEST_ID_REUSED', 'El identificador ya pertenece a otro bloque o revisión.');
         return { ...(previous.result || { applied:false, requestId, reconciliationRequired:true, status:previous.status }), replayed: true, state: await read() };
       }
-      guard(expectedRevision); const before = await read({ includeXml: true }); guard(expectedRevision);
+      const waitMs=await waitReady(expectedRevision);guard(expectedRevision); const before = await read({ includeXml: true }); guard(expectedRevision);
       if (before.diagramType !== 'bpmn' || before.elementsTruncated) throw fail('BATCH_SCOPE_UNAVAILABLE', 'Agrupar requiere una hoja BPMN con lectura completa.');
-      const planned = await preview(before.xml, operations); guard(expectedRevision);
-      if (dryRun) return { applied: false, dryRun: true, sourceRevision: expectedRevision, operationCount: operations.length, previewAliases: planned.aliases, diff: planned.diff, validation: planned.validation };
+      const planned = await preview(before.xml, operations);await waitReady(expectedRevision); guard(expectedRevision);
+      if (dryRun||requireValid&&!planned.validation.valid) return { applied: false, dryRun, ...(requireValid&&!planned.validation.valid?{code:'BATCH_VALIDATION_FAILED',message:'La prevalidación encontró errores; el lienzo no fue modificado.'}:{}),sourceRevision: expectedRevision, operationCount: operations.length, previewAliases: planned.aliases,previewElements:planned.previewElements,diff: planned.diff, validation: planned.validation };
       const record = { fingerprint, beforeRevision: expectedRevision, count: operations.length, status: 'applying' }; remember(requestId, record);
       // bpmn-js 18.16: retain history/redo and unwind a failed native command.
       // This path is regression-tested against the pinned CommandStack runtime.
@@ -49,7 +51,8 @@
       let failure;
       try { stack.execute('nara.mcp.block', context); } catch (cause) { failure = cause; }
       if (!failure) {
-        record.status = 'applied'; record.result = { applied: true, requestId, committedRevision: getRevision(), operationCount: operations.length, ...context.result };
+        let viewWarning;if(shouldFit)try{fit();}catch(cause){viewWarning=cause.message;}
+        record.status = 'applied'; record.result = { applied: true, requestId, committedRevision: getRevision(), operationCount: operations.length,waitMs:waitMs||0,durationMs:Date.now()-started,...(viewWarning?{viewWarning}:{}), ...context.result };
         // A concurrent manual edit during serialization must never be undone.
         try { const after = await read(); record.result.state = after; record.result.validation = window.NaraModelAudit.validateSnapshot(after); }
         catch { record.result.reconciliationRequired = true; }

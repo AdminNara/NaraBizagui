@@ -81,9 +81,13 @@ test('bundled plugin starts outside the checkout without npm install and serves 
   await client.connect(transport);
   const discovered = (await client.listTools()).tools;
   assert.equal(discovered.length, 9);
+  const editSchema=JSON.stringify(discovered.find(tool=>tool.name==='narabizagui_edit').inputSchema);
+  for(const operation of ['matrix','clear','fit','lane_split','lane_add'])assert.ok(editSchema.includes('"'+operation+'"'),'Missing structural operation '+operation);
+  assert.ok(JSON.stringify(discovered.find(tool=>tool.name==='narabizagui_read').inputSchema).includes('summary'));
   assert.ok(discovered.some(tool=>tool.name==='narabizagui_validate'));
   assert.ok(discovered.some(tool=>tool.name==='narabizagui_edit_batch'));
   const connection = (await client.callTool({ name: 'narabizagui_connect', arguments: {} })).structuredContent;
+  assert.equal(connection.toolContract,'structure-v1');assert.equal(connection.serverVersion,'0.6.0');
   const [port, code] = connection.pairingCode.split('.');
   const paired = await (await post(port, '/pair', { code })).json();
   const sessions = (await client.callTool({ name: 'narabizagui_sessions', arguments: {} })).structuredContent.sessions;

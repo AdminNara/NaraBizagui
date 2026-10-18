@@ -20,7 +20,7 @@ const {BpmnModdle,Ids,BpmnFactory,UpdateProperties,UpdateModdle,EventBus,Command
 const sources=await Promise.all(['editor-properties.js','editor-operations.js','editor-blocks.js'].map(name=>readFile(new URL('../'+name,import.meta.url),'utf8')));
 const xml=`<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="Defs" targetNamespace="https://example.test"><bpmn:process id="Process"><bpmn:task id="Task" name="Original"/></bpmn:process></bpmn:definitions>`;
 
-async function fixture(){
+async function fixture(sourceXml=xml){
  let counter=0;
  class Headless {
   async importXML(source){
@@ -36,11 +36,11 @@ async function fixture(){
   get(key){return this.services[key];}getDefinitions(){return this.defs;}destroy(){}
   async saveXML(){return this.moddle.toXML(this.defs,{format:true});}
  }
- const modeler=new Headless();await modeler.importXML(xml);
+ const modeler=new Headless();await modeler.importXML(sourceXml);
  const context={window:{NaraModelAudit:audit},BpmnJS:Headless,document:{createElement:()=>({style:{},remove(){}}),body:{appendChild(){}}}};
  for(const source of sources)vm.runInNewContext(source,context);
  const semantic=context.window.NaraBpmnProperties.create(modeler);
- const describe=(e,target=modeler)=>({id:e.id,type:e.type,name:e.businessObject.name||'',documentation:(e.businessObject.documentation||[]).map(d=>d.text).join('\n\n'),semanticProperties:Object.fromEntries(context.window.NaraBpmnProperties.create(target).describe(e).fields.map(f=>[f.key,f.value]))});
+ const describe=(e,target=modeler)=>({id:e.id,type:e.type,name:e.businessObject.name||'',eventDefinitions:(e.businessObject.eventDefinitions||[]).map(d=>({type:d.$type})),documentation:(e.businessObject.documentation||[]).map(d=>d.text).join('\n\n'),semanticProperties:Object.fromEntries(context.window.NaraBpmnProperties.create(target).describe(e).fields.map(f=>[f.key,f.value]))});
  const read=async()=>{const {xml}=await modeler.saveXML();return{revision:modeler.revision,sha256:createHash('sha256').update(xml).digest('hex'),xml,diagramType:'bpmn',elements:modeler.get('elementRegistry').getAll().map(e=>describe(e)),warnings:[]};};
  const guard=expected=>{if(expected!==modeler.revision)throw Object.assign(Error('revision'),{code:'REVISION_CONFLICT'});};
  const blocks=context.window.NaraMcpBlocks.create({modeler,read,guard,describe,getRevision:()=>modeler.revision});
@@ -60,6 +60,24 @@ test('a later invalid operation fails prevalidation without partially modifying 
  const f=await fixture(),before=await f.read();
  await assert.rejects(f.blocks.batch({expectedRevision:before.revision,requestId:'invalid',operations:[changes[0],{type:'properties',elementId:'Task',values:{linkName:'wrong'}}]}),/Propiedad no admitida/);
  assert.equal((await f.read()).sha256,before.sha256);assert.equal(f.modeler.get('commandStack').canUndo(),false);
+});
+
+test('requireValid rejects an audit error without changing XML or history',async()=>{
+ const f=await fixture(xml.replace('<bpmn:task','<bpmn:startEvent id="Timer"><bpmn:timerEventDefinition/></bpmn:startEvent><bpmn:task')),before=await f.read();
+ const result=await f.blocks.batch({expectedRevision:before.revision,requestId:'invalid-audit',requireValid:true,operations:changes});
+ assert.ok(result.validation.issues.some(issue=>issue.code==='TIMER_VALUE_MISSING'));
+ assert.equal(result.applied,false);assert.equal(result.code,'BATCH_VALIDATION_FAILED');
+ assert.equal((await f.read()).sha256,before.sha256);assert.equal(f.modeler.get('commandStack').canUndo(),false);
+ assert.ok(Array.isArray(result.previewElements));
+});
+
+test('a complex block exceeding the former 50-operation limit remains one reversible change',async()=>{
+ const f=await fixture(),before=await f.read();
+ const operations=Array.from({length:75},(_,index)=>({type:'documentation',elementId:'Task',text:'Step '+index}));
+ const result=await f.blocks.batch({expectedRevision:before.revision,requestId:'large',operations});
+ assert.equal(result.applied,true);assert.equal(result.operationCount,75);assert.equal(f.task.businessObject.documentation[0].text,'Step 74');
+ f.modeler.get('commandStack').undo();assert.equal((await f.read()).sha256,before.sha256);
+ await assert.rejects(f.blocks.batch({expectedRevision:(await f.read()).revision,requestId:'oversized',operations:Array.from({length:201},()=>operations[0])}),{code:'INVALID_BATCH'});
 });
 test('confirmed replay is idempotent and cannot be rebound to another operation',async()=>{
  const f=await fixture(),before=await f.read(),input={expectedRevision:before.revision,requestId:'repeat',operations:changes};

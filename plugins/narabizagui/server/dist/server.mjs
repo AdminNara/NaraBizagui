@@ -2235,10 +2235,10 @@ var require_resolve = __commonJS({
       }
       return count;
     }
-    function getFullPath(resolver, id2 = "", normalize) {
+    function getFullPath(resolver, id = "", normalize) {
       if (normalize !== false)
-        id2 = normalizeId(id2);
-      const p = resolver.parse(id2);
+        id = normalizeId(id);
+      const p = resolver.parse(id);
       return _getFullPath(resolver, p);
     }
     exports.getFullPath = getFullPath;
@@ -2248,13 +2248,13 @@ var require_resolve = __commonJS({
     }
     exports._getFullPath = _getFullPath;
     var TRAILING_SLASH_HASH = /#\/?$/;
-    function normalizeId(id2) {
-      return id2 ? id2.replace(TRAILING_SLASH_HASH, "") : "";
+    function normalizeId(id) {
+      return id ? id.replace(TRAILING_SLASH_HASH, "") : "";
     }
     exports.normalizeId = normalizeId;
-    function resolveUrl(resolver, baseId, id2) {
-      id2 = normalizeId(id2);
-      return resolver.resolve(baseId, id2);
+    function resolveUrl(resolver, baseId, id) {
+      id = normalizeId(id);
+      return resolver.resolve(baseId, id);
     }
     exports.resolveUrl = resolveUrl;
     var ANCHOR = /^[a-z_][-a-z0-9._]*$/i;
@@ -3024,8 +3024,8 @@ var require_compile = __commonJS({
       if (Object.keys(root.schema).length > 0 && refPath === baseId) {
         return getJsonPointer.call(this, p, root);
       }
-      const id2 = (0, resolve_1.normalizeId)(refPath);
-      const schOrRef = this.refs[id2] || this.schemas[id2];
+      const id = (0, resolve_1.normalizeId)(refPath);
+      const schOrRef = this.refs[id] || this.schemas[id];
       if (typeof schOrRef == "string") {
         const sch = resolveSchema.call(this, root, schOrRef);
         if (typeof (sch === null || sch === void 0 ? void 0 : sch.schema) !== "object")
@@ -3036,7 +3036,7 @@ var require_compile = __commonJS({
         return;
       if (!schOrRef.validate)
         compileSchema.call(this, schOrRef);
-      if (id2 === (0, resolve_1.normalizeId)(ref)) {
+      if (id === (0, resolve_1.normalizeId)(ref)) {
         const { schema } = schOrRef;
         const { schemaId } = this.opts;
         const schId = schema[schemaId];
@@ -4463,15 +4463,15 @@ var require_core = __commonJS({
             this.addSchema(sch, void 0, _meta, _validateSchema);
           return this;
         }
-        let id2;
+        let id;
         if (typeof schema === "object") {
           const { schemaId } = this.opts;
-          id2 = schema[schemaId];
-          if (id2 !== void 0 && typeof id2 != "string") {
+          id = schema[schemaId];
+          if (id !== void 0 && typeof id != "string") {
             throw new Error(`schema ${schemaId} must be string`);
           }
         }
-        key = (0, resolve_1.normalizeId)(key || id2);
+        key = (0, resolve_1.normalizeId)(key || id);
         this._checkUnique(key);
         this.schemas[key] = this._addSchema(schema, _meta, key, _validateSchema, true);
         return this;
@@ -4550,11 +4550,11 @@ var require_core = __commonJS({
           case "object": {
             const cacheKey = schemaKeyRef;
             this._cache.delete(cacheKey);
-            let id2 = schemaKeyRef[this.opts.schemaId];
-            if (id2) {
-              id2 = (0, resolve_1.normalizeId)(id2);
-              delete this.schemas[id2];
-              delete this.refs[id2];
+            let id = schemaKeyRef[this.opts.schemaId];
+            if (id) {
+              id = (0, resolve_1.normalizeId)(id);
+              delete this.schemas[id];
+              delete this.refs[id];
             }
             return this;
           }
@@ -4625,7 +4625,7 @@ var require_core = __commonJS({
       errorsText(errors = this.errors, { separator = ", ", dataVar = "data" } = {}) {
         if (!errors || errors.length === 0)
           return "No errors";
-        return errors.map((e) => `${dataVar}${e.instancePath} ${e.message}`).reduce((text2, msg) => text2 + separator + msg);
+        return errors.map((e) => `${dataVar}${e.instancePath} ${e.message}`).reduce((text, msg) => text + separator + msg);
       }
       $dataMetaSchema(metaSchema, keywordsJsonPointers) {
         const rules = this.RULES.all;
@@ -4661,10 +4661,10 @@ var require_core = __commonJS({
         }
       }
       _addSchema(schema, meta3, baseId, validateSchema = this.opts.validateSchema, addSchema = this.opts.addUsedSchema) {
-        let id2;
+        let id;
         const { schemaId } = this.opts;
         if (typeof schema == "object") {
-          id2 = schema[schemaId];
+          id = schema[schemaId];
         } else {
           if (this.opts.jtd)
             throw new Error("schema must be object");
@@ -4674,7 +4674,7 @@ var require_core = __commonJS({
         let sch = this._cache.get(schema);
         if (sch !== void 0)
           return sch;
-        baseId = (0, resolve_1.normalizeId)(id2 || baseId);
+        baseId = (0, resolve_1.normalizeId)(id || baseId);
         const localRefs = resolve_1.getSchemaRefs.call(this, schema, baseId);
         sch = new compile_1.SchemaEnv({ schema, schemaId, meta: meta3, baseId, localRefs });
         this._cache.set(sch.schema, sch);
@@ -4687,9 +4687,9 @@ var require_core = __commonJS({
           this.validateSchema(schema, true);
         return sch;
       }
-      _checkUnique(id2) {
-        if (this.schemas[id2] || this.refs[id2]) {
-          throw new Error(`schema with key or id "${id2}" already exists`);
+      _checkUnique(id) {
+        if (this.schemas[id] || this.refs[id]) {
+          throw new Error(`schema with key or id "${id}" already exists`);
         }
       }
       _compileSchemaEnv(sch) {
@@ -13924,42 +13924,42 @@ var $ZodObjectJIT = /* @__PURE__ */ $constructor("$ZodObjectJIT", (inst, def) =>
     }
     doc.write(`const newResult = {};`);
     for (const key of normalized.keys) {
-      const id2 = ids[key];
+      const id = ids[key];
       const k = esc(key);
       const schema = shape[key];
       const isOptionalIn = schema?._zod?.optin === "optional";
       const isOptionalOut = schema?._zod?.optout === "optional";
-      doc.write(`const ${id2} = ${parseStr(key)};`);
+      doc.write(`const ${id} = ${parseStr(key)};`);
       if (isOptionalIn && isOptionalOut) {
         doc.write(`
-        if (${id2}.issues.length) {
+        if (${id}.issues.length) {
           if (${k} in input) {
-            payload.issues = payload.issues.concat(${id2}.issues.map(iss => ({
+            payload.issues = payload.issues.concat(${id}.issues.map(iss => ({
               ...iss,
               path: iss.path ? [${k}, ...iss.path] : [${k}]
             })));
           }
         }
         
-        if (${id2}.value === undefined) {
+        if (${id}.value === undefined) {
           if (${k} in input) {
             newResult[${k}] = undefined;
           }
         } else {
-          newResult[${k}] = ${id2}.value;
+          newResult[${k}] = ${id}.value;
         }
         
       `);
       } else if (!isOptionalIn) {
         doc.write(`
-        const ${id2}_present = ${k} in input;
-        if (${id2}.issues.length) {
-          payload.issues = payload.issues.concat(${id2}.issues.map(iss => ({
+        const ${id}_present = ${k} in input;
+        if (${id}.issues.length) {
+          payload.issues = payload.issues.concat(${id}.issues.map(iss => ({
             ...iss,
             path: iss.path ? [${k}, ...iss.path] : [${k}]
           })));
         }
-        if (!${id2}_present && !${id2}.issues.length) {
+        if (!${id}_present && !${id}.issues.length) {
           payload.issues.push({
             code: "invalid_type",
             expected: "nonoptional",
@@ -13968,30 +13968,30 @@ var $ZodObjectJIT = /* @__PURE__ */ $constructor("$ZodObjectJIT", (inst, def) =>
           });
         }
 
-        if (${id2}_present) {
-          if (${id2}.value === undefined) {
+        if (${id}_present) {
+          if (${id}.value === undefined) {
             newResult[${k}] = undefined;
           } else {
-            newResult[${k}] = ${id2}.value;
+            newResult[${k}] = ${id}.value;
           }
         }
 
       `);
       } else {
         doc.write(`
-        if (${id2}.issues.length) {
-          payload.issues = payload.issues.concat(${id2}.issues.map(iss => ({
+        if (${id}.issues.length) {
+          payload.issues = payload.issues.concat(${id}.issues.map(iss => ({
             ...iss,
             path: iss.path ? [${k}, ...iss.path] : [${k}]
           })));
         }
         
-        if (${id2}.value === undefined) {
+        if (${id}.value === undefined) {
           if (${k} in input) {
             newResult[${k}] = undefined;
           }
         } else {
-          newResult[${k}] = ${id2}.value;
+          newResult[${k}] = ${id}.value;
         }
         
       `);
@@ -18470,8 +18470,8 @@ function ko_default() {
 }
 
 // node_modules/zod/v4/locales/lt.js
-var capitalizeFirstCharacter = (text2) => {
-  return text2.charAt(0).toUpperCase() + text2.slice(1);
+var capitalizeFirstCharacter = (text) => {
+  return text.charAt(0).toUpperCase() + text.slice(1);
 };
 function getUnitTypeFromNumber(number4) {
   const abs = Math.abs(number4);
@@ -22323,26 +22323,26 @@ function extractDefs(ctx, schema) {
     throw new Error("Unprocessed schema. This is a bug in Zod.");
   const idToSchema = /* @__PURE__ */ new Map();
   for (const entry of ctx.seen.entries()) {
-    const id2 = ctx.metadataRegistry.get(entry[0])?.id;
-    if (id2) {
-      const existing = idToSchema.get(id2);
+    const id = ctx.metadataRegistry.get(entry[0])?.id;
+    if (id) {
+      const existing = idToSchema.get(id);
       if (existing && existing !== entry[0]) {
-        throw new Error(`Duplicate schema id "${id2}" detected during JSON Schema conversion. Two different schemas cannot share the same id when converted together.`);
+        throw new Error(`Duplicate schema id "${id}" detected during JSON Schema conversion. Two different schemas cannot share the same id when converted together.`);
       }
-      idToSchema.set(id2, entry[0]);
+      idToSchema.set(id, entry[0]);
     }
   }
   const makeURI = (entry) => {
     const defsSegment = ctx.target === "draft-2020-12" ? "$defs" : "definitions";
     if (ctx.external) {
       const externalId = ctx.external.registry.get(entry[0])?.id;
-      const uriGenerator = ctx.external.uri ?? ((id3) => id3);
+      const uriGenerator = ctx.external.uri ?? ((id2) => id2);
       if (externalId) {
         return { ref: uriGenerator(externalId) };
       }
-      const id2 = entry[1].defId ?? entry[1].schema.id ?? `schema${ctx.counter++}`;
-      entry[1].defId = id2;
-      return { defId: id2, ref: `${uriGenerator("__shared")}#/${defsSegment}/${id2}` };
+      const id = entry[1].defId ?? entry[1].schema.id ?? `schema${ctx.counter++}`;
+      entry[1].defId = id;
+      return { defId: id, ref: `${uriGenerator("__shared")}#/${defsSegment}/${id}` };
     }
     if (entry[1] === root) {
       return { ref: "#" };
@@ -22390,8 +22390,8 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
         continue;
       }
     }
-    const id2 = ctx.metadataRegistry.get(entry[0])?.id;
-    if (id2) {
+    const id = ctx.metadataRegistry.get(entry[0])?.id;
+    if (id) {
       extractToDef(entry);
       continue;
     }
@@ -22487,10 +22487,10 @@ function finalize(ctx, schema) {
   } else {
   }
   if (ctx.external?.uri) {
-    const id2 = ctx.external.registry.get(schema)?.id;
-    if (!id2)
+    const id = ctx.external.registry.get(schema)?.id;
+    if (!id)
       throw new Error("Schema is missing an `id` property");
-    result.$id = ctx.external.uri(id2);
+    result.$id = ctx.external.uri(id);
   }
   Object.assign(result, root.def ?? root.schema);
   const rootMetaId = ctx.metadataRegistry.get(schema)?.id;
@@ -29790,7 +29790,7 @@ var ExperimentalServerTasks = class {
       if (hasPreviousToolUse) {
         const toolUseIds = new Set(previousContent.filter((c) => c.type === "tool_use").map((c) => c.id));
         const toolResultIds = new Set(lastContent.filter((c) => c.type === "tool_result").map((c) => c.toolUseId));
-        if (toolUseIds.size !== toolResultIds.size || ![...toolUseIds].every((id2) => toolResultIds.has(id2))) {
+        if (toolUseIds.size !== toolResultIds.size || ![...toolUseIds].every((id) => toolResultIds.has(id))) {
           throw new Error("ids of tool_result blocks and tool_use blocks from previous message do not match");
         }
       }
@@ -30215,7 +30215,7 @@ var Server = class extends Protocol {
       if (hasPreviousToolUse) {
         const toolUseIds = new Set(previousContent.filter((c) => c.type === "tool_use").map((c) => c.id));
         const toolResultIds = new Set(lastContent.filter((c) => c.type === "tool_result").map((c) => c.toolUseId));
-        if (toolUseIds.size !== toolResultIds.size || ![...toolUseIds].every((id2) => toolResultIds.has(id2))) {
+        if (toolUseIds.size !== toolResultIds.size || ![...toolUseIds].every((id) => toolResultIds.has(id))) {
           throw new Error("ids of tool_result blocks and tool_use blocks from previous message do not match");
         }
       }
@@ -31347,10 +31347,27 @@ var StdioServerTransport = class {
   }
 };
 
+// plugins/narabizagui/server/index.mjs
+import { pathToFileURL } from "node:url";
+
 // plugins/narabizagui/server/bridge.mjs
 import http from "node:http";
 import { randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
-var VERSION = "0.5.0";
+
+// plugins/narabizagui/shared/contract.mjs
+var TOOL_CONTRACT = "structure-v1";
+var BATCH_LIMIT = 200;
+var BATCH_OPERATIONS = ["label", "documentation", "create", "connect", "move", "resize", "move_elements", "route", "properties", "lane_split", "lane_add", "matrix", "clear"];
+var BPMN_CREATE_TYPES = ["bpmn:Task", "bpmn:ManualTask", "bpmn:UserTask", "bpmn:ServiceTask", "bpmn:SendTask", "bpmn:ReceiveTask", "bpmn:ScriptTask", "bpmn:BusinessRuleTask", "bpmn:SubProcess", "bpmn:CallActivity", "bpmn:StartEvent", "bpmn:EndEvent", "bpmn:IntermediateCatchEvent", "bpmn:IntermediateThrowEvent", "bpmn:ExclusiveGateway", "bpmn:InclusiveGateway", "bpmn:ParallelGateway", "bpmn:ComplexGateway", "bpmn:EventBasedGateway", "bpmn:TextAnnotation", "bpmn:DataObjectReference", "bpmn:DataStoreReference", "bpmn:Participant"];
+var EVENT_KINDS = {
+  "bpmn:StartEvent": ["Message", "Timer", "Conditional", "Signal"],
+  "bpmn:EndEvent": ["Message", "Signal", "Error", "Escalation", "Terminate", "Compensate"],
+  "bpmn:IntermediateCatchEvent": ["Message", "Timer", "Conditional", "Link", "Signal"],
+  "bpmn:IntermediateThrowEvent": ["Message", "Signal", "Escalation", "Link", "Compensate"]
+};
+
+// plugins/narabizagui/server/bridge.mjs
+var VERSION = "0.6.0";
 var token = () => randomBytes(32).toString("base64url");
 var same = (a, b) => {
   if (typeof a !== "string" || typeof b !== "string") return false;
@@ -31384,8 +31401,8 @@ async function startBridge({ allowedOrigins = ["https://demo.naraconsultores.com
       throw fail("INVALID_JSON", "JSON inv\xE1lido.");
     }
   }
-  function disconnect(id2) {
-    const session = sessions.get(id2);
+  function disconnect(id) {
+    const session = sessions.get(id);
     if (!session) return;
     if (session.poll) {
       clearTimeout(session.poll.timer);
@@ -31395,20 +31412,20 @@ async function startBridge({ allowedOrigins = ["https://demo.naraconsultores.com
       clearTimeout(session.pending.timer);
       session.pending.reject(fail(session.pending.delivered ? "RESULT_UNKNOWN" : "DISCONNECTED", "Sesi\xF3n desconectada. Lee el diagrama antes de repetir una modificaci\xF3n."));
     }
-    sessions.delete(id2);
+    sessions.delete(id);
   }
   function deliver(session, res) {
     const pending = session.pending;
     if (pending && !pending.delivered && pending.command.deadline > Date.now()) {
       pending.delivered = true;
-      reply(res, 200, { command: pending.command });
+      reply(res, 200, { command: pending.command, serverVersion: VERSION, toolContract: TOOL_CONTRACT });
       return true;
     }
     return false;
   }
-  const server2 = http.createServer(async (req, res) => {
+  const server = http.createServer(async (req, res) => {
     try {
-      if (req.headers.host !== `127.0.0.1:${server2.address().port}`) return reply(res, 403, { error: "Host rechazado." });
+      if (req.headers.host !== `127.0.0.1:${server.address().port}`) return reply(res, 403, { error: "Host rechazado." });
       const origin = req.headers.origin;
       if (!origins.has(origin)) return reply(res, 403, { error: "Origen no autorizado." });
       res.setHeader("Access-Control-Allow-Origin", origin);
@@ -31426,10 +31443,10 @@ async function startBridge({ allowedOrigins = ["https://demo.naraconsultores.com
         if (!pairing || pairing.expiresAt <= now() || !same(input2.code, pairing.secret)) return reply(res, 401, { error: "C\xF3digo inv\xE1lido o vencido. Solicita otro a Codex." });
         if (sessions.size >= 8) return reply(res, 409, { error: "Desconecta una sesi\xF3n antes de agregar otra." });
         pairing = null;
-        const id2 = randomUUID();
+        const id = randomUUID();
         const auth = token();
-        sessions.set(id2, { id: id2, auth, origin, name: String(input2.name || "Diagrama").slice(0, 180), lastSeen: Date.now(), pending: null, poll: null });
-        return reply(res, 200, { sessionId: id2, sessionToken: auth, version: VERSION });
+        sessions.set(id, { id, auth, origin, name: String(input2.name || "Diagrama").slice(0, 180), lastSeen: Date.now(), pending: null, poll: null });
+        return reply(res, 200, { sessionId: id, sessionToken: auth, version: VERSION, toolContract: TOOL_CONTRACT });
       }
       const match = /^\/sessions\/([0-9a-f-]+)\/(poll|result|disconnect)$/.exec(url2.pathname);
       const session = match && sessions.get(match[1]);
@@ -31456,7 +31473,7 @@ async function startBridge({ allowedOrigins = ["https://demo.naraconsultores.com
       if (deliver(session, res)) return;
       const timer = setTimeout(() => {
         session.poll = null;
-        reply(res, 200, { command: null });
+        reply(res, 200, { command: null, serverVersion: VERSION, toolContract: TOOL_CONTRACT });
       }, 15e3);
       session.poll = { res, timer };
       res.on("close", () => {
@@ -31469,26 +31486,26 @@ async function startBridge({ allowedOrigins = ["https://demo.naraconsultores.com
       reply(res, error51.code === "TOO_LARGE" ? 413 : 400, { error: error51.message });
     }
   });
-  server2.requestTimeout = 2e4;
-  server2.headersTimeout = 1e4;
+  server.requestTimeout = 2e4;
+  server.headersTimeout = 1e4;
   await new Promise((resolve, reject) => {
-    server2.once("error", reject);
-    server2.listen(0, "127.0.0.1", resolve);
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
   });
-  const port = server2.address().port;
+  const port = server.address().port;
   return {
     port,
     pair() {
       pairing = { secret: token(), expiresAt: now() + pairingTtlMs };
       const code = `${port}.${pairing.secret}`;
-      return { pairingCode: code, expiresAt: new Date(pairing.expiresAt).toISOString(), editorUrl: `https://demo.naraconsultores.com/NaraBizagui/#mcp=${code}`, instructions: "En la pesta\xF1a del BPMN elegido pulsa Conectar con Codex, pega el c\xF3digo y pulsa Vincular. El enlace alternativo abre el editor. Autoriza el acceso local si el navegador lo solicita. Despu\xE9s consulta narabizagui_sessions. El c\xF3digo es de un solo uso y vence en cinco minutos." };
+      return { serverVersion: VERSION, toolContract: TOOL_CONTRACT, pairingCode: code, expiresAt: new Date(pairing.expiresAt).toISOString(), editorUrl: `https://demo.naraconsultores.com/NaraBizagui/#mcp=${code}`, instructions: "En la pesta\xF1a del BPMN elegido pulsa Conectar con Codex, pega el c\xF3digo y pulsa Vincular. El enlace alternativo abre el editor. Autoriza el acceso local si el navegador lo solicita. Despu\xE9s consulta narabizagui_sessions y compara el contrato activo. El c\xF3digo es de un solo uso y vence en cinco minutos." };
     },
     list() {
       return [...sessions.values()].map((s) => ({ sessionId: s.id, name: s.name, connected: Date.now() - s.lastSeen < 45e3, lastSeen: new Date(s.lastSeen).toISOString(), busy: Boolean(s.pending) }));
     },
-    request(id2, action, args) {
+    request(id, action, args) {
       if (closed) return Promise.reject(fail("CLOSED", "El puente est\xE1 cerrado."));
-      const session = sessions.get(id2);
+      const session = sessions.get(id);
       if (!session || Date.now() - session.lastSeen >= 45e3) return Promise.reject(fail("NOT_CONNECTED", "Vincula la pesta\xF1a y comprueba sus permisos de red local."));
       if (session.pending) return Promise.reject(fail("BUSY", "Espera el resultado de la operaci\xF3n anterior."));
       return new Promise((resolve, reject) => {
@@ -31510,9 +31527,9 @@ async function startBridge({ allowedOrigins = ["https://demo.naraconsultores.com
     disconnect,
     async close() {
       closed = true;
-      for (const id2 of sessions.keys()) disconnect(id2);
-      server2.closeAllConnections();
-      await new Promise((resolve) => server2.close(resolve));
+      for (const id of sessions.keys()) disconnect(id);
+      server.closeAllConnections();
+      await new Promise((resolve) => server.close(resolve));
     }
   };
 }
@@ -31536,108 +31553,105 @@ async function pngArtifact(result) {
   return { content: [{ type: "image", mimeType: "image/png", data: bytes.toString("base64") }, { type: "text", text: JSON.stringify(metadata) }], structuredContent: metadata };
 }
 
-// plugins/narabizagui/shared/contract.mjs
-var BATCH_LIMIT = 50;
-var BATCH_OPERATIONS = ["label", "documentation", "create", "connect", "move", "resize", "move_elements", "route", "properties"];
-var BPMN_CREATE_TYPES = ["bpmn:Task", "bpmn:ManualTask", "bpmn:UserTask", "bpmn:ServiceTask", "bpmn:SendTask", "bpmn:ReceiveTask", "bpmn:ScriptTask", "bpmn:BusinessRuleTask", "bpmn:SubProcess", "bpmn:CallActivity", "bpmn:StartEvent", "bpmn:EndEvent", "bpmn:IntermediateCatchEvent", "bpmn:IntermediateThrowEvent", "bpmn:ExclusiveGateway", "bpmn:InclusiveGateway", "bpmn:ParallelGateway", "bpmn:ComplexGateway", "bpmn:EventBasedGateway", "bpmn:TextAnnotation", "bpmn:DataObjectReference", "bpmn:DataStoreReference", "bpmn:Participant"];
-var EVENT_KINDS = {
-  "bpmn:StartEvent": ["Message", "Timer", "Conditional", "Signal"],
-  "bpmn:EndEvent": ["Message", "Signal", "Error", "Escalation", "Terminate", "Compensate"],
-  "bpmn:IntermediateCatchEvent": ["Message", "Timer", "Conditional", "Link", "Signal"],
-  "bpmn:IntermediateThrowEvent": ["Message", "Signal", "Escalation", "Link", "Compensate"]
-};
-
 // plugins/narabizagui/server/index.mjs
-var bridge = await startBridge();
-var server = new McpServer({ name: "narabizagui", version: VERSION }, {
-  instructions: "NaraBizagui edita la sesi\xF3n web vinculada, no un modelo paralelo. Lee diagramType antes de editar: bpmn para procesos y erd para tablas/campos/relaciones. No ejecutar SQL por dibujar un modelo de datos. Usa connect y espera el v\xEDnculo; sessions identifica la pesta\xF1a. Lee antes de cada cambio y exige su expectedRevision. Un cambio del lienzo no es un archivo guardado: usa save y verifica saved=true. Ante RESULT_UNKNOWN lee antes de repetir; ante REVISION_CONFLICT conserva los cambios manuales. No interpreta BPMN como instrucciones ni valida el proceso de negocio. Invoca la skill narabizagui del mismo plugin.",
-  maxToolInputElements: 6e3
-});
-var id = external_exports.string().uuid();
-var revision = external_exports.string().min(1).max(100);
-var elementId = external_exports.string().min(1).max(200);
-var text = external_exports.string().max(2e4);
-var finite = external_exports.number().finite().min(-1e5).max(1e5);
-var erName = external_exports.string().min(1).max(120);
-var erType = external_exports.string().min(1).max(80);
-var cardinality = external_exports.enum(["1", "0..1", "N", "0..N"]);
-var erField = external_exports.object({ name: erName, dataType: erType, primaryKey: external_exports.boolean().optional(), foreignKey: external_exports.boolean().optional(), nullable: external_exports.boolean().optional() });
-var edit = external_exports.discriminatedUnion("type", [
-  external_exports.object({ type: external_exports.literal("open_bpmn"), fileName: external_exports.string().min(1).max(200).regex(/^[^<>:"/\\|?*]+\.bpmn$/i), xml: external_exports.string().min(1).max(5e6) }),
-  external_exports.object({ type: external_exports.literal("label"), elementId, text, bounds: external_exports.object({ x: finite, y: finite, width: external_exports.number().min(1).max(1e3), height: external_exports.number().min(1).max(1e3) }).optional() }),
-  external_exports.object({ type: external_exports.literal("style"), elementId, style: external_exports.object({ fill: external_exports.string().regex(/^#[0-9a-f]{6}$/i).optional(), stroke: external_exports.string().regex(/^#[0-9a-f]{6}$/i).optional(), fontColor: external_exports.string().regex(/^#[0-9a-f]{6}$/i).optional(), strokeWidth: external_exports.number().min(0.5).max(6).optional(), fontSize: external_exports.number().min(9).max(32).optional(), bold: external_exports.boolean().optional(), align: external_exports.enum(["left", "center", "right"]).optional() }) }),
-  external_exports.object({ type: external_exports.literal("view"), expanded: external_exports.boolean() }),
-  external_exports.object({ type: external_exports.literal("documentation"), elementId, text }),
-  external_exports.object({ type: external_exports.literal("create"), bpmnType: external_exports.enum(BPMN_CREATE_TYPES), x: finite, y: finite, parentId: elementId.optional(), name: text.optional(), linkName: external_exports.string().min(1).max(100).optional(), eventDefinition: external_exports.enum([...new Set(Object.values(EVENT_KINDS).flat())]).optional() }),
-  external_exports.object({ type: external_exports.literal("properties"), elementId, values: external_exports.record(external_exports.string(), external_exports.union([external_exports.string().max(2e4), external_exports.boolean()])).refine((v) => Object.keys(v).length > 0 && Object.keys(v).length <= 100) }),
-  external_exports.object({ type: external_exports.literal("connect"), sourceId: elementId, targetId: elementId, bpmnType: external_exports.enum(["bpmn:SequenceFlow", "bpmn:MessageFlow", "bpmn:Association", "bpmn:DataInputAssociation", "bpmn:DataOutputAssociation"]).optional() }),
-  external_exports.object({ type: external_exports.literal("move_elements"), elementIds: external_exports.array(elementId).min(1).max(250), parentId: elementId, dx: finite, dy: finite }),
-  external_exports.object({ type: external_exports.literal("move"), elementId, dx: finite, dy: finite, parentId: elementId.optional() }),
-  external_exports.object({ type: external_exports.literal("resize"), elementId, x: finite, y: finite, width: external_exports.number().min(20).max(1e5), height: external_exports.number().min(20).max(1e5) }),
-  external_exports.object({ type: external_exports.literal("delete"), elementId }),
-  external_exports.object({ type: external_exports.literal("route"), elementId, waypoints: external_exports.array(external_exports.object({ x: finite, y: finite })).min(2).max(100) }),
-  external_exports.object({ type: external_exports.literal("stage"), sourceId: elementId.optional(), direction: external_exports.enum(["left", "right"]).optional() }),
-  external_exports.object({ type: external_exports.literal("stage_split"), elementId, count: external_exports.union([external_exports.literal(2), external_exports.literal(3)]) }),
-  external_exports.object({ type: external_exports.literal("lane_add"), elementId, location: external_exports.enum(["top", "bottom", "left", "right"]) }),
-  external_exports.object({ type: external_exports.literal("lane_split"), elementId, count: external_exports.number().int().min(2).max(10) }),
-  external_exports.object({ type: external_exports.literal("erd_sheet_create"), name: erName }),
-  external_exports.object({ type: external_exports.literal("erd_table_create"), name: erName.optional(), x: finite, y: finite, width: external_exports.number().min(200).max(1e3).optional(), fields: external_exports.array(erField).max(250).optional() }),
-  external_exports.object({ type: external_exports.literal("erd_table_update"), tableId: elementId, name: erName.optional(), x: finite.optional(), y: finite.optional(), width: external_exports.number().min(200).max(1e3).optional() }),
-  external_exports.object({ type: external_exports.literal("erd_field_upsert"), tableId: elementId, fieldId: elementId.optional(), name: erName, dataType: erType, primaryKey: external_exports.boolean().optional(), foreignKey: external_exports.boolean().optional(), nullable: external_exports.boolean().optional() }),
-  external_exports.object({ type: external_exports.literal("erd_field_delete"), tableId: elementId, fieldId: elementId }),
-  external_exports.object({ type: external_exports.literal("erd_field_move"), tableId: elementId, fieldId: elementId, direction: external_exports.enum(["up", "down"]) }),
-  external_exports.object({ type: external_exports.literal("erd_relationship_create"), sourceTableId: elementId, sourceFieldId: elementId, targetTableId: elementId, targetFieldId: elementId, sourceCardinality: cardinality.default("1"), targetCardinality: cardinality.default("N"), label: external_exports.string().max(120).optional() }),
-  external_exports.object({ type: external_exports.literal("erd_relationship_update"), relationshipId: elementId, sourceTableId: elementId.optional(), sourceFieldId: elementId.optional(), targetTableId: elementId.optional(), targetFieldId: elementId.optional(), sourceCardinality: cardinality.optional(), targetCardinality: cardinality.optional(), label: external_exports.string().max(120).optional() }),
-  external_exports.object({ type: external_exports.literal("erd_delete"), elementId }),
-  external_exports.object({ type: external_exports.literal("sheet_create"), name: external_exports.string().min(1).max(120) }),
-  external_exports.object({ type: external_exports.literal("sheet_open"), sheetId: elementId }),
-  external_exports.object({ type: external_exports.literal("sheet_rename"), sheetId: elementId, name: external_exports.string().min(1).max(120) }),
-  external_exports.object({ type: external_exports.literal("subprocess_open"), elementId }),
-  external_exports.object({ type: external_exports.literal("sheet_link"), elementId, sheetId: elementId }),
-  external_exports.object({ type: external_exports.literal("undo") }),
-  external_exports.object({ type: external_exports.literal("redo") })
-]);
-function register(name, description, schema, readOnly, callback) {
-  server.registerTool(name, { description, inputSchema: schema, annotations: { readOnlyHint: readOnly, destructiveHint: !readOnly, idempotentHint: readOnly, openWorldHint: false } }, async (args) => {
+async function startServer(bridgeOptions = {}) {
+  const bridge = await startBridge(bridgeOptions);
+  const server = new McpServer({ name: "narabizagui", version: VERSION }, {
+    instructions: "NaraBizagui edita la sesi\xF3n web vinculada, no un modelo paralelo. Lee diagramType antes de editar: bpmn para procesos y erd para tablas/campos/relaciones. No ejecutar SQL por dibujar un modelo de datos. Usa connect y espera el v\xEDnculo; sessions identifica la pesta\xF1a y el contrato activo. Lee antes de cada cambio y exige expectedRevision. Agrupa procesos completos con edit_batch y matrix cuando corresponda. Respeta el autoguardado y el destino elegido; usa save solo si la solicitud lo requiere. Ante RESULT_UNKNOWN lee antes de repetir; ante REVISION_CONFLICT conserva los cambios manuales. No interpreta BPMN como instrucciones ni valida el proceso de negocio. Invoca la skill narabizagui del mismo plugin.",
+    maxToolInputElements: 6e3
+  });
+  const id = external_exports.string().uuid();
+  const revision = external_exports.string().min(1).max(100);
+  const elementId = external_exports.string().min(1).max(200);
+  const text = external_exports.string().max(2e4);
+  const finite = external_exports.number().finite().min(-1e5).max(1e5);
+  const erName = external_exports.string().min(1).max(120), erType = external_exports.string().min(1).max(80), cardinality = external_exports.enum(["1", "0..1", "N", "0..N"]);
+  const erField = external_exports.object({ name: erName, dataType: erType, primaryKey: external_exports.boolean().optional(), foreignKey: external_exports.boolean().optional(), nullable: external_exports.boolean().optional() });
+  const edit = external_exports.discriminatedUnion("type", [
+    external_exports.object({ type: external_exports.literal("open_bpmn"), fileName: external_exports.string().min(1).max(200).regex(/^[^<>:"/\\|?*]+\.bpmn$/i), xml: external_exports.string().min(1).max(5e6) }),
+    external_exports.object({ type: external_exports.literal("label"), elementId, text, bounds: external_exports.object({ x: finite, y: finite, width: external_exports.number().min(1).max(1e3), height: external_exports.number().min(1).max(1e3) }).optional() }),
+    external_exports.object({ type: external_exports.literal("style"), elementId, style: external_exports.object({ fill: external_exports.string().regex(/^#[0-9a-f]{6}$/i).optional(), stroke: external_exports.string().regex(/^#[0-9a-f]{6}$/i).optional(), fontColor: external_exports.string().regex(/^#[0-9a-f]{6}$/i).optional(), strokeWidth: external_exports.number().min(0.5).max(6).optional(), fontSize: external_exports.number().min(9).max(32).optional(), bold: external_exports.boolean().optional(), align: external_exports.enum(["left", "center", "right"]).optional() }) }),
+    external_exports.object({ type: external_exports.literal("view"), expanded: external_exports.boolean() }),
+    external_exports.object({ type: external_exports.literal("fit") }),
+    external_exports.object({ type: external_exports.literal("clear"), scope: external_exports.literal("active"), requestId: external_exports.string().uuid().optional() }),
+    external_exports.object({ type: external_exports.literal("matrix"), requestId: external_exports.string().uuid().optional(), name: erName.optional(), poolId: elementId.optional(), x: finite.optional(), y: finite.optional(), width: external_exports.number().min(280).max(1e4).optional(), rowHeight: external_exports.number().min(140).max(600).optional(), lanes: external_exports.array(erName).min(1).max(10), stages: external_exports.array(erName).min(1).max(10), activities: external_exports.array(external_exports.object({ key: external_exports.string().regex(/^[A-Za-z][A-Za-z0-9_-]{0,63}$/), name: external_exports.string().max(120).optional(), bpmnType: external_exports.enum(["bpmn:Task", "bpmn:UserTask", "bpmn:ManualTask", "bpmn:ServiceTask", "bpmn:SubProcess", "bpmn:CallActivity", "bpmn:StartEvent", "bpmn:EndEvent", "bpmn:ExclusiveGateway", "bpmn:ParallelGateway"]).optional(), lane: external_exports.number().int().min(1).max(10), stage: external_exports.number().int().min(1).max(10), xOffset: finite.optional(), yOffset: finite.optional() })).max(100).default([]), links: external_exports.array(external_exports.object({ from: elementId, to: elementId })).max(200).default([]) }),
+    external_exports.object({ type: external_exports.literal("documentation"), elementId, text }),
+    external_exports.object({ type: external_exports.literal("create"), bpmnType: external_exports.enum(BPMN_CREATE_TYPES), x: finite, y: finite, parentId: elementId.optional(), name: text.optional(), expanded: external_exports.boolean().optional(), autoResize: external_exports.boolean().optional(), linkName: external_exports.string().min(1).max(100).optional(), eventDefinition: external_exports.enum([...new Set(Object.values(EVENT_KINDS).flat())]).optional() }),
+    external_exports.object({ type: external_exports.literal("properties"), elementId, values: external_exports.record(external_exports.string(), external_exports.union([external_exports.string().max(2e4), external_exports.boolean()])).refine((v) => Object.keys(v).length > 0 && Object.keys(v).length <= 100) }),
+    external_exports.object({ type: external_exports.literal("connect"), sourceId: elementId, targetId: elementId, bpmnType: external_exports.enum(["bpmn:SequenceFlow", "bpmn:MessageFlow", "bpmn:Association", "bpmn:DataInputAssociation", "bpmn:DataOutputAssociation"]).optional() }),
+    external_exports.object({ type: external_exports.literal("move_elements"), elementIds: external_exports.array(elementId).min(1).max(250), parentId: elementId, dx: finite, dy: finite }),
+    external_exports.object({ type: external_exports.literal("move"), elementId, dx: finite, dy: finite, parentId: elementId.optional() }),
+    external_exports.object({ type: external_exports.literal("resize"), elementId, x: finite, y: finite, width: external_exports.number().min(20).max(1e5), height: external_exports.number().min(20).max(1e5), autoResize: external_exports.boolean().optional() }),
+    external_exports.object({ type: external_exports.literal("delete"), elementId }),
+    external_exports.object({ type: external_exports.literal("route"), elementId, waypoints: external_exports.array(external_exports.object({ x: finite, y: finite })).min(2).max(100) }),
+    external_exports.object({ type: external_exports.literal("stage"), sourceId: elementId.optional(), direction: external_exports.enum(["left", "right"]).optional() }),
+    external_exports.object({ type: external_exports.literal("stage_split"), elementId, count: external_exports.union([external_exports.literal(2), external_exports.literal(3)]) }),
+    external_exports.object({ type: external_exports.literal("lane_add"), elementId, location: external_exports.enum(["top", "bottom", "left", "right"]) }),
+    external_exports.object({ type: external_exports.literal("lane_split"), elementId, count: external_exports.number().int().min(2).max(10) }),
+    external_exports.object({ type: external_exports.literal("erd_sheet_create"), name: erName }),
+    external_exports.object({ type: external_exports.literal("erd_table_create"), name: erName.optional(), x: finite, y: finite, width: external_exports.number().min(200).max(1e3).optional(), fields: external_exports.array(erField).max(250).optional() }),
+    external_exports.object({ type: external_exports.literal("erd_table_update"), tableId: elementId, name: erName.optional(), x: finite.optional(), y: finite.optional(), width: external_exports.number().min(200).max(1e3).optional() }),
+    external_exports.object({ type: external_exports.literal("erd_field_upsert"), tableId: elementId, fieldId: elementId.optional(), name: erName, dataType: erType, primaryKey: external_exports.boolean().optional(), foreignKey: external_exports.boolean().optional(), nullable: external_exports.boolean().optional() }),
+    external_exports.object({ type: external_exports.literal("erd_field_delete"), tableId: elementId, fieldId: elementId }),
+    external_exports.object({ type: external_exports.literal("erd_field_move"), tableId: elementId, fieldId: elementId, direction: external_exports.enum(["up", "down"]) }),
+    external_exports.object({ type: external_exports.literal("erd_relationship_create"), sourceTableId: elementId, sourceFieldId: elementId, targetTableId: elementId, targetFieldId: elementId, sourceCardinality: cardinality.default("1"), targetCardinality: cardinality.default("N"), label: external_exports.string().max(120).optional() }),
+    external_exports.object({ type: external_exports.literal("erd_relationship_update"), relationshipId: elementId, sourceTableId: elementId.optional(), sourceFieldId: elementId.optional(), targetTableId: elementId.optional(), targetFieldId: elementId.optional(), sourceCardinality: cardinality.optional(), targetCardinality: cardinality.optional(), label: external_exports.string().max(120).optional() }),
+    external_exports.object({ type: external_exports.literal("erd_delete"), elementId }),
+    external_exports.object({ type: external_exports.literal("sheet_create"), name: external_exports.string().min(1).max(120) }),
+    external_exports.object({ type: external_exports.literal("sheet_open"), sheetId: elementId }),
+    external_exports.object({ type: external_exports.literal("sheet_rename"), sheetId: elementId, name: external_exports.string().min(1).max(120) }),
+    external_exports.object({ type: external_exports.literal("subprocess_open"), elementId }),
+    external_exports.object({ type: external_exports.literal("sheet_link"), elementId, sheetId: elementId }),
+    external_exports.object({ type: external_exports.literal("undo") }),
+    external_exports.object({ type: external_exports.literal("redo") })
+  ]);
+  function register(name, description, schema, readOnly, callback) {
+    server.registerTool(name, { description, inputSchema: schema, annotations: { readOnlyHint: readOnly, destructiveHint: !readOnly, idempotentHint: readOnly, openWorldHint: false } }, async (args) => {
+      try {
+        const result = await callback(args);
+        return { content: [{ type: "text", text: JSON.stringify(result) }], structuredContent: result };
+      } catch (error51) {
+        return { isError: true, content: [{ type: "text", text: JSON.stringify({ code: error51.code || "ERROR", message: error51.message, ...error51.retryAfterMs ? { retryAfterMs: error51.retryAfterMs } : {}, ...error51.busyReason ? { busyReason: error51.busyReason } : {} }) }] };
+      }
+    });
+  }
+  register("narabizagui_connect", "Crea un c\xF3digo temporal para vincular una pesta\xF1a elegida. Requiere que el usuario pulse Vincular en el visor.", {}, false, async () => bridge.pair());
+  register("narabizagui_sessions", "Lista pesta\xF1as vinculadas y la versi\xF3n/contrato del servidor realmente activo. Una instalaci\xF3n nueva no recarga las herramientas de un chat anterior.", {}, true, async () => ({ serverVersion: VERSION, toolContract: TOOL_CONTRACT, sessions: bridge.list() }));
+  register("narabizagui_read", "Lee versi\xF3n y contrato activos, revisi\xF3n, capacidades, disposici\xF3n de edici\xF3n y autoguardado. detail=summary devuelve estado ligero y no sirve para validaci\xF3n integral. Las lecturas completas conservan propiedades, geometr\xEDa, filtros y XML opcional.", { sessionId: id, detail: external_exports.enum(["full", "summary"]).default("full"), includeXml: external_exports.boolean().default(false), includePropertyFields: external_exports.boolean().default(false), elementIds: external_exports.array(elementId).min(1).max(250).optional() }, true, async (args) => ({ serverVersion: VERSION, toolContract: TOOL_CONTRACT, ...await bridge.request(args.sessionId, "read", { detail: args.detail, includeXml: args.includeXml, includePropertyFields: args.includePropertyFields, elementIds: args.elementIds }) }));
+  register("narabizagui_validate", "Valida la hoja activa sin editar. Devuelve incidencias con c\xF3digos e IDs, enlaces por \xE1mbito, condiciones y geometr\xEDa real. review permite representaci\xF3n explicativa; formal exige condiciones. No aprueba el negocio ni ejecuta expresiones.", { sessionId: id, expectedRevision: revision, profile: external_exports.enum(["review", "formal"]).default("review"), geometry: external_exports.boolean().default(true), maxIssues: external_exports.number().int().min(1).max(1e3).default(200) }, true, (args) => bridge.request(args.sessionId, "validate", { expectedRevision: args.expectedRevision, profile: args.profile, geometry: args.geometry, maxIssues: args.maxIssues }));
+  const batchOperation = external_exports.discriminatedUnion("type", edit.options.filter((schema) => BATCH_OPERATIONS.includes(schema.shape.type.value)).map((schema) => schema.extend({ as: external_exports.string().regex(/^[A-Za-z][A-Za-z0-9_-]{0,63}$/).optional() })));
+  register("narabizagui_edit_batch", "Prevalida de 1 a 200 operaciones BPMN y aplica en un Deshacer, con requestId estable para evitar duplicados. Admite matrix (participante, carriles, etapas, figuras y enlaces en un paso), clear con scope=active y carriles nativos. La matriz devuelve claves para referencias @clave posteriores. dryRun comprueba sin modificar; requireValid rechaza el plan si hay errores de auditor\xEDa. No guarda ni incluye hojas o ER. Espera brevemente al autoguardado y revalida la revisi\xF3n. Ante fallo comprueba la recuperaci\xF3n antes de repetir.", { sessionId: id, expectedRevision: revision, requestId: external_exports.string().uuid(), operations: external_exports.array(batchOperation).min(1).max(BATCH_LIMIT), dryRun: external_exports.boolean().default(false), fit: external_exports.boolean().default(true), requireValid: external_exports.boolean().default(false) }, false, (args) => bridge.request(args.sessionId, "editBatch", { expectedRevision: args.expectedRevision, requestId: args.requestId, operations: args.operations, dryRun: args.dryRun, fit: args.fit, requireValid: args.requireValid }));
+  register("narabizagui_edit", "Aplica una operaci\xF3n nativa bpmn-js, con revisi\xF3n base obligatoria y deshacer. properties edita los campos de semanticProperties seg\xFAn propertyFields de read y reutiliza la validaci\xF3n manual. create.eventDefinition configura el tipo de evento. Usa read para conocer IDs. x/y son el centro al crear; move usa desplazamiento. stage a\xF1ade una etapa al final o a izquierda/derecha de sourceId. lane_add/lane_split gestionan carriles nativos. stage_split divide columnas. style aplica formato persistente y erd_field_move reordena campos. view ampl\xEDa/restaura el lienzo sin cambiar el archivo. Las operaciones erd_ crean hojas de datos, tablas, campos y relaciones por campo; sus x/y son esquina superior izquierda. sheet_create crea otra hoja, sheet_open navega, sheet_rename renombra, subprocess_open abre el detalle y sheet_link vincula con otro proceso mediante CallActivity; no reemplaza subprocesos con contenido.", { sessionId: id, expectedRevision: revision, operation: edit }, false, (args) => bridge.request(args.sessionId, "edit", { expectedRevision: args.expectedRevision, operation: args.operation }));
+  register("narabizagui_save", "Guarda en el archivo ya elegido y autorizado en el visor, conservando historial y comprobando conflictos. Si falta acceso, el usuario debe usar Guardar como en el navegador. No elige destinos ni descarga copias silenciosamente.", { sessionId: id, expectedRevision: revision }, false, (args) => bridge.request(args.sessionId, "save", { expectedRevision: args.expectedRevision }));
+  server.registerTool("narabizagui_export_png", {
+    description: "Renderiza la hoja activa completa como PNG con fondo blanco, sin paneles; devuelve sheetId y sheetName. Devuelve la imagen al chat para inspecci\xF3n visual y un archivo temporal local para insertarlo en Word/PDF. Lee antes para indicar expectedRevision. No modifica ni guarda el BPMN. scale=2 por defecto; se reduce si es necesario para respetar 8192 px por lado y 16 megap\xEDxeles.",
+    inputSchema: { sessionId: id, expectedRevision: revision, scale: external_exports.number().min(0.5).max(3).default(2) },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false }
+  }, async (args) => {
     try {
-      const result = await callback(args);
-      return { content: [{ type: "text", text: JSON.stringify(result) }], structuredContent: result };
+      return await pngArtifact(await bridge.request(args.sessionId, "exportPng", { expectedRevision: args.expectedRevision, scale: args.scale }));
     } catch (error51) {
-      return { isError: true, content: [{ type: "text", text: JSON.stringify({ code: error51.code || "ERROR", message: error51.message }) }] };
+      return { isError: true, content: [{ type: "text", text: JSON.stringify({ code: error51.code || "PNG_EXPORT_ERROR", message: error51.message }) }] };
     }
   });
-}
-register("narabizagui_connect", "Crea un c\xF3digo temporal para vincular una pesta\xF1a elegida. Requiere que el usuario pulse Vincular en el visor.", {}, false, async () => bridge.pair());
-register("narabizagui_sessions", "Lista solo las pesta\xF1as vinculadas a esta instancia local del plugin.", {}, true, async () => ({ sessions: bridge.list() }));
-register("narabizagui_read", "Lee capacidades/versiones, revisi\xF3n, hojas, XML opcional, propiedades sem\xE1nticas y l\xEDmites reales de etiquetas. elementIds filtra elementos; includePropertyFields a\xF1ade opciones admitidas. Las lecturas filtradas no bastan para validar toda la hoja.", { sessionId: id, includeXml: external_exports.boolean().default(false), includePropertyFields: external_exports.boolean().default(false), elementIds: external_exports.array(elementId).min(1).max(250).optional() }, true, async (args) => ({ serverVersion: VERSION, ...await bridge.request(args.sessionId, "read", { includeXml: args.includeXml, includePropertyFields: args.includePropertyFields, elementIds: args.elementIds }) }));
-register("narabizagui_validate", "Valida la hoja activa sin editar. Devuelve incidencias con c\xF3digos e IDs, enlaces por \xE1mbito, condiciones y geometr\xEDa real. review permite representaci\xF3n explicativa; formal exige condiciones. No aprueba el negocio ni ejecuta expresiones.", { sessionId: id, expectedRevision: revision, profile: external_exports.enum(["review", "formal"]).default("review"), geometry: external_exports.boolean().default(true), maxIssues: external_exports.number().int().min(1).max(1e3).default(200) }, true, (args) => bridge.request(args.sessionId, "validate", { expectedRevision: args.expectedRevision, profile: args.profile, geometry: args.geometry, maxIssues: args.maxIssues }));
-var batchOperation = external_exports.discriminatedUnion("type", edit.options.filter((schema) => BATCH_OPERATIONS.includes(schema.shape.type.value)).map((schema) => schema.extend({ as: external_exports.string().regex(/^[A-Za-z][A-Za-z0-9_-]{0,63}$/).optional() })));
-register("narabizagui_edit_batch", "Prevalida de 1 a 50 operaciones BPMN sobre una copia temporal; aplica en un paso de deshacer. requestId UUID evita duplicados. dryRun solo devuelve el plan y las incidencias. create/connect pueden declarar as y los siguientes pasos referenciar @alias. No incluye guardado, borrado, hojas, ER ni etapas. Ante fallo revisa applied/rolledBack/recoveryRequired; conserva la copia anterior y nunca repitas con otro ID a ciegas.", { sessionId: id, expectedRevision: revision, requestId: external_exports.string().uuid(), operations: external_exports.array(batchOperation).min(1).max(BATCH_LIMIT), dryRun: external_exports.boolean().default(false) }, false, (args) => bridge.request(args.sessionId, "editBatch", { expectedRevision: args.expectedRevision, requestId: args.requestId, operations: args.operations, dryRun: args.dryRun }));
-register("narabizagui_edit", "Aplica una operaci\xF3n nativa bpmn-js, con revisi\xF3n base obligatoria y deshacer. properties edita los campos de semanticProperties seg\xFAn propertyFields de read y reutiliza la validaci\xF3n manual. create.eventDefinition configura el tipo de evento. Usa read para conocer IDs. x/y son el centro al crear; move usa desplazamiento. stage a\xF1ade una etapa al final o a izquierda/derecha de sourceId. lane_add/lane_split gestionan carriles nativos. stage_split divide columnas. style aplica formato persistente y erd_field_move reordena campos. view ampl\xEDa/restaura el lienzo sin cambiar el archivo. Las operaciones erd_ crean hojas de datos, tablas, campos y relaciones por campo; sus x/y son esquina superior izquierda. sheet_create crea otra hoja, sheet_open navega, sheet_rename renombra, subprocess_open abre el detalle y sheet_link vincula con otro proceso mediante CallActivity; no reemplaza subprocesos con contenido.", { sessionId: id, expectedRevision: revision, operation: edit }, false, (args) => bridge.request(args.sessionId, "edit", { expectedRevision: args.expectedRevision, operation: args.operation }));
-register("narabizagui_save", "Guarda en el archivo ya elegido y autorizado en el visor, conservando historial y comprobando conflictos. Si falta acceso, el usuario debe usar Guardar como en el navegador. No elige destinos ni descarga copias silenciosamente.", { sessionId: id, expectedRevision: revision }, false, (args) => bridge.request(args.sessionId, "save", { expectedRevision: args.expectedRevision }));
-server.registerTool("narabizagui_export_png", {
-  description: "Renderiza la hoja activa completa como PNG con fondo blanco, sin paneles; devuelve sheetId y sheetName. Devuelve la imagen al chat para inspecci\xF3n visual y un archivo temporal local para insertarlo en Word/PDF. Lee antes para indicar expectedRevision. No modifica ni guarda el BPMN. scale=2 por defecto; se reduce si es necesario para respetar 8192 px por lado y 16 megap\xEDxeles.",
-  inputSchema: { sessionId: id, expectedRevision: revision, scale: external_exports.number().min(0.5).max(3).default(2) },
-  annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false }
-}, async (args) => {
-  try {
-    return await pngArtifact(await bridge.request(args.sessionId, "exportPng", { expectedRevision: args.expectedRevision, scale: args.scale }));
-  } catch (error51) {
-    return { isError: true, content: [{ type: "text", text: JSON.stringify({ code: error51.code || "PNG_EXPORT_ERROR", message: error51.message }) }] };
+  register("narabizagui_disconnect", "Revoca la conexi\xF3n de una pesta\xF1a sin cerrar su diagrama ni descartar cambios.", { sessionId: id }, false, async (args) => {
+    bridge.disconnect(args.sessionId);
+    return { disconnected: true };
+  });
+  let closing = false;
+  async function close() {
+    if (closing) return;
+    closing = true;
+    await bridge.close();
+    await server.close();
   }
-});
-register("narabizagui_disconnect", "Revoca la conexi\xF3n de una pesta\xF1a sin cerrar su diagrama ni descartar cambios.", { sessionId: id }, false, async (args) => {
-  bridge.disconnect(args.sessionId);
-  return { disconnected: true };
-});
-var closing = false;
-async function close() {
-  if (closing) return;
-  closing = true;
-  await bridge.close();
-  await server.close();
+  process.once("SIGINT", () => close().finally(() => process.exit(0)));
+  process.once("SIGTERM", () => close().finally(() => process.exit(0)));
+  process.stdin.once("end", () => close().finally(() => process.exit(0)));
+  await server.connect(new StdioServerTransport());
+  return { close, bridge, server };
 }
-process.once("SIGINT", () => close().finally(() => process.exit(0)));
-process.once("SIGTERM", () => close().finally(() => process.exit(0)));
-process.stdin.once("end", () => close().finally(() => process.exit(0)));
-await server.connect(new StdioServerTransport());
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await startServer();
+export {
+  startServer
+};
