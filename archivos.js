@@ -56,7 +56,8 @@ class BrowserBpmnFiles {
       const previous=await handle.getFile(),oldXml=await previous.text(),oldHash=await this.digest(oldXml);
       const same=this.handle && await handle.isSameEntry(this.handle);
       if (same && this.hash!==oldHash) {const error=new Error('El archivo cambió fuera del visor. Exporta tus cambios o carga la revisión del archivo antes de guardar.');error.code='EXTERNAL_CHANGE';throw error;}
-      await this.backup({name:previous.name,xml:oldXml,hash:oldHash});
+      // Cloud documents must not leak through persistent, account-independent history.
+      if (handle.storageKind !== 'microsoft') await this.backup({name:previous.name,xml:oldXml,hash:oldHash});
       writable=await handle.createWritable();
       // Segunda lectura después de obtener permiso y conservar la revisión.
       const latest=await handle.getFile();

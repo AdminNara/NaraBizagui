@@ -33,8 +33,13 @@ const browserResult = await build({ entryPoints: [path.join(root, 'scripts/sheet
 await writeFile(path.join(root, 'vendor/bpmn-js.css'), (await readFile(path.join(root, 'node_modules/bpmn-js/dist/assets/bpmn-js.css'), 'utf8')).replaceAll('\r\n','\n'));
 const sheetNotices = await noticesFor(browserResult.metafile);
 await writeFile(path.join(root, 'vendor/SHEETS_LICENSES.txt'), sheetNotices.text.replace('NaraBizagui MCP', 'NaraBizagui native sheet importer'));
+const microsoftResult = await build({ entryPoints: [path.join(root, 'scripts/microsoft-entry.js')], outfile: path.join(root, 'vendor/microsoft-client.js'), bundle: true, platform: 'browser', target: 'es2022', format: 'iife', metafile: true, legalComments: 'inline' });
+await build({ entryPoints: [path.join(root, 'scripts/microsoft-auth-entry.js')], outfile: path.join(root, 'vendor/microsoft-auth.js'), bundle: true, platform: 'browser', target: 'es2022', format: 'iife', legalComments: 'inline' });
+const microsoftNotices = await noticesFor(microsoftResult.metafile);
+await writeFile(path.join(root, 'vendor/MICROSOFT_LICENSES.txt'), microsoftNotices.text.replace('NaraBizagui MCP', 'NaraBizagui Microsoft authentication'));
 const distributed = ['index.html', 'modelador.js', 'modelador.css', 'archivos.js', 'mcp-editor.js', 'mcp-bridge.js', 'editor-tools.js', 'sheets.js', 'assets/narabizagui_blanco.png', 'vendor/bpmn-modeler.production.min.js', 'vendor/bpmn.css', 'vendor/bpmn.woff2', 'vendor/diagram-js.css', 'vendor/LICENSE.txt', 'vendor/sheets-import.js', 'vendor/bpmn-js.css', 'vendor/SHEETS_LICENSES.txt'];
 const manifest = {};
+distributed.push('microsoft-ui.js', 'microsoft-auth.html', 'assets/microsoft-symbol.svg', 'vendor/microsoft-client.js', 'vendor/microsoft-auth.js', 'vendor/MICROSOFT_LICENSES.txt');
 for (const file of distributed) manifest[file] = createHash('sha256').update(await readFile(path.join(root, file))).digest('hex');
 await writeFile(path.join(root, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
 console.log(`Built plugin (${serverNotices.count} attributed dependencies) and native sheet importer (${sheetNotices.count}); updated ${distributed.length} web hashes.`);
