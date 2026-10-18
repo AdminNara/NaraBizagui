@@ -13,6 +13,7 @@
     <div class="brand" aria-label="NaraBizagui by NaraLab"><img class="brand-logo unified-brand" src="assets/narabizagui_blanco.png" alt="NaraBizagui by NaraLab"></div>
     <div class="model-title"><span id="projectName" class="project-context"></span><span id="diagramTitle">Abriendo proyecto…</span></div>
     <span id="dirtyState" class="save-state">Sin cambios pendientes</span>
+    <button id="connectCodex" class="codex-button">Conectar con Codex</button>
   </header>
   <nav class="ribbon-tabs" aria-label="Opciones del modelador">
     <button class="ribbon-tab active" data-ribbon="inicio" aria-selected="true">Inicio</button>
@@ -84,6 +85,15 @@
   <input id="open" type="file" accept=".bpmn,.xml" hidden>
   <dialog id="historyDialog"><div class="history-heading"><h2>Historial de archivos de este navegador</h2><button id="closeHistory" aria-label="Cerrar historial">×</button></div><p>Revisiones anteriores conservadas al guardar. Puedes descargar una copia. Este historial depende de los datos de este navegador.</p><div id="historyItems"></div></dialog>
   <script src="vendor/bpmn-modeler.production.min.js"></script>
+  <dialog id="codexDialog" class="codex-dialog" aria-labelledby="codexHeading">
+    <div class="history-heading"><h2 id="codexHeading">Conectar con Codex</h2><button id="codexClose" aria-label="Cerrar conexión">×</button></div>
+    <p>Instala el plugin NaraBizagui desde Nara IA Market y pide a Codex que conecte este diagrama. Pega aquí el código temporal que te entregue.</p>
+    <form id="codexForm"><label for="codexCode">Código de conexión</label><input id="codexCode" autocomplete="off" spellcheck="false" placeholder="Pega el código de Codex"><button id="codexPair" type="submit">Vincular esta pestaña</button></form>
+    <p id="codexMessage" role="status">Solo se conecta la pestaña que vincules. Guardar requiere un archivo elegido y permiso de escritura.</p>
+    <button id="codexDisconnect" type="button" hidden>Desconectar esta pestaña</button>
+  </dialog>
   <script src="archivos.js"></script>
   <script src="modelador.js"></script>
+  <script src="mcp-editor.js"></script>
+  <script src="mcp-bridge.js"></script>
 </body></html>

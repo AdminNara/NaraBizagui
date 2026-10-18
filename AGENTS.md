@@ -15,7 +15,8 @@ Este proyecto contiene la herramienta BPMN reutilizable, su experiencia de edici
 - Preservar IDs, asociaciones, documentación y geometría de elementos no afectados. Separar mejora de interfaz, prueba técnica y validación del proceso.
 - No incluir fuentes de clientes, credenciales, configuración del equipo, historiales privados o capturas con datos reales en un commit público. Inspeccionar archivos preparados antes de publicar.
 - Conservar las licencias y atribución de dependencias. La licencia local de bpmn-js exige mantener visible su distintivo.
-- La conexión Microsoft directa y el puente MCP a la sesión web son propuestas, no capacidades implementadas. Los MCP BPMN disponibles no demuestran conexión a este visor.
+- El plugin `plugins/narabizagui/` contiene la skill y el MCP local con puente explícito a una pestaña. La mera instalación o presencia de otros MCP BPMN no demuestra conexión: comprobar sesión, revisión y confirmación del visor. Microsoft directo sigue siendo una propuesta.
+- El PNG del MCP es una imagen derivada y un archivo temporal para informes; no equivale a guardado del BPMN ni a validación del proceso. Preservar el archivo editable y la revisión de origen.
 - Probar con temporales o ejemplos genéricos. Verificar el sitio renderizado y los recursos de la versión publicada cuando se modifique la web. Actualizar hashes de `manifest.json` si cambian recursos distribuidos.
 
 ## Contexto separado

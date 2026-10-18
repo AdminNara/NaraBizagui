@@ -1,0 +1,18 @@
+{
+  "name": "narabizagui-workspace",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-plugin.mjs",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "esbuild": "0.28.2",
+    "zod": "4.4.3"
+  }
+}

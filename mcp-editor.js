@@ -1,0 +1,142 @@
+'use strict';
+// Adapter for the existing editor. All changes use native commandStack operations.
+(() => {
+  let revision = crypto.randomUUID();
+  for (const event of ['commandStack.changed', 'import.done']) modeler.get('eventBus').on(event, () => { revision = crypto.randomUUID(); });
+  const error = (code, message) => Object.assign(new Error(message), { code });
+  function available() {
+    if (!ready || loadingDiagram || saving || filePolling) throw error('EDITOR_BUSY', 'El visor está cargando, comprobando o guardando un archivo. Intenta leer de nuevo.');
+  }
+  function formPending() {
+    if (!selected || byId('propertyForm').hidden) return false;
+    const bo = selected.businessObject;
+    const name = selected.type === 'bpmn:Group' ? stageName(selected) : selected.type === 'bpmn:TextAnnotation' ? bo.text || '' : bo.name || '';
+    return byId('elementName').value !== name || byId('elementDocumentation').value !== (bo.documentation || []).map(d => d.text || '').join('\n\n');
+  }
+  function guard(expected) {
+    available();
+    if (expected !== revision) throw error('REVISION_CONFLICT', 'El diagrama cambió después de la lectura. Lee la revisión actual y conserva las ediciones manuales.');
+    if (formPending()) throw error('FORM_PENDING', 'Hay texto sin aplicar en Propiedades. El usuario debe aplicarlo o descartarlo antes de editar mediante Codex.');
+  }
+  const element = id => {
+    const result = modeler.get('elementRegistry').get(id);
+    if (!result || result.labelTarget) throw error('ELEMENT_NOT_FOUND', 'No existe ese elemento editable. Consulta los IDs con read.');
+    return result;
+  };
+  function describe(el) {
+    const bo = el.businessObject;
+    return { id: el.id, type: el.type, name: el.type === 'bpmn:Group' ? stageName(el) : el.type === 'bpmn:TextAnnotation' ? bo.text || '' : bo.name || '', parentId: el.parent?.id, x: el.x, y: el.y, width: el.width, height: el.height, sourceId: el.source?.id, targetId: el.target?.id, waypoints: el.waypoints?.map(p => ({ x: p.x, y: p.y })), documentation: (bo.documentation || []).map(d => d.text || '').join('\n\n'), dataState: bo.dataState?.name, role: roleFor(el), stage: phaseFor(el) };
+  }
+  async function read({ includeXml = false } = {}) {
+    available();
+    const base = revision;
+    const { xml } = await modeler.saveXML({ format: true });
+    const sha256 = await browserFiles.digest(xml);
+    if (base !== revision) throw error('REVISION_CONFLICT', 'El diagrama cambió durante la lectura. Lee nuevamente.');
+    const elements = modeler.get('elementRegistry').getAll().filter(e => e.businessObject && !e.labelTarget);
+    return { revision, sha256, fileName: browserFiles.name, dirty, unappliedProperties: formPending(), canSaveToFile: Boolean(browserFiles.handle), selectedIds: modeler.get('selection').get().map(e => e.id), warnings: (window.importWarnings || []).map(w => w.message || String(w)), canUndo: modeler.get('commandStack').canUndo(), canRedo: modeler.get('commandStack').canRedo(), totalElements: elements.length, elementsTruncated: elements.length > 2000, elements: elements.slice(0, 2000).map(describe), ...(includeXml ? { xml } : {}) };
+  }
+  async function edit({ expectedRevision, operation: op }) {
+    guard(expectedRevision);
+    const modeling = modeler.get('modeling'), factory = modeler.get('elementFactory'), canvas = modeler.get('canvas'), rules = modeler.get('rules');
+    let affected;
+    if (op.type === 'label') {
+      affected = element(op.elementId);
+      if (affected.type === 'bpmn:TextAnnotation') modeling.updateProperties(affected, { text: op.text });
+      else modeling.updateLabel(affected, op.text);
+    } else if (op.type === 'documentation') {
+      affected = element(op.elementId);
+      modeling.updateProperties(affected, { documentation: op.text ? [modeler.get('moddle').create('bpmn:Documentation', { text: op.text })] : [] });
+    } else if (op.type === 'create') {
+      const types = ['bpmn:Task','bpmn:ManualTask','bpmn:UserTask','bpmn:ServiceTask','bpmn:SubProcess','bpmn:StartEvent','bpmn:EndEvent','bpmn:IntermediateCatchEvent','bpmn:ExclusiveGateway','bpmn:ParallelGateway','bpmn:TextAnnotation','bpmn:DataObjectReference','bpmn:DataStoreReference','bpmn:Participant'];
+      if (!types.includes(op.bpmnType) || !Number.isFinite(op.x) || !Number.isFinite(op.y)) throw error('INVALID_OPERATION', 'Tipo o posición inválidos.');
+      const props = op.bpmnType === 'bpmn:TextAnnotation' ? { text: op.name || '' } : { name: op.name || '' };
+      const businessObject = modeler.get('bpmnFactory').create(op.bpmnType, props);
+      const shape = factory.createShape({ type: op.bpmnType, businessObject, ...(op.bpmnType === 'bpmn:Participant' ? { isExpanded: true } : {}) });
+      const parent = op.parentId ? element(op.parentId) : canvas.getRootElement();
+      if (!rules.allowed('shape.create', { shape, target: parent, position: { x: op.x, y: op.y } })) throw error('BPMN_RULE', 'No se permite crear ese elemento en el contenedor elegido.');
+      affected = modeling.createShape(shape, { x: op.x, y: op.y }, parent);
+    } else if (op.type === 'connect') {
+      const source = element(op.sourceId), target = element(op.targetId);
+      const connection = op.bpmnType ? { type: op.bpmnType } : undefined;
+      const allowed = rules.allowed('connection.create', { source, target, connection });
+      if (!allowed || (connection && allowed.type && allowed.type !== connection.type)) throw error('BPMN_RULE', 'La conexión solicitada no es válida entre esos elementos.');
+      affected = modeling.connect(source, target, connection);
+    } else if (op.type === 'move') {
+      affected = element(op.elementId);
+      if (!affected.parent || affected.waypoints || !Number.isFinite(op.dx) || !Number.isFinite(op.dy)) throw error('INVALID_OPERATION', 'Elige una figura y un desplazamiento válido.');
+      const target = op.parentId ? element(op.parentId) : affected.parent;
+      const delta = { x: op.dx, y: op.dy };
+      if (!rules.allowed('elements.move', { shapes: [affected], delta, target })) throw error('BPMN_RULE', 'El movimiento no está permitido.');
+      modeling.moveShape(affected, delta, target);
+    } else if (op.type === 'resize') {
+      affected = element(op.elementId);
+      if (![op.x, op.y, op.width, op.height].every(Number.isFinite) || op.width < 20 || op.height < 20 || !rules.allowed('shape.resize', { shape: affected })) throw error('BPMN_RULE', 'No se permite ese tamaño para el elemento.');
+      modeling.resizeShape(affected, { x: op.x, y: op.y, width: op.width, height: op.height });
+    } else if (op.type === 'delete') {
+      affected = element(op.elementId);
+      if (!affected.parent) throw error('BPMN_RULE', 'No se puede eliminar la raíz.');
+      modeling.removeElements([affected]);
+    } else if (op.type === 'stage') {
+      const context = {};
+      modeler.get('commandStack').execute('project.stage.add', context);
+      affected = context.stage;
+    } else if (op.type === 'undo' || op.type === 'redo') {
+      const stack = modeler.get('commandStack');
+      if (!(op.type === 'undo' ? stack.canUndo() : stack.canRedo())) throw error('NO_HISTORY', 'No hay una operación que deshacer o rehacer.');
+      stack[op.type]();
+    } else throw error('INVALID_OPERATION', 'Operación no admitida.');
+    keepDocumentDraft = null;
+    if (affected && op.type !== 'delete') modeler.get('selection').select(affected);
+    status('Cambio de Codex aplicado · Guarda el archivo para conservarlo.');
+    return { applied: true, affectedId: affected?.id, ...(await read()) };
+  }
+  async function save({ expectedRevision }) {
+    guard(expectedRevision);
+    const handle = browserFiles.handle;
+    if (!handle || !(standalone || detached)) throw error('FILE_SELECTION_REQUIRED', 'Pulsa Guardar como en el visor y elige el destino antes de guardar mediante Codex.');
+    if (handle.queryPermission && await handle.queryPermission({ mode: 'readwrite' }) !== 'granted') throw error('FILE_PERMISSION_REQUIRED', 'Pulsa Guardar en el visor para autorizar la escritura del archivo.');
+    guard(expectedRevision);
+    saving = true;
+    const sequence = editSequence;
+    try {
+      const { xml } = await modeler.saveXML({ format: true });
+      if (revision !== expectedRevision) throw error('REVISION_CONFLICT', 'El diagrama cambió antes del guardado. Lee de nuevo.');
+      await browserFiles.save(xml, handle);
+      const persisted = await browserFiles.read();
+      const sha256 = await browserFiles.digest(xml);
+      if (persisted.hash !== sha256) throw error('SAVE_NOT_VERIFIED', 'El archivo escrito no coincide con la revisión enviada. Lee y comprueba antes de volver a guardar.');
+      if (sequence === editSequence) setDirty(false);
+      browserFileContext(browserFiles.name);
+      byId('externalChange').hidden = true;
+      status('Archivo guardado por Codex · Escritura comprobada e historial conservado.');
+      return { saved: true, savedRevision: expectedRevision, revision, sha256, fileName: browserFiles.name, dirty };
+    } catch (cause) {
+      if (cause.code === 'EXTERNAL_CHANGE') showExternalChange(cause.message);
+      throw cause;
+    } finally { saving = false; }
+  }
+  async function exportPng({ expectedRevision, scale = 2 }) {
+    guard(expectedRevision);
+    if (!Number.isFinite(scale) || scale < 0.5 || scale > 3) throw error('INVALID_SCALE', 'La escala debe estar entre 0.5 y 3.');
+    decorateStages(); decorateDocuments();
+    await document.fonts.ready;
+    const { svg } = await modeler.saveSVG();
+    const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+    try {
+      const image = new Image(); image.src = url; await image.decode();
+      if (!image.naturalWidth || !image.naturalHeight) throw error('PNG_EXPORT_ERROR', 'El diagrama no tiene dimensiones exportables.');
+      const effectiveScale = Math.min(scale, 8192 / image.naturalWidth, 8192 / image.naturalHeight, Math.sqrt(16000000 / (image.naturalWidth * image.naturalHeight)));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.floor(image.naturalWidth * effectiveScale));
+      canvas.height = Math.max(1, Math.floor(image.naturalHeight * effectiveScale));
+      const context = canvas.getContext('2d');
+      context.fillStyle = '#fff'; context.fillRect(0, 0, canvas.width, canvas.height); context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/png');
+      if (revision !== expectedRevision) throw error('REVISION_CONFLICT', 'El diagrama cambió durante la exportación. Lee y exporta nuevamente.');
+      if (dataUrl.length > 8 * 1024 * 1024 * 4 / 3 + 40) throw error('PNG_TOO_LARGE', 'El PNG supera 8 MB. Exporta con una escala menor.');
+      return { pngBase64: dataUrl.slice(dataUrl.indexOf(',') + 1), width: canvas.width, height: canvas.height, revision, fileName: browserFiles.name, effectiveScale };
+    } finally { URL.revokeObjectURL(url); }
+  }
+  window.NaraBizaguiEditor = Object.freeze({ read, edit, save, exportPng });
+})();

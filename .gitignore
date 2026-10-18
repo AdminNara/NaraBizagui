@@ -10,3 +10,5 @@ node_modules/
 .env
 .env.*
 local/
+output/
+.playwright-cli/

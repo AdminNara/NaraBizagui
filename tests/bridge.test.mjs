@@ -1,0 +1,94 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtemp, cp, rm } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import http from 'node:http';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { startBridge } from '../plugins/narabizagui/server/bridge.mjs';
+
+const origin = 'https://demo.naraconsultores.com';
+async function post(port, route, data, token, extra = {}) {
+  return fetch(`http://127.0.0.1:${port}${route}`, { method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...extra }, body: JSON.stringify(data) });
+}
+async function pair(bridge) {
+  const code = bridge.pair().pairingCode.split('.')[1];
+  const response = await post(bridge.port, '/pair', { code, name: 'Prueba genérica' });
+  assert.equal(response.status, 200);
+  return { code, ...(await response.json()) };
+}
+
+test('loopback rejects foreign origins, rebinding, absent auth, reused and expired codes', async t => {
+  let currentTime = Date.now();
+  const bridge = await startBridge({ pairingTtlMs: 50, now: () => currentTime });
+  t.after(() => bridge.close());
+  const { code, sessionId, sessionToken } = await pair(bridge);
+  assert.equal((await post(bridge.port, '/pair', { code })).status, 401);
+  assert.equal((await post(bridge.port, `/sessions/${sessionId}/poll`, {}, null)).status, 401);
+  assert.equal((await post(bridge.port, `/sessions/${sessionId}/poll`, {}, sessionToken, { Origin: 'https://foreign.example' })).status, 403);
+  const rebindingStatus = await new Promise((resolve, reject) => {
+    const req = http.request({ host: '127.0.0.1', port: bridge.port, path: '/pair', method: 'POST', headers: { Host: `evil.example:${bridge.port}`, Origin: origin, 'Content-Type': 'application/json' } }, res => { res.resume(); resolve(res.statusCode); });
+    req.on('error', reject); req.end('{}');
+  });
+  assert.equal(rebindingStatus, 403);
+  const expired = bridge.pair().pairingCode.split('.')[1];
+  currentTime += 65;
+  assert.equal((await post(bridge.port, '/pair', { code: expired })).status, 401);
+});
+
+test('commands require matching confirmation and are never delivered twice', async t => {
+  const bridge = await startBridge();
+  t.after(() => bridge.close());
+  const session = await pair(bridge);
+  const pending = bridge.request(session.sessionId, 'edit', { expectedRevision: 'r1' });
+  const poll = await (await post(bridge.port, `/sessions/${session.sessionId}/poll`, {}, session.sessionToken)).json();
+  assert.equal(poll.command.action, 'edit');
+  await assert.rejects(bridge.request(session.sessionId, 'edit', {}), { code: 'BUSY' });
+  assert.equal((await post(bridge.port, `/sessions/${session.sessionId}/result`, { commandId: 'wrong', result: {} }, session.sessionToken)).status, 409);
+  const res = await post(bridge.port, `/sessions/${session.sessionId}/result`, { commandId: poll.command.id, result: { applied: true, revision: 'r2' } }, session.sessionToken);
+  assert.equal(res.status, 200);
+  assert.deepEqual(await pending, { applied: true, revision: 'r2' });
+  assert.equal((await post(bridge.port, `/sessions/${session.sessionId}/result`, { commandId: poll.command.id, result: {} }, session.sessionToken)).status, 409);
+  bridge.disconnect(session.sessionId);
+  await assert.rejects(bridge.request(session.sessionId, 'read', {}), { code: 'NOT_CONNECTED' });
+});
+
+test('timeout distinguishes undelivered from an unconfirmed result and expires the queue', async t => {
+  const bridge = await startBridge({ timeoutMs: 70 });
+  t.after(() => bridge.close());
+  const session = await pair(bridge);
+  await assert.rejects(bridge.request(session.sessionId, 'edit', {}), { code: 'NOT_RESPONDING' });
+  const pending = bridge.request(session.sessionId, 'edit', {});
+  const assertion = assert.rejects(pending, { code: 'RESULT_UNKNOWN' });
+  const poll = await (await post(bridge.port, `/sessions/${session.sessionId}/poll`, {}, session.sessionToken)).json();
+  assert.equal(poll.command.action, 'edit');
+  await assertion;
+  assert.equal((await post(bridge.port, `/sessions/${session.sessionId}/result`, { commandId: poll.command.id, result: {} }, session.sessionToken)).status, 409);
+});
+
+test('bundled plugin starts outside the checkout without npm install and serves real MCP', async t => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'narabizagui-plugin-'));
+  const plugin = path.join(dir, 'plugin');
+  await cp(new URL('../plugins/narabizagui/', import.meta.url), plugin, { recursive: true });
+  const transport = new StdioClientTransport({ command: process.execPath, args: [path.join(plugin, 'server/dist/server.mjs')], cwd: dir, stderr: 'pipe' });
+  const client = new Client({ name: 'narabizagui-qa', version: '1.0.0' });
+  t.after(async () => {
+    await client.close();
+    if (path.dirname(dir) !== path.resolve(os.tmpdir()) || !path.basename(dir).startsWith('narabizagui-plugin-')) throw new Error('Unexpected temporary cleanup target');
+    await rm(dir, { recursive: true, force: true });
+  });
+  await client.connect(transport);
+  assert.equal((await client.listTools()).tools.length, 7);
+  const connection = (await client.callTool({ name: 'narabizagui_connect', arguments: {} })).structuredContent;
+  const [port, code] = connection.pairingCode.split('.');
+  const paired = await (await post(port, '/pair', { code })).json();
+  const sessions = (await client.callTool({ name: 'narabizagui_sessions', arguments: {} })).structuredContent.sessions;
+  assert.equal(sessions[0].sessionId, paired.sessionId);
+  const pending = client.callTool({ name: 'narabizagui_read', arguments: { sessionId: paired.sessionId } });
+  const poll = await (await post(port, `/sessions/${paired.sessionId}/poll`, {}, paired.sessionToken)).json();
+  await post(port, `/sessions/${paired.sessionId}/result`, { commandId: poll.command.id, result: { revision: 'test', dirty: false } }, paired.sessionToken);
+  assert.equal((await pending).structuredContent.revision, 'test');
+  const bad = await client.callTool({ name: 'narabizagui_edit', arguments: { sessionId: paired.sessionId, operation: { type: 'delete', elementId: 'x' } } });
+  assert.equal(bad.isError, true, 'An edit without a base revision must be rejected by the MCP schema');
+});
