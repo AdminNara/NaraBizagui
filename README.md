@@ -51,6 +51,8 @@ La herramienta `narabizagui_export_png` devuelve el diagrama completo como image
 
 Para desarrollar el plugin: `npm ci`, `npm run build`, `npm test`. El build incluye sus dependencias y licencias en el paquete y actualiza el manifiesto web.
 
+Después de publicar la web, `node scripts/verify-public.mjs` compara los doce recursos distribuidos con el manifiesto y conserva el resultado privado bajo `local/`.
+
 La licencia de bpmn-js exige conservar visible el distintivo bpmn.io; se muestra fuera del lienzo. Ver [licencia incluida](vendor/LICENSE.txt).
 
 ## Alcance de la web pública

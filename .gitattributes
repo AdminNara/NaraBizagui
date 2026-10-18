@@ -1,3 +1,1 @@
-* text=auto eol=lf
-*.png binary
-*.woff2 binary
+plugins/narabizagui/server/dist/server.mjs linguist-generated=true whitespace=-blank-at-eol
