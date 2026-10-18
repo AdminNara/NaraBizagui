@@ -214,7 +214,7 @@
       workspace.rememberFile(handle, context());
       if (sequence === editSequence) setDirty(false);
       byId('externalChange').hidden = true; dialog.close(); status('BPMN guardado en Microsoft · Contenido comprobado.');
-    } finally { saving = false; }
+    } finally { saving = false; window.naraAutoSave?.refresh(); }
   }, 'Guardando y comprobando…');
   window.NaraMicrosoftUI = { saveAs: () => open('save') };
   auth.onChange(({ previous, account, reason }) => {

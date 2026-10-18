@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="vendor/diagram-js.css?v=08ead062d4284cb1">
   <link rel="stylesheet" href="vendor/bpmn.css?v=b4b8f7070233c196">
   <link rel="stylesheet" href="vendor/bpmn-js.css?v=b09861c8e7030764">
-  <link rel="stylesheet" href="modelador.css?v=dd3711a29d3250c8">
+  <link rel="stylesheet" href="modelador.css?v=dd35d7c5b393b0f6">
 </head>
 <body>
   <header class="titlebar">
@@ -35,7 +35,7 @@
       <div class="ribbon-group"><button id="newFile"><span class="button-symbol">＋</span>Nuevo</button><button id="openFile"><span class="button-symbol">▱</span>Abrir BPMN</button><button id="save"><span class="button-symbol">⇩</span>Guardar</button><button id="saveAs"><span class="button-symbol">▱</span>Guardar como</button><button id="exportBpmn"><span class="button-symbol">▱</span>Exportar BPMN</button><button id="fileHistory"><span class="button-symbol">↶</span>Historial local</button><span class="group-caption">Modelo editable</span></div>
       <div class="ribbon-group"><button id="openMicrosoft">Abrir desde Microsoft</button><button id="saveMicrosoftAs">Guardar en Microsoft como</button><span class="group-caption">OneDrive · SharePoint</span></div>
       <div class="ribbon-group"><button id="exportSvg"><span class="button-symbol">▧</span>Exportar SVG</button><button id="exportPng"><span class="button-symbol">▧</span>Exportar PNG</button><span class="group-caption">Imagen del proceso</span></div>
-      <div class="ribbon-hint" id="fileModeHint">Guardar actualiza el archivo. Guardar como elige otro destino.</div>
+      <label class="autosave-option"><input type="checkbox" id="autoSaveEnabled" checked>Guardado automático</label><div class="ribbon-hint" id="fileModeHint">Elige un archivo local o Microsoft para guardar automáticamente.</div>
     </div>
     <div class="ribbon-content" data-content="vista" hidden>
       <div class="ribbon-group"><button id="focusCanvasRibbon"><span class="button-symbol">⛶</span>Ampliar lienzo</button><span class="group-caption">Espacio de trabajo</span></div>
@@ -112,7 +112,8 @@
     <details class="ms-privacy"><summary>Permisos y privacidad</summary><p>El permiso de Microsoft permite leer, modificar y eliminar los archivos a los que tu cuenta tiene acceso. NaraBizagui implementa apertura y guardado de BPMN. Para SharePoint se solicita además lectura de sitios.</p><p>La conexión se recuerda en este navegador mediante la biblioteca de Microsoft. Para conservarla al cerrar todo el navegador, elige «Mantener la sesión iniciada» si Microsoft lo permite. Tu organización puede exigir iniciar sesión de nuevo. Cuenta → Desconectar borra el acceso y las referencias recordadas de esta cuenta en NaraBizagui, sin cerrar Microsoft 365.</p><p>Se recuerdan la carpeta, el último BPMN y hasta 12 archivos recientes por cuenta mediante nombres e identificadores. Al volver a entrar, se relee desde Microsoft el último archivo guardado, si el editor está vacío. Limpiar recientes borra la lista y deja de retomar ese archivo. Los BPMN no se conservan en el Historial local: los cambios sin guardar no se recuperan. Si vinculas Codex, el modelo puede enviarse al chat que autorices.</p></details>
   </dialog>
   <script src="vendor/microsoft-client.js?v=6af4387f044ed95b"></script>
-  <script src="archivos.js?v=053d08cb36b53d8f"></script>
+  <script src="archivos.js?v=07b0cccb6fbb469c"></script>
+  <script src="autoguardado.js?v=468b0157afb5335c"></script>
   <dialog id="sheetDialog" class="codex-dialog" aria-labelledby="sheetDialogHeading"><form id="sheetForm"><div class="history-heading"><h2 id="sheetDialogHeading">Nueva hoja de proceso</h2><button type="button" id="closeSheetDialog" aria-label="Cerrar hoja">×</button></div><p id="sheetKindField"><label for="sheetKind">Tipo de hoja</label><select id="sheetKind"><option value="bpmn">Proceso BPMN</option><option value="erd">Modelo de datos · entidad-relación</option></select></p><p><label for="sheetName">Nombre de la hoja</label><input id="sheetName" maxlength="120" required autocomplete="off"></p><button type="submit" id="saveSheetName">Crear hoja</button></form></dialog>
   <script src="vendor/sheets-import.js?v=c0b00ddb98c9b5c3"></script>
   <script src="editor-tools.js?v=0e76bd9271958373"></script>
@@ -121,8 +122,8 @@
   <script src="sheets.js?v=976ea816940c2076"></script>
   <script src="editor-style.js?v=8e086dc33e594857"></script>
   <script src="editor-properties.js?v=345133142175ca4c"></script>
-  <script src="modelador.js?v=2085e1260c72e5fa"></script>
-  <script src="mcp-editor.js?v=f372be2828831bde"></script>
+  <script src="modelador.js?v=e5495732988de45d"></script>
+  <script src="mcp-editor.js?v=abbb0765162effd5"></script>
   <script src="mcp-bridge.js?v=80dc1ddad7ae993f"></script>
-  <script src="microsoft-ui.js?v=7cfe8a888108ccde"></script>
+  <script src="microsoft-ui.js?v=2e38c7e248b80799"></script>
 </body></html>

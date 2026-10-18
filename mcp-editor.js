@@ -161,7 +161,7 @@
     } else throw error('INVALID_OPERATION', 'Operación no admitida.');
     keepDocumentDraft = null;
     if (affected?.parent && op.type !== 'delete') modeler.get('selection').select(affected);
-    status(['sheet_open','subprocess_open'].includes(op.type) ? 'Hoja abierta por Codex.' : 'Cambio de Codex aplicado · Guarda el archivo para conservarlo.');
+    status(['sheet_open','subprocess_open'].includes(op.type) ? 'Hoja abierta por Codex.' : 'Cambio de Codex aplicado.');
     return { applied: true, affectedId: affected?.id, ...(await read()) };
   }
   async function save({ expectedRevision }) {
@@ -183,11 +183,13 @@
       browserFileContext(browserFiles.name);
       byId('externalChange').hidden = true;
       status(handle.storageKind === 'microsoft' ? 'Archivo guardado por Codex en Microsoft · Escritura comprobada.' : 'Archivo guardado por Codex · Escritura comprobada e historial conservado.');
+      window.naraAutoSave?.reset();
       return { saved: true, storage: handle.storageKind === 'microsoft' ? 'microsoft' : 'local', savedRevision: expectedRevision, revision, sha256, fileName: browserFiles.name, dirty };
     } catch (cause) {
       if (cause.code === 'EXTERNAL_CHANGE') showExternalChange(cause.message);
+      else window.naraAutoSave?.block(cause);
       throw cause;
-    } finally { saving = false; }
+    } finally { saving = false; window.naraAutoSave?.refresh(); }
   }
   async function exportPng({ expectedRevision, scale = 2 }) {
     guard(expectedRevision);
