@@ -4,10 +4,10 @@
   <meta name="narabizagui-mode" content="browser">
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>NaraBizagui by NaraLab</title>
-  <link rel="stylesheet" href="vendor/diagram-js.css">
-  <link rel="stylesheet" href="vendor/bpmn.css">
-  <link rel="stylesheet" href="vendor/bpmn-js.css">
-  <link rel="stylesheet" href="modelador.css">
+  <link rel="stylesheet" href="vendor/diagram-js.css?v=08ead062d4284cb1">
+  <link rel="stylesheet" href="vendor/bpmn.css?v=b4b8f7070233c196">
+  <link rel="stylesheet" href="vendor/bpmn-js.css?v=b09861c8e7030764">
+  <link rel="stylesheet" href="modelador.css?v=ebaeae0524b0865d">
 </head>
 <body>
   <header class="titlebar">
@@ -77,7 +77,7 @@
   <footer class="statusbar"><span class="status-dot" aria-hidden="true"></span><span id="status" role="status">Abriendo modelo…</span><span class="status-spacer"></span><span id="attributionHost" title="bpmn.io · licencia del motor de modelado"></span><span class="status-version">Modelador 1.0</span><button id="minus" aria-label="Reducir zoom">−</button><input id="zoomRange" type="range" min="10" max="150" value="50" aria-label="Nivel de zoom"><button id="plus" aria-label="Aumentar zoom">+</button><button id="zoomValue" title="Encajar diagrama">50 %</button></footer>
   <input id="open" type="file" accept=".bpmn,.xml" hidden>
   <dialog id="historyDialog"><div class="history-heading"><h2>Historial de archivos de este navegador</h2><button id="closeHistory" aria-label="Cerrar historial">×</button></div><p>Revisiones anteriores conservadas al guardar. Puedes descargar una copia. Este historial depende de los datos de este navegador.</p><div id="historyItems"></div></dialog>
-  <script src="vendor/bpmn-modeler.production.min.js"></script>
+  <script src="vendor/bpmn-modeler.production.min.js?v=5956b3e36ce23b3f"></script>
   <dialog id="codexDialog" class="codex-dialog" aria-labelledby="codexHeading">
     <div class="history-heading"><h2 id="codexHeading">Conectar con Codex</h2><button id="codexClose" aria-label="Cerrar conexión">×</button></div>
     <p>Instala el plugin NaraBizagui desde Nara IA Market y pide a Codex que conecte este diagrama. Pega aquí el código temporal que te entregue.</p>
@@ -100,14 +100,14 @@
     <footer class="ms-footer"><button id="msCancel">Cancelar</button><button id="msOpen" class="ms-primary" hidden disabled>Abrir</button><button id="msSave" class="ms-primary" hidden disabled>Guardar</button></footer>
     <details class="ms-privacy"><summary>Permisos y privacidad</summary><p>El permiso de Microsoft permite leer, modificar y eliminar los archivos a los que tu cuenta tiene acceso. NaraBizagui implementa apertura y guardado de BPMN. Para SharePoint se solicita además lectura de sitios.</p><p>Los BPMN se transfieren directamente con Microsoft y no se conservan en el Historial local. Los tokens permanecen en memoria; al recargar tendrás que conectar de nuevo. Si vinculas Codex, el modelo puede enviarse al chat que autorices.</p></details>
   </dialog>
-  <script src="vendor/microsoft-client.js"></script>
-  <script src="archivos.js"></script>
+  <script src="vendor/microsoft-client.js?v=1e896eb1bd5e6cff"></script>
+  <script src="archivos.js?v=053d08cb36b53d8f"></script>
   <dialog id="sheetDialog" class="codex-dialog" aria-labelledby="sheetDialogHeading"><form id="sheetForm"><div class="history-heading"><h2 id="sheetDialogHeading">Nueva hoja de proceso</h2><button type="button" id="closeSheetDialog" aria-label="Cerrar hoja">×</button></div><p><label for="sheetName">Nombre de la hoja</label><input id="sheetName" maxlength="120" required autocomplete="off"></p><button type="submit" id="saveSheetName">Crear hoja</button></form></dialog>
-  <script src="vendor/sheets-import.js"></script>
-  <script src="editor-tools.js"></script>
-  <script src="sheets.js"></script>
-  <script src="modelador.js"></script>
-  <script src="mcp-editor.js?v=20261018-routes"></script>
-  <script src="mcp-bridge.js?v=20261017-tab-session"></script>
-  <script src="microsoft-ui.js"></script>
+  <script src="vendor/sheets-import.js?v=c0b00ddb98c9b5c3"></script>
+  <script src="editor-tools.js?v=78e4d7cbb4c5c30c"></script>
+  <script src="sheets.js?v=1372801afdc0c22e"></script>
+  <script src="modelador.js?v=c81ecbb88dcad569"></script>
+  <script src="mcp-editor.js?v=38344b1709189bd1"></script>
+  <script src="mcp-bridge.js?v=80dc1ddad7ae993f"></script>
+  <script src="microsoft-ui.js?v=9df93f6a89e2c71c"></script>
 </body></html>
