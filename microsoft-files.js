@@ -1,4 +1,4 @@
-// Microsoft Graph storage. Tokens and document contents remain in memory.
+// Microsoft Graph storage. MSAL manages authentication; document contents stay in memory.
 export const GRAPH = 'https://graph.microsoft.com/v1.0/';
 export const FILE_SCOPES = ['User.Read', 'Files.ReadWrite.All'];
 export const SITE_SCOPES = ['Sites.Read.All'];

@@ -15579,48 +15579,101 @@
     }
   };
 
-  // scripts/microsoft-entry.js
-  var clientId = "f6e8c708-7319-4fde-8220-af052e371621";
+  // scripts/microsoft-account.js
+  var identity = (account) => account ? JSON.stringify([account.homeAccountId, account.localAccountId, account.tenantId]) : null;
   var MicrosoftAccount = class {
-    constructor() {
+    constructor(client, { interactionRequired: interactionRequired2, accountChanged }) {
+      this.client = client;
+      this.interactionRequired = interactionRequired2;
       this.account = null;
-      this.client = new PublicClientApplication({
-        auth: { clientId, authority: "https://login.microsoftonline.com/common", redirectUri: new URL("microsoft-auth.html", location.href).href },
-        cache: { cacheLocation: "memoryStorage" },
-        system: { loggerOptions: { piiLoggingEnabled: false, loggerCallback() {
-        } } }
+      this.generation = 0;
+      this.listeners = /* @__PURE__ */ new Set();
+      this.clientReady = client.initialize();
+      this.initialized = this.clientReady.then(async () => {
+        client.addEventCallback(() => {
+          this.generation++;
+          this.synchronize();
+        }, [accountChanged]);
+        await this.restore();
       });
-      this.initialized = this.client.initialize();
+    }
+    onChange(listener) {
+      this.listeners.add(listener);
+      return () => this.listeners.delete(listener);
+    }
+    update(account, reason) {
+      if (identity(this.account) === identity(account)) return;
+      const previous = this.account;
+      this.account = account;
+      this.generation++;
+      for (const listener of this.listeners) listener({ previous, account, reason });
+    }
+    synchronize() {
+      if (this.account && identity(this.client.getActiveAccount()) !== identity(this.account)) this.update(null, "changed");
+    }
+    async restore() {
+      const account = this.client.getActiveAccount(), generation = this.generation;
+      if (!account) return;
+      try {
+        const result = await this.client.acquireTokenSilent({ scopes: FILE_SCOPES, account });
+        if (generation === this.generation && identity(this.client.getActiveAccount()) === identity(account) && identity(result.account) === identity(account)) this.update(result.account, "restored");
+      } catch {
+      }
     }
     async connect() {
       await this.initialized;
+      const generation = this.generation, active = identity(this.client.getActiveAccount());
       const result = await this.client.loginPopup({ scopes: FILE_SCOPES, prompt: "select_account" });
-      this.account = result.account;
-      this.client.setActiveAccount(this.account);
+      if (generation !== this.generation || active !== identity(this.client.getActiveAccount())) throw problem("ACCOUNT_CHANGED", "La conexi\xF3n cambi\xF3 en otra pesta\xF1a. Vuelve a conectar tu cuenta.");
+      this.update(result.account, "connected");
+      this.client.setActiveAccount(result.account);
       return this.account;
     }
     async token(scopes, interactive = false) {
+      await this.initialized;
+      this.synchronize();
       if (!this.account) throw problem("MICROSOFT_CONNECT", "Conecta tu cuenta Microsoft.");
-      const original = this.account.homeAccountId;
+      const account = this.account, generation = this.generation;
       let result;
       try {
-        result = await this.client.acquireTokenSilent({ scopes, account: this.account });
+        result = await this.client.acquireTokenSilent({ scopes, account });
       } catch (error) {
-        if (!interactive || !(error instanceof InteractionRequiredAuthError)) throw problem("MICROSOFT_AUTHORIZE", "Vuelve a conectar tu cuenta o elige SharePoint y pulsa Continuar para autorizar el sitio.");
-        result = await this.client.acquireTokenPopup({ scopes, account: this.account });
+        if (!interactive || !this.interactionRequired(error)) {
+          if (this.interactionRequired(error) && generation === this.generation) this.update(null, "expired");
+          throw problem("MICROSOFT_AUTHORIZE", "Vuelve a conectar tu cuenta o elige SharePoint y pulsa Continuar para autorizar el sitio.");
+        }
+        this.synchronize();
+        if (generation !== this.generation) throw problem("ACCOUNT_CHANGED", "La cuenta Microsoft cambi\xF3. Conecta de nuevo.");
+        result = await this.client.acquireTokenPopup({ scopes, account });
       }
-      if (this.account?.homeAccountId !== original || result.account.homeAccountId !== original) throw problem("ACCOUNT_CHANGED", "La cuenta Microsoft cambi\xF3. Conecta de nuevo.");
+      this.synchronize();
+      if (generation !== this.generation || identity(result.account) !== identity(account)) throw problem("ACCOUNT_CHANGED", "La cuenta Microsoft cambi\xF3. Conecta de nuevo.");
       return result.accessToken;
     }
     async disconnect() {
-      const account = this.account;
-      this.account = null;
+      this.generation++;
+      this.update(null, "disconnected");
+      await this.clientReady;
       this.client.setActiveAccount(null);
-      if (account) await this.client.clearCache({ account });
+      await this.client.clearCache();
     }
   };
+
+  // scripts/microsoft-entry.js
+  var clientId = "f6e8c708-7319-4fde-8220-af052e371621";
   window.NaraMicrosoft = { create() {
-    const auth = new MicrosoftAccount();
+    const client = new PublicClientApplication({
+      auth: { clientId, authority: "https://login.microsoftonline.com/common", redirectUri: new URL("microsoft-auth.html", location.href).href },
+      cache: { cacheLocation: "localStorage" },
+      system: { loggerOptions: { piiLoggingEnabled: false, loggerCallback() {
+      } } }
+    });
+    const auth = new MicrosoftAccount(client, {
+      interactionRequired: (error) => error instanceof InteractionRequiredAuthError,
+      accountChanged: EventType.ACTIVE_ACCOUNT_CHANGED
+    });
+    window.addEventListener("focus", () => auth.synchronize());
+    window.addEventListener("pageshow", () => auth.synchronize());
     return { auth, files: new MicrosoftFiles(auth) };
   } };
 })();
