@@ -28,6 +28,10 @@ La web es https://demo.naraconsultores.com/NaraBizagui/ y la fuente de la herram
 
 ## Guardar y comprobar
 
+Usar carriles nativos para responsables internos: `lane_split` divide un participante expandido o carril en 2 a 10 carriles (mínimo 60 unidades por carril); `lane_add` inserta un vecino. `move_elements` traslada figuras juntas a `parentId` y conserva sus conexiones internas. Leer los nuevos IDs antes de editar. Las etapas son columnas de presentación y no crean reglas de negocio.
+
+Para evitar líneas largas, `create` admite eventos `bpmn:IntermediateThrowEvent` y `bpmn:IntermediateCatchEvent` con `linkName`. Crear una salida y una entrada con el mismo nombre único, dentro del mismo proceso; conectar origen a salida y entrada a destino. Verificar ambos extremos y su XML. No usar enlaces para comunicación entre procesos independientes.
+
 `narabizagui_save` exige la revisión vigente y un archivo previamente elegido y autorizado en el visor. Si falta destino, indicar **Guardar como** en el navegador; si falta permiso, indicar **Guardar** para autorizarlo. No simular selectores ni elegir rutas del usuario por inferencia.
 
 Solo informar guardado cuando el resultado confirme `saved: true`. Se conserva la revisión anterior en el historial del navegador y se comprueba el contenido escrito. `dirty: true` después de guardar indica que hubo cambios posteriores al contenido guardado. Una descarga, cambio aplicado o lectura correcta no prueban persistencia.

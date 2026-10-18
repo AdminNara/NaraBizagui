@@ -37,6 +37,12 @@
   }
   async function edit({ expectedRevision, operation: op }) {
     guard(expectedRevision);
+    if (op.type === 'open_bpmn') {
+      const occupied = modeler.get('elementRegistry').getAll().some(e => e.businessObject && !e.labelTarget && e.parent && (e.type !== 'bpmn:StartEvent' || e.businessObject.name));
+      if (dirty || browserFiles.handle || occupied) throw error('DOCUMENT_NOT_EMPTY', 'Abrir mediante MCP requiere una pestaña nueva vacía, sin cambios ni archivo vinculado. Conserva el documento actual.');
+      await acceptBrowserSource({ name: op.fileName, xml: op.xml, handle: null });
+      return { applied: true, ...(await read()) };
+    }
     const modeling = modeler.get('modeling'), factory = modeler.get('elementFactory'), canvas = modeler.get('canvas'), rules = modeler.get('rules');
     let affected;
     if (op.type === 'label') {
@@ -47,10 +53,16 @@
       affected = element(op.elementId);
       modeling.updateProperties(affected, { documentation: op.text ? [modeler.get('moddle').create('bpmn:Documentation', { text: op.text })] : [] });
     } else if (op.type === 'create') {
-      const types = ['bpmn:Task','bpmn:ManualTask','bpmn:UserTask','bpmn:ServiceTask','bpmn:SubProcess','bpmn:CallActivity','bpmn:StartEvent','bpmn:EndEvent','bpmn:IntermediateCatchEvent','bpmn:ExclusiveGateway','bpmn:ParallelGateway','bpmn:TextAnnotation','bpmn:DataObjectReference','bpmn:DataStoreReference','bpmn:Participant'];
+      const types = ['bpmn:Task','bpmn:ManualTask','bpmn:UserTask','bpmn:ServiceTask','bpmn:SubProcess','bpmn:CallActivity','bpmn:StartEvent','bpmn:EndEvent','bpmn:IntermediateCatchEvent','bpmn:IntermediateThrowEvent','bpmn:ExclusiveGateway','bpmn:ParallelGateway','bpmn:TextAnnotation','bpmn:DataObjectReference','bpmn:DataStoreReference','bpmn:Participant'];
       if (!types.includes(op.bpmnType) || !Number.isFinite(op.x) || !Number.isFinite(op.y)) throw error('INVALID_OPERATION', 'Tipo o posición inválidos.');
       const props = op.bpmnType === 'bpmn:TextAnnotation' ? { text: op.name || '' } : { name: op.name || '' };
       const businessObject = modeler.get('bpmnFactory').create(op.bpmnType, props);
+      if (op.linkName !== undefined) {
+        if (!['bpmn:IntermediateCatchEvent','bpmn:IntermediateThrowEvent'].includes(op.bpmnType) || !op.linkName.trim()) throw error('INVALID_OPERATION', 'Un enlace requiere un evento intermedio y nombre.');
+        const definition = modeler.get('bpmnFactory').create('bpmn:LinkEventDefinition', { name: op.linkName });
+        definition.$parent = businessObject;
+        businessObject.eventDefinitions = [definition];
+      }
       const shape = op.bpmnType === 'bpmn:Participant'
         ? factory.createParticipantShape({ businessObject, isExpanded: true })
         : factory.createShape({ type: op.bpmnType, businessObject });
@@ -63,6 +75,11 @@
       const allowed = rules.allowed('connection.create', { source, target, connection });
       if (!allowed || (connection && allowed.type && allowed.type !== connection.type)) throw error('BPMN_RULE', 'La conexión solicitada no es válida entre esos elementos.');
       affected = modeling.connect(source, target, connection);
+    } else if (op.type === 'move_elements') {
+      const shapes = op.elementIds.map(element), target = element(op.parentId), delta = { x: op.dx, y: op.dy };
+      if (shapes.some(s => !s.parent || s.waypoints || ['bpmn:Participant','bpmn:Lane'].includes(s.type)) || !rules.allowed('elements.move', { shapes, delta, target })) throw error('BPMN_RULE', 'No se permite mover ese conjunto de figuras al contenedor.');
+      modeling.moveElements(shapes, delta, target);
+      affected = shapes[0];
     } else if (op.type === 'move') {
       affected = element(op.elementId);
       if (!affected.parent || affected.waypoints || !Number.isFinite(op.dx) || !Number.isFinite(op.dy)) throw error('INVALID_OPERATION', 'Elige una figura y un desplazamiento válido.');
@@ -82,6 +99,16 @@
       const context = {};
       modeler.get('commandStack').execute('project.stage.add', context);
       affected = context.stage;
+    } else if (op.type === 'lane_add' || op.type === 'lane_split') {
+      const target = element(op.elementId);
+      if (!['bpmn:Participant', 'bpmn:Lane'].includes(target.type) || target.di?.isExpanded === false) throw error('BPMN_RULE', 'Selecciona un participante expandido o un carril.');
+      if (op.type === 'lane_add') affected = modeling.addLane(target, op.location);
+      else {
+        const length = target.di?.isHorizontal === false ? target.width : target.height;
+        if (!Number.isInteger(op.count) || op.count < 2 || op.count > 10 || length < op.count * 60) throw error('BPMN_RULE', 'El contenedor requiere al menos 60 unidades por carril (2 a 10 carriles).');
+        modeling.splitLane(target, op.count);
+        affected = target;
+      }
     } else if (op.type === 'sheet_create') {
       affected = modeler.get('naraSheets').create(op.name);
     } else if (op.type === 'sheet_open') {

@@ -15,14 +15,18 @@ const elementId = z.string().min(1).max(200);
 const text = z.string().max(20000);
 const finite = z.number().finite().min(-100000).max(100000);
 const edit = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('open_bpmn'), fileName: z.string().min(1).max(200).regex(/^[^<>:"/\\|?*]+\.bpmn$/i), xml: z.string().min(1).max(5000000) }),
   z.object({ type: z.literal('label'), elementId, text }),
   z.object({ type: z.literal('documentation'), elementId, text }),
-  z.object({ type: z.literal('create'), bpmnType: z.enum(['bpmn:Task', 'bpmn:ManualTask', 'bpmn:UserTask', 'bpmn:ServiceTask', 'bpmn:SubProcess', 'bpmn:CallActivity', 'bpmn:StartEvent', 'bpmn:EndEvent', 'bpmn:IntermediateCatchEvent', 'bpmn:ExclusiveGateway', 'bpmn:ParallelGateway', 'bpmn:TextAnnotation', 'bpmn:DataObjectReference', 'bpmn:DataStoreReference', 'bpmn:Participant']), x: finite, y: finite, parentId: elementId.optional(), name: text.optional() }),
+  z.object({ type: z.literal('create'), bpmnType: z.enum(['bpmn:Task', 'bpmn:ManualTask', 'bpmn:UserTask', 'bpmn:ServiceTask', 'bpmn:SubProcess', 'bpmn:CallActivity', 'bpmn:StartEvent', 'bpmn:EndEvent', 'bpmn:IntermediateCatchEvent', 'bpmn:IntermediateThrowEvent', 'bpmn:ExclusiveGateway', 'bpmn:ParallelGateway', 'bpmn:TextAnnotation', 'bpmn:DataObjectReference', 'bpmn:DataStoreReference', 'bpmn:Participant']), x: finite, y: finite, parentId: elementId.optional(), name: text.optional(), linkName: z.string().min(1).max(100).optional() }),
   z.object({ type: z.literal('connect'), sourceId: elementId, targetId: elementId, bpmnType: z.enum(['bpmn:SequenceFlow', 'bpmn:MessageFlow', 'bpmn:Association', 'bpmn:DataInputAssociation', 'bpmn:DataOutputAssociation']).optional() }),
+  z.object({ type: z.literal('move_elements'), elementIds: z.array(elementId).min(1).max(250), parentId: elementId, dx: finite, dy: finite }),
   z.object({ type: z.literal('move'), elementId, dx: finite, dy: finite, parentId: elementId.optional() }),
   z.object({ type: z.literal('resize'), elementId, x: finite, y: finite, width: z.number().min(20).max(100000), height: z.number().min(20).max(100000) }),
   z.object({ type: z.literal('delete'), elementId }),
   z.object({ type: z.literal('stage') }),
+  z.object({ type: z.literal('lane_add'), elementId, location: z.enum(['top','bottom','left','right']) }),
+  z.object({ type: z.literal('lane_split'), elementId, count: z.number().int().min(2).max(10) }),
   z.object({ type: z.literal('sheet_create'), name: z.string().min(1).max(120) }),
   z.object({ type: z.literal('sheet_open'), sheetId: elementId }),
   z.object({ type: z.literal('sheet_rename'), sheetId: elementId, name: z.string().min(1).max(120) }),

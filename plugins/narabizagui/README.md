@@ -1,5 +1,7 @@
 # NaraBizagui by NaraLab — plugin local
 
+0.3.1 incorpora carriles nativos (`lane_add`, `lane_split`), traslado conjunto de figuras (`move_elements`) y eventos intermedios de enlace (`create` con `linkName`). Cargar la web actualizada. Los enlaces deben tener una salida y una entrada con igual nombre dentro del mismo proceso; no sustituyen mensajes entre participantes independientes.
+
 Incluye la skill `narabizagui`, el servidor MCP y su puente al editor en una instalación. No necesita `npm install` después de instalarlo: el servidor distribuido incluye sus bibliotecas y atribuciones.
 
 ## Requisitos e instalación

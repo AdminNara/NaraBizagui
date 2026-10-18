@@ -6,7 +6,7 @@ import { createHash } from 'node:crypto';
 const root = path.resolve(import.meta.dirname, '..');
 const output = path.join(root, 'plugins/narabizagui/server/dist');
 await mkdir(output, { recursive: true });
-const result = await build({ entryPoints: [path.join(root, 'plugins/narabizagui/server/index.mjs')], outfile: path.join(output, 'server.mjs'), bundle: true, platform: 'node', target: 'node22', format: 'esm', metafile: true, legalComments: 'inline', banner: { js: "import { createRequire as __createRequire } from 'node:module'; const require = __createRequire(import.meta.url);" } });
+const result = await build({ entryPoints: [path.join(root, 'plugins/narabizagui/server/index.mjs')], outfile: path.join(output, 'server.mjs'), bundle: true, preserveSymlinks: true, platform: 'node', target: 'node22', format: 'esm', metafile: true, legalComments: 'inline', banner: { js: "import { createRequire as __createRequire } from 'node:module'; const require = __createRequire(import.meta.url);" } });
 async function noticesFor(metadata) {
 const packages = new Set();
 for (const input of Object.keys(metadata.inputs)) {
@@ -29,7 +29,7 @@ return { text: notices.join('\n').replaceAll('\r\n','\n'), count: packages.size 
 }
 const serverNotices = await noticesFor(result.metafile);
 await writeFile(path.join(output, 'THIRD_PARTY_NOTICES.txt'), serverNotices.text);
-const browserResult = await build({ entryPoints: [path.join(root, 'scripts/sheets-import-entry.js')], outfile: path.join(root, 'vendor/sheets-import.js'), bundle: true, platform: 'browser', target: 'es2022', format: 'iife', metafile: true, legalComments: 'inline' });
+const browserResult = await build({ entryPoints: [path.join(root, 'scripts/sheets-import-entry.js')], outfile: path.join(root, 'vendor/sheets-import.js'), bundle: true, preserveSymlinks: true, platform: 'browser', target: 'es2022', format: 'iife', metafile: true, legalComments: 'inline' });
 await writeFile(path.join(root, 'vendor/bpmn-js.css'), (await readFile(path.join(root, 'node_modules/bpmn-js/dist/assets/bpmn-js.css'), 'utf8')).replaceAll('\r\n','\n'));
 const sheetNotices = await noticesFor(browserResult.metafile);
 await writeFile(path.join(root, 'vendor/SHEETS_LICENSES.txt'), sheetNotices.text.replace('NaraBizagui MCP', 'NaraBizagui native sheet importer'));

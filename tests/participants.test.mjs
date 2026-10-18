@@ -71,10 +71,17 @@ test('MCP creates several expanded pools that each accept activities and retain 
     await editor.edit({ expectedRevision: created.revision, operation: { type: 'create', bpmnType: 'bpmn:UserTask', parentId: pool.id, name: 'Generic task', x: 400, y: 200 + index * 350 } });
   }
   assert.equal(new Set(pools.map(pool => pool.businessObject.processRef.id)).size, 5);
+  for (const bpmnType of ['bpmn:IntermediateThrowEvent', 'bpmn:IntermediateCatchEvent']) {
+    const before = await editor.read();
+    await editor.edit({ expectedRevision: before.revision, operation: { type: 'create', bpmnType, parentId: pools[0].id, name: 'A', linkName: 'A', x: 550, y: 200 } });
+  }
   const { xml } = await editor.read({ includeXml: true });
   const parsed = await moddle.fromXML(xml);
   const processes = parsed.rootElement.rootElements.filter(element => element.$type === 'bpmn:Process');
   assert.equal(processes.length, 5);
-  assert.ok(processes.every(process => process.flowElements.length === 1));
+  assert.deepEqual(processes.map(process => process.flowElements.length), [3, 1, 1, 1, 1]);
+  const links = processes[0].flowElements.filter(element => element.eventDefinitions?.length);
+  assert.equal(links.length, 2);
+  assert.ok(links.every(event => event.eventDefinitions[0].$type === 'bpmn:LinkEventDefinition' && event.eventDefinitions[0].name === 'A'));
   assert.equal(parsed.warnings.length, 0);
 });
