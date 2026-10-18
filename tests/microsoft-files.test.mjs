@@ -42,6 +42,19 @@ test('download URL never receives a bearer token and snapshots remain stable', a
   f.change(); await f.handle.getFile();
   assert.equal(await file.text(), '<definitions>generic-1</definitions>');
 });
+
+test('an unchanged cloud revision uses metadata only, without reading or downloading XML',async()=>{
+  const f=fixture();await f.handle.getFile();const base=f.handle.etag;f.calls.length=0;
+  assert.equal(await f.handle.getFile({ifChangedSince:base}),null);
+  assert.equal(f.calls.length,1);assert.equal(new URL(f.calls[0].url).hostname,'graph.microsoft.com');
+  f.change();const changed=await f.handle.getFile({ifChangedSince:base});assert.equal(await changed.text(),'<definitions>external</definitions>');
+});
+
+test('Microsoft throttling exposes Retry-After for the polling backoff',async()=>{
+  const auth={account:{homeAccountId:'generic'},async token(){return'generic';}};
+  const files=new MicrosoftFiles(auth,async()=>new Response('',{status:429,headers:{'Retry-After':'90'}}));
+  await assert.rejects(()=>files.request('me/drive'),{code:'THROTTLED',retryAfterMs:90000});
+});
 test('a changed account cannot read or save another account file', async () => {
   const f = fixture(); await f.handle.getFile(); f.auth.account.homeAccountId = 'other-user';
   await assert.rejects(() => f.handle.getFile(), { code: 'ACCOUNT_CHANGED' });

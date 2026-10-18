@@ -1,7 +1,7 @@
 'use strict';
 // Solo maneja archivos elegidos por el usuario. No sube BPMN a la web.
 class BrowserBpmnFiles {
-  constructor() { this.handle=null; this.hash=null; this.name='Sin título.bpmn'; this.busy=false; this.uncertain=null; }
+  constructor() { this.handle=null; this.hash=null; this.version=null; this.name='Sin título.bpmn'; this.busy=false; this.uncertain=null; }
   async digest(xml) {
     const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(xml));
     return Array.from(new Uint8Array(bytes),b=>b.toString(16).padStart(2,'0')).join('');
@@ -16,10 +16,12 @@ class BrowserBpmnFiles {
     const file=await handle.getFile(),xml=await file.text(); this.validate(xml);
     return {handle,name:file.name,xml,hash:await this.digest(xml)};
   }
-  async attach(source) { this.handle=source.handle||null;this.name=source.name;this.hash=source.hash||await this.digest(source.xml);this.uncertain=null; }
-  async read() {
+  async attach(source) { this.handle=source.handle||null;this.name=source.name;this.hash=source.hash||await this.digest(source.xml);this.version=this.handle?.etag||null;this.uncertain=null; }
+  async read({onlyChanged=false}={}) {
     if (!this.handle) return null;
-    const file=await this.handle.getFile(),xml=await file.text();this.validate(xml);
+    const file=await this.handle.getFile(onlyChanged&&this.handle.storageKind==='microsoft'?{ifChangedSince:this.version}:undefined);
+    if(!file)return null;
+    const xml=await file.text();this.validate(xml);
     return {handle:this.handle,name:file.name,xml,hash:await this.digest(xml)};
   }
   async pickSave(name=this.name) {
@@ -69,7 +71,7 @@ class BrowserBpmnFiles {
       guard();await writable.write(xml);guard();closing=true;await writable.close();writable=null;
       const persisted=await handle.getFile(),savedHash=await this.digest(await persisted.text());
       if(savedHash!==await this.digest(xml))throw Object.assign(new Error('No se pudo comprobar el contenido guardado. Recarga antes de volver a guardar.'),{code:'SAVE_NOT_VERIFIED'});
-      guard();this.handle=handle;this.name=handle.name;this.hash=savedHash;this.uncertain=null;
+      guard();this.handle=handle;this.name=handle.name;this.hash=savedHash;this.version=handle.etag||null;this.uncertain=null;
     };
     try{
       const locks=typeof navigator!=='undefined'&&navigator.locks;

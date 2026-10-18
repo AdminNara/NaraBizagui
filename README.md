@@ -18,7 +18,8 @@ Abrir `http://127.0.0.1:8766/`. No hay servidor de documentos ni base de datos.
 
 - **Nuevo:** inicia un BPMN sin datos de cliente.
 - **Abrir BPMN:** elige un archivo del equipo. En Edge/Chrome de escritorio se conserva acceso al archivo autorizado.
-- **Guardar:** actualiza el archivo elegido; **Guardar como** permite elegir otro destino. Navegadores sin File System Access descargan una copia.
+- **Guardado automático:** conserva los cambios aplicados tras una pausa de unos dos segundos, en el archivo Microsoft abierto o en el archivo local autorizado. Un documento nuevo necesita primero un destino mediante **Guardar como** o **Guardar en Microsoft como**. El indicador muestra cambios pendientes, guardando, guardado o conflicto; la casilla de Archivo permite pausarlo. Espera a **Guardado** antes de cerrar.
+- **Guardar:** permite guardar inmediatamente; **Guardar como** elige otro destino. El guardado automático local requiere permiso de escritura y File System Access (Edge/Chrome de escritorio). En navegadores que solo descargan copias se conserva la exportación manual.
 - **Exportar:** descarga BPMN, SVG o PNG.
 - **Historial local:** permite descargar revisiones anteriores conservadas en este navegador. Borrar datos del navegador elimina este historial.
 
@@ -57,7 +58,15 @@ Se recuerdan por cuenta y organización la última carpeta visitada, el último 
 
 **Cuenta → Desconectar** elimina la cuenta activa, su caché de acceso y sus referencias de carpetas/archivos de esta aplicación, avisa a sus otras pestañas y conserva el diagrama abierto como copia sin guardar. No cierra Microsoft 365. Cambiar de cuenta en otra pestaña invalida el vínculo anterior al archivo; no lo abre ni lo guarda con otra identidad. Las copias de documentos permanecen en memoria y los guardados en Microsoft omiten el Historial local persistente. **Los cambios sin guardar no se recuperan**: hay que guardar antes de cerrar o recargar. Conectar con Codex sigue siendo una autorización separada y permite entregar el modelo al chat vinculado.
 
-El guardado envía la revisión `eTag` como `If-Match`, rechaza conflictos y relee el contenido. Un resultado incierto requiere recargar antes de guardar otra vez. No hay colaboración simultánea. Límite: 8 MB por BPMN. Se probaron OAuth, navegación, creación, reapertura y guardado por MCP contra OneDrive real con una cuenta de trabajo y un BPMN genérico, desde el origen local. También se verificaron autorización, bibliotecas y creación con relectura en SharePoint. Los conflictos y cambios de cuenta se cubren con un transporte simulado. **Falta probar cuenta personal, organización externa y carreras simultáneas reales.**
+El guardado envía la revisión `eTag` como `If-Match`, rechaza conflictos y relee el contenido antes de mostrar **Guardado**. Los fallos de confirmación detienen el autoguardado hasta recargar; no se repite una escritura incierta. En archivos locales se comprueba el contenido anterior, se usa un escritor exclusivo y se coordinan las pestañas de este origen mediante Web Locks. Otras aplicaciones y equipos sincronizados dependen también de sus mecanismos de bloqueo y sincronización.
+
+### Ver cambios guardados por otras personas
+
+Con el mismo archivo abierto, la pestaña visible comprueba su versión Microsoft aproximadamente cada 15 segundos. Si la versión sigue igual, consulta únicamente metadatos: no descarga, analiza ni vuelve a importar el BPMN. Las consultas no se solapan y se pausan con la pestaña oculta; ante errores se espacian y se respeta `Retry-After` de Microsoft. La actualización conserva la hoja y la vista si siguen disponibles.
+
+Si hay cambios locales, texto pendiente en Propiedades o una edición en curso, se conserva el trabajo del editor. Un cambio remoto muestra un aviso y detiene el autoguardado: puedes **Cargar archivo actualizado** para tomar la revisión remota (confirmando el descarte de los cambios locales), o **Exportar mis cambios** para conservar tu versión aparte. También puedes usar **Guardar como** para crear otro archivo. No combina las dos versiones ni sincroniza operaciones mientras otras personas escriben. La coautoría simultánea requeriría un servicio adicional.
+
+Límite: 8 MB por BPMN. Se probaron OAuth, navegación, creación, reapertura y guardado con una cuenta de trabajo y datos genéricos en OneDrive y SharePoint. La prueba real de dos escritores sobre la misma revisión de SharePoint rechazó el segundo guardado y conservó el primero. **Falta probar cuenta personal y organización externa; la prueba de concurrencia usa dos sesiones de una misma cuenta, sin afirmar una prueba entre dos identidades distintas.**
 
 La interfaz muestra primero el inicio de sesión. Después abre OneDrive y ofrece navegación de carpetas, selección de BPMN y acciones Abrir/Guardar. Cambiar cuenta y Desconectar están en el menú de la cuenta; los detalles de permisos están en un apartado desplegable. El [símbolo oficial de Microsoft](https://learn.microsoft.com/en-us/entra/identity-platform/howto-add-branding-in-apps) se conserva sin alteraciones; pertenece a Microsoft y se utiliza para identificar su inicio de sesión.
 
@@ -84,7 +93,7 @@ Las hojas ER se guardan junto con los procesos en el mismo `.bpmn`, como extensi
 
 El MCP lee `diagramType`, `dataModel` y la hoja activa, y permite editarla mediante operaciones `erd_`. SVG y PNG exportan el modelo de datos activo, incluidos campos, PK/FK y cardinalidades. Dibujar el modelo no crea ni modifica una base de datos, ni implica validar su diseño.
 
-Se pueden elegir archivos de carpetas de OneDrive/SharePoint sincronizadas. El cliente de sincronización gestiona su subida a Microsoft. No está implementada una conexión directa a Microsoft Graph.
+También se pueden elegir archivos locales de carpetas de OneDrive/SharePoint sincronizadas. En esa modalidad, el cliente de sincronización gestiona su subida a Microsoft; sus tiempos y conflictos dependen de ese cliente. Para consultar y guardar directamente en Microsoft se utiliza la conexión de la aplicación.
 
 Los diagramas seleccionados no se suben a este sitio ni a este repositorio. Solo se publica el editor y sus recursos. Cada persona conserva sus archivos y permisos.
 

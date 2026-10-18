@@ -117,7 +117,7 @@ function appendStage() {
     modeler.get('selection').select(context.stage);
     togglePanel('right',false); showDetail('properties'); focusStage(context.stage.id);
     byId('elementName').focus(); byId('elementName').select();
-    status('Etapa agregada al final. Cambia su nombre en Propiedades y pulsa Aplicar; Guarda para conservarla.');
+    status('Etapa agregada al final. Cambia su nombre en Propiedades y pulsa Aplicar.');
   } catch (error) { status('No se pudo agregar la etapa: '+error.message); }
 }
 let selected = null;
@@ -244,17 +244,23 @@ async function newBrowserDiagram(force=false) {
   browserFileContext(browserFiles.name);await openDiagram(xml);byId('externalChange').hidden=true;
   return version;
 }
-async function acceptBrowserSource(source, canApply = () => true) {
+async function acceptBrowserSource(source, canApply = () => true, preserveView = false) {
   browserFiles.validate(source.xml);
   const previousDirty=dirty;
   const previous=ready ? (await modeler.saveXML({format:true})).xml : null;
   if (!canApply()) return false;
+  const canvas=modeler.get('canvas'),er=window.NaraER?.active();
+  const view=preserveView?{sheet:er||canvas.getRootElement()?.id,erd:Boolean(er),box:er?window.NaraER.view():canvas.viewbox()}:null;
   browserDocumentVersion++;
   await openDiagram(source.xml);
   if(window.diagramError){const reason=window.diagramError;if(previous){await openDiagram(previous);setDirty(previousDirty);}throw new Error(reason);}
   await browserFiles.attach(source);browserFileContext(source.name);
+  if(view&&modeler.get('naraSheets').list().some(sheet=>sheet.id===view.sheet)){
+    modeler.get('naraSheets').open(view.sheet);
+    if(view.erd)window.NaraER.restoreView(view.box);else canvas.viewbox(view.box);
+  }
   byId('externalChange').hidden=true;
-  status(browserFiles.handle ? 'Archivo abierto. Guardar actualiza este archivo; se detectan cambios externos.' : 'Archivo abierto. Usa Guardar como para elegir destino.');
+  status(browserFiles.handle ? 'Archivo abierto. El guardado automático conserva los cambios aplicados; se detectan cambios externos.' : 'Archivo abierto. Usa Guardar como para elegir destino.');
   return true;
 }
 async function openBrowserFile() {
@@ -301,16 +307,28 @@ async function reloadBrowserFile() {
 }
 async function pollBrowserFile() {
   if(!browserFiles.handle || filePolling || loadingDiagram || saving || !ready || autoSavePointer || modeler.get('directEditing').isActive())return;
-  if(browserFiles.handle.storageKind==='microsoft') {
-    if(window.NaraMicrosoftDialogOpen || Date.now()-(browserFiles.handle.lastPoll||0)<30000)return;
-    browserFiles.handle.lastPoll=Date.now();
+  const handle=browserFiles.handle,version=browserDocumentVersion,sequence=editSequence;
+  const microsoft=handle.storageKind==='microsoft';
+  if(microsoft) {
+    if(document.visibilityState==='hidden' || window.NaraMicrosoftDialogOpen || Date.now()-(handle.lastPoll||0)<(handle.pollDelay||15000))return;
+    handle.lastPoll=Date.now();
   }
   filePolling=true;
   try{
-    const source=await browserFiles.read();
-    if(saving || loadingDiagram || source.hash===browserFiles.hash)return;
-    if(dirty||window.NaraPropertyDraftPending?.())showExternalChange();else await acceptBrowserSource(source);
-  }catch(error){status('No se pudo leer el archivo abierto: '+error.message);}finally{filePolling=false;}
+    const source=await browserFiles.read({onlyChanged:true});
+    const same=()=>browserFiles.handle===handle&&browserDocumentVersion===version;
+    if(!same() || saving || loadingDiagram)return;
+    handle.pollDelay=15000;
+    if(!source || source.hash===browserFiles.hash)return;
+    const canUpdate=()=>same()&&!saving&&!dirty&&editSequence===sequence&&!window.NaraPropertyDraftPending?.()&&!autoSavePointer&&!modeler.get('directEditing').isActive();
+    if(!canUpdate())showExternalChange();
+    else if(await acceptBrowserSource(source,canUpdate,true))status(microsoft?'Cambios de Microsoft actualizados automáticamente.':'Cambios del archivo actualizados automáticamente.');
+    else if(same())showExternalChange();
+  }catch(error){
+    if(browserFiles.handle!==handle||browserDocumentVersion!==version)return;
+    if(microsoft)handle.pollDelay=error.code==='THROTTLED'?Math.max(error.retryAfterMs||60000,15000):Math.min((handle.pollDelay||15000)*2,120000);
+    status('No se pudo comprobar si hay cambios. Se volverá a intentar. '+error.message);
+  }finally{filePolling=false;window.naraAutoSave?.refresh();}
 }
 async function showHistory() {
   const items=byId('historyItems');items.replaceChildren();
@@ -687,7 +705,7 @@ byId('propertyForm').onsubmit = event => {
   }
   for (const apply of semanticChanges) apply();
   });
-  decorateStages(); decorateDocuments(); updateProperties(selected); status('Cambios aplicados. Guarda una copia BPMN para conservarlos.');
+  decorateStages(); decorateDocuments(); updateProperties(selected); status('Cambios aplicados.');
 };
 const eventBus = modeler.get('eventBus');
 eventBus.on('selection.changed', event => {

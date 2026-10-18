@@ -232,7 +232,7 @@
         if (applied !== false) recoveredHandle = source.handle;
         return applied;
       });
-      if (recovered) status('Último BPMN recuperado desde Microsoft. Guardar actualiza ese archivo.');
+      if (recovered) status('Último BPMN recuperado desde Microsoft. Los cambios aplicados se guardan automáticamente.');
     } catch (error) {
       if (error.code === 'ACCOUNT_CHANGED') { if (recoveredHandle && browserFiles.handle === recoveredHandle) detachCloud(); return; }
       if (last && ['FILE_NOT_FOUND','MICROSOFT_PERMISSION','INVALID_TARGET'].includes(error.code)) workspace.removeFile(last, stamp);

@@ -50,7 +50,11 @@ export class MicrosoftFiles {
     if (response.status === 412 || response.status === 409) throw problem('EXTERNAL_CHANGE', 'El archivo cambió en Microsoft o el nombre ya existe. Recarga la revisión actual o guarda con otro nombre.');
     if (response.status === 401) throw problem('MICROSOFT_CONNECT', 'La sesión Microsoft venció. Vuelve a conectar tu cuenta.');
     if (response.status === 403) throw problem('MICROSOFT_PERMISSION', 'Microsoft no autorizó la operación. Comprueba los permisos del archivo y la autorización de tu organización.');
-    if (response.status === 429) throw problem('THROTTLED', 'Microsoft pidió reducir las consultas. Espera un momento y vuelve a intentar.');
+    if (response.status === 429) {
+      const retry=response.headers.get('Retry-After');
+      const retryAfterMs=retry ? (/^\d+$/.test(retry)?Number(retry)*1000:Date.parse(retry)-Date.now()) : 60000;
+      throw Object.assign(problem('THROTTLED', 'Microsoft pidió reducir las consultas. Espera un momento y vuelve a intentar.'),{retryAfterMs:Number.isFinite(retryAfterMs)?Math.max(retryAfterMs,1000):60000});
+    }
     if (!response.ok) throw problem(response.status === 404 ? 'FILE_NOT_FOUND' : 'MICROSOFT_ERROR', `Microsoft no pudo completar la operación (${response.status}).`);
     return response.status === 204 ? null : response.json();
   }
@@ -98,12 +102,13 @@ export class MicrosoftFileHandle {
   async queryPermission() { return this.store.auth.account?.homeAccountId === this.accountId ? 'granted' : 'prompt'; }
   async requestPermission() { return this.queryPermission(); }
   async isSameEntry(other) { return other?.storageKind === 'microsoft' && this.accountId === other.accountId && this.driveId === other.driveId && this.itemId === other.itemId; }
-  async getFile() {
+  async getFile({ifChangedSince=null}={}) {
     this.store.assertAccount(this.accountId);
     // SharePoint may omit the computed download annotation when $select is used.
     const meta = await this.store.request(this.endpoint(), {}, FILE_SCOPES, this.accountId);
     if (!meta.eTag || !meta.file) throw problem('INVALID_TARGET', 'Microsoft no devolvió un archivo con revisión.');
     if (meta.size > MAX_BYTES) throw problem('FILE_TOO_LARGE', 'El BPMN supera 8 MB.');
+    if (ifChangedSince && ifChangedSince === meta.eTag) return null;
     if (this.cache === null || this.etag !== meta.eTag) {
       if (!meta['@microsoft.graph.downloadUrl']) throw problem('DOWNLOAD_UNAVAILABLE', 'Microsoft no devolvió un enlace de descarga. Vuelve a abrir el archivo.');
       const url = new URL(meta['@microsoft.graph.downloadUrl']);

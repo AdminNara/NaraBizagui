@@ -1,7 +1,7 @@
 'use strict';
 // Only schedules the existing verified save path. Never chooses a destination.
 class NaraAutoSave {
-  constructor({state,save,render,delay=2000,setTimer=setTimeout,clearTimer=clearTimeout}) {
+  constructor({state,save,render,delay=2000,setTimer=(fn,ms)=>setTimeout(fn,ms),clearTimer=id=>clearTimeout(id)}) {
     Object.assign(this,{state,save,render,delay,setTimer,clearTimer});
     this.enabled=true;this.running=false;this.timer=null;this.blocked=null;this.target=null;this.document=null;
   }

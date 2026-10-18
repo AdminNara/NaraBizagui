@@ -1,9 +1,9 @@
 {
-  "index.html": "2080c25f0332a5c31dfa3c73cfd3c60574cbca895d9e43dfac5f5ad134752466",
-  "modelador.js": "bc0e9222482c0afecaa9a8d9bd98347eb0dcf16570906c50d0e4a2d1806ed0a3",
+  "index.html": "d9fdb47782708f370920439d684a1fd0ee747b89565b42fa11fb3fffb6de85d2",
+  "modelador.js": "5de0dc6776e28954dea4e2c9b767beafc40763727a3ce996f5d01493682fba65",
   "modelador.css": "eded976f317bf3278e5add31b0dbada618bee8775190fbb6e142c1cc6a791b12",
-  "archivos.js": "7e52c2f0ecdc0f0bb53b36030aadd1b3cf88dd57f1431781a989027b88ef6313",
-  "autoguardado.js": "a762ef549aba5e5b596f7571d291e07d67819f6ec2c5b919b66c26a2a20db9a7",
+  "archivos.js": "5ce61a71b178451f014d6cd63e117b9716f0a59e6515e8858565e9cc45d86da2",
+  "autoguardado.js": "487f033c16da66ee92038ad202265f547ba40b615b446caa169be9e5d3d5e88b",
   "mcp-editor.js": "c47994864eb4cd21290744d46ccd23116968c904ab7296c3ffe2784a1e2ebf0a",
   "mcp-bridge.js": "80dc1ddad7ae993fcd951d7f934718566b1f4b7a29ec6433af1e3a10101706f5",
   "editor-tools.js": "83825ac60d4d10407c73dea2c015582cac2b19536d13cfd77b924ac46c6adfee",
@@ -21,10 +21,10 @@
   "vendor/bpmn-js.css": "b09861c8e703076475cb6d406dc396c7c8bf3046512cdf07231bf418ec3be30d",
   "vendor/SHEETS_LICENSES.txt": "0834b4df15a8b2056988e10f6864b8ace7475cec3ab2c4285ad0ca61c7c05a35",
   "editor-properties.js": "345133142175ca4cc7d56cb0acf7cfe2a34711461b0728200ffa39ee96f8a8aa",
-  "microsoft-ui.js": "2e38c7e248b80799098da9195fb196cf911fa895a5d7edbb50830f808576167b",
+  "microsoft-ui.js": "05235e1073abb1757abc8477c4d0ca4a639bfe1438f589e117b661679600ee7a",
   "microsoft-auth.html": "23c74851714b3143fd6f3ff1a4f67d8f6a2176f123fcc6e7ea74896bea0fbb87",
   "assets/microsoft-symbol.svg": "929f48f88c8ca7f3f5d294be47ec4caf51acc28ac25340c19a903125d7ecd84a",
-  "vendor/microsoft-client.js": "6af4387f044ed95ba4f7c7913d120f8e289cd03f2a3f428497a9342acac2dea4",
+  "vendor/microsoft-client.js": "635acf4e431d6502e4cdfc0376fbe2c92727774d9f7215356a45e957a2d9d402",
   "vendor/microsoft-auth.js": "f84cbab0d36dd18624baaa3629922b81b5e42a6f977bfaca6e5d70e4dda4a511",
   "vendor/MICROSOFT_LICENSES.txt": "482d6621b7ef61c7f575247df6316c2c28f735b2477bd575f6391dbefb257d73"
 }
