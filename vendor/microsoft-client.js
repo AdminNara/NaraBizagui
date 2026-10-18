@@ -15465,7 +15465,11 @@
       if (response.status === 412 || response.status === 409) throw problem("EXTERNAL_CHANGE", "El archivo cambi\xF3 en Microsoft o el nombre ya existe. Recarga la revisi\xF3n actual o guarda con otro nombre.");
       if (response.status === 401) throw problem("MICROSOFT_CONNECT", "La sesi\xF3n Microsoft venci\xF3. Vuelve a conectar tu cuenta.");
       if (response.status === 403) throw problem("MICROSOFT_PERMISSION", "Microsoft no autoriz\xF3 la operaci\xF3n. Comprueba los permisos del archivo y la autorizaci\xF3n de tu organizaci\xF3n.");
-      if (response.status === 429) throw problem("THROTTLED", "Microsoft pidi\xF3 reducir las consultas. Espera un momento y vuelve a intentar.");
+      if (response.status === 429) {
+        const retry = response.headers.get("Retry-After");
+        const retryAfterMs = retry ? /^\d+$/.test(retry) ? Number(retry) * 1e3 : Date.parse(retry) - Date.now() : 6e4;
+        throw Object.assign(problem("THROTTLED", "Microsoft pidi\xF3 reducir las consultas. Espera un momento y vuelve a intentar."), { retryAfterMs: Number.isFinite(retryAfterMs) ? Math.max(retryAfterMs, 1e3) : 6e4 });
+      }
       if (!response.ok) throw problem(response.status === 404 ? "FILE_NOT_FOUND" : "MICROSOFT_ERROR", `Microsoft no pudo completar la operaci\xF3n (${response.status}).`);
       return response.status === 204 ? null : response.json();
     }
@@ -15530,14 +15534,23 @@
     async requestPermission() {
       return this.queryPermission();
     }
+    async recoveryCopy(xml) {
+      this.store.assertAccount(this.accountId);
+      if (!this.parent?.id) await this.getFile();
+      if (!this.parent?.id) throw problem("INVALID_TARGET", "No se pudo localizar la carpeta para conservar la copia de recuperaci\xF3n.");
+      const suffix = " - recuperado " + (/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-") + " " + crypto.randomUUID().slice(0, 8) + ".bpmn";
+      this.store.assertAccount(this.accountId);
+      return this.store.create({ driveId: this.driveId, id: this.parent.id }, this.name.replace(/\.bpmn$/i, "").slice(0, 200 - suffix.length) + suffix, xml);
+    }
     async isSameEntry(other) {
       return other?.storageKind === "microsoft" && this.accountId === other.accountId && this.driveId === other.driveId && this.itemId === other.itemId;
     }
-    async getFile() {
+    async getFile({ ifChangedSince = null } = {}) {
       this.store.assertAccount(this.accountId);
       const meta = await this.store.request(this.endpoint(), {}, FILE_SCOPES, this.accountId);
       if (!meta.eTag || !meta.file) throw problem("INVALID_TARGET", "Microsoft no devolvi\xF3 un archivo con revisi\xF3n.");
       if (meta.size > MAX_BYTES) throw problem("FILE_TOO_LARGE", "El BPMN supera 8 MB.");
+      if (ifChangedSince && ifChangedSince === meta.eTag) return null;
       if (this.cache === null || this.etag !== meta.eTag) {
         if (!meta["@microsoft.graph.downloadUrl"]) throw problem("DOWNLOAD_UNAVAILABLE", "Microsoft no devolvi\xF3 un enlace de descarga. Vuelve a abrir el archivo.");
         const url = new URL(meta["@microsoft.graph.downloadUrl"]);

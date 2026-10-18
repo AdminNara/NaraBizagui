@@ -214,7 +214,7 @@
       workspace.rememberFile(handle, context());
       if (sequence === editSequence) setDirty(false);
       byId('externalChange').hidden = true; dialog.close(); status('BPMN guardado en Microsoft · Contenido comprobado.');
-    } finally { saving = false; }
+    } finally { saving = false; window.naraAutoSave?.refresh(); }
   }, 'Guardando y comprobando…');
   window.NaraMicrosoftUI = { saveAs: () => open('save') };
   auth.onChange(({ previous, account, reason }) => {
@@ -232,7 +232,7 @@
         if (applied !== false) recoveredHandle = source.handle;
         return applied;
       });
-      if (recovered) status('Último BPMN recuperado desde Microsoft. Guardar actualiza ese archivo.');
+      if (recovered) status('Último BPMN recuperado desde Microsoft. Los cambios aplicados se guardan automáticamente.');
     } catch (error) {
       if (error.code === 'ACCOUNT_CHANGED') { if (recoveredHandle && browserFiles.handle === recoveredHandle) detachCloud(); return; }
       if (last && ['FILE_NOT_FOUND','MICROSOFT_PERMISSION','INVALID_TARGET'].includes(error.code)) workspace.removeFile(last, stamp);
