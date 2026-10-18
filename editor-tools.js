@@ -9,6 +9,27 @@
     Etapa: svg('<rect x="5" y="3" width="22" height="26" rx="1"/><path d="M5 9h22M12 9v20M20 9v20"/>')
   });
 
+  function DocumentSymbols(eventBus) {
+    eventBus.on('render.shape', 1500, (_, context) => {
+      const element = context.element;
+      if (!['bpmn:DataObjectReference','bpmn:DataStoreReference'].includes(element.type)) return;
+      const format = element.businessObject.dataState?.name?.split(' · ')[0];
+      if(!['Excel','Word','Manual','Datos'].includes(format))return;
+      const markup = window.NaraPaletteIcons[format];
+      if (!markup) return;
+      // The palette and canvas share the same vector, including drag previews and exports.
+      const icon = new DOMParser().parseFromString(markup, 'image/svg+xml').documentElement;
+      icon.classList.add('document-line-symbol'); icon.dataset.format = format;
+      icon.removeAttribute('aria-hidden'); icon.setAttribute('aria-label', format);
+      icon.setAttribute('width', element.width); icon.setAttribute('height', element.height);
+      const style=window.NaraStylePanel?.read(element)||{};
+      icon.setAttribute('stroke', style.stroke||element.di?.stroke||'#345b78');if(style.strokeWidth)icon.setAttribute('stroke-width',style.strokeWidth);icon.setAttribute('pointer-events','none');
+      context.gfx.appendChild(icon);
+      return icon;
+    });
+  }
+  DocumentSymbols.$inject = ['eventBus'];
+
   function DirectionTools(contextPad, popupMenu, eventBus, canvas, elementRegistry, elementFactory, modeling, rules, connect, create, dragging, selection) {
     const actions = new WeakMap(), host = document.getElementById('canvas');
     const layer = document.createElement('div');
@@ -125,6 +146,36 @@
         type.onclick = () => safe(() => menu(element,'bpmn-replace',type));
         panel.append(straight, elbow, type); layer.appendChild(panel);
       } else {
+        const stage = element.type === 'bpmn:Group' && element.id.startsWith(window.NaraStagePrefix?.() || 'Stage_');
+        const laneActions = ['lane-insert-above','lane-insert-below'].filter(id => entries[id]);
+        if (stage || laneActions.length) {
+          const vertical = !stage && element.di?.isHorizontal === false;
+          const additions = stage ? [
+            ['left','Añadir etapa a la izquierda', () => eventBus.fire('nara.stage.insert',{ element, direction: 'left' })],
+            ['right','Añadir etapa a la derecha', () => eventBus.fire('nara.stage.insert',{ element, direction: 'right' })]
+          ] : laneActions.map(id => {
+            const before = id === 'lane-insert-above';
+            const direction = vertical ? before ? 'left' : 'right' : before ? 'top' : 'bottom';
+            return [direction,'Añadir carril ' + (vertical ? 'a la ' : '') + names[direction], () => selection.select(modeling.addLane(element,direction))];
+          });
+          for (const [direction,label,action] of additions) {
+            const add = button(label,'nara-direction-arrow nara-direction-add nara-arrow-' + direction,'+');
+            add.dataset.addDirection = direction;
+            add.onclick = event => { event.stopPropagation(); safe(() => { if (window.NaraPropertyDraftPending?.()) throw Error('Aplica o descarta el texto pendiente en Propiedades.'); action(); hide(); }); };
+            layer.appendChild(add);
+          }
+          if(stage){const panel=document.createElement('div');panel.className='nara-quick-options nara-lane-options';for(const count of [2,3]){const option=button('Dividir en '+count+' etapas','',String(count)+' columnas');option.dataset.stageSplit=count;option.onclick=()=>safe(()=>{if(window.NaraPropertyDraftPending?.())throw Error('Aplica la edición pendiente.');eventBus.fire('nara.stage.split',{element,count});hide();});panel.appendChild(option);}layer.appendChild(panel);}
+          const split = ['lane-divide-two','lane-divide-three'].filter(id => entries[id]);
+          if (split.length) {
+            const panel = document.createElement('div'); panel.className = 'nara-quick-options nara-lane-options';
+            for (const id of split) {
+              const option = button(entries[id].title,entries[id].className); option.dataset.laneAction = id;
+              option.onclick = event => safe(() => { if (window.NaraPropertyDraftPending?.()) throw Error('Aplica o descarta el texto pendiente en Propiedades.'); entries[id].action.click(event,element); hide(); });
+              panel.appendChild(option);
+            }
+            layer.appendChild(panel);
+          }
+        }
         const available = Object.keys(shapes).filter(id => entries[id]);
         if (available.length) {
           for (const direction of Object.keys(vectors)) {
@@ -180,5 +231,5 @@
     popupMenu.registerProvider('nara-actions', this);
   }
   DirectionTools.$inject = ['contextPad','popupMenu','eventBus','canvas','elementRegistry','elementFactory','modeling','rules','connect','create','dragging','selection'];
-  window.NaraEditorTools = { __init__: ['naraDirectionTools'], naraDirectionTools: ['type', DirectionTools] };
+  window.NaraEditorTools = { __init__: ['naraDocumentSymbols','naraDirectionTools'], naraDocumentSymbols: ['type',DocumentSymbols], naraDirectionTools: ['type', DirectionTools] };
 })();

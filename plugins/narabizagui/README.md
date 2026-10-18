@@ -32,8 +32,14 @@ El puente es local; los datos consultados mediante MCP se entregan a la conversa
 
 Un archivo puede tener procesos independientes y detalles de subprocesos en planos BPMN nativos. `sheet_link` usa una actividad de llamada para reutilizar otra hoja y protege subprocesos que ya tienen contenido. La navegación cambia la revisión; guardar conserva todas las hojas.
 
+La versión 0.4.0 añade hojas ER con tablas, campos, PK/FK, nulabilidad y relaciones por campo con cardinalidad. Se conservan dentro del mismo BPMN mediante una extensión Nara versionada, sin convertir tablas en tareas. `read` identifica `diagramType` y devuelve `dataModel` en ER. `edit` incorpora `erd_sheet_create`, `erd_table_create/update`, `erd_field_upsert/delete`, `erd_relationship_create/update` y `erd_delete`, además de `lane_add`, `lane_split`, etapas relativas y `view` para ampliar/restaurar el lienzo.
+
+El MCP opera con revisión y deshacer en ambos modelos. Las tablas ER usan x/y de esquina superior izquierda, mientras `create` BPMN usa centro. El alto de tabla se deriva de sus campos. Eliminar un campo o tabla elimina sus relaciones; crear una relación marca FK en el campo de destino. No se ejecuta SQL ni se modifican bases de datos.
+
 El PNG tiene fondo blanco y escala ajustable (2 por defecto); se limita a 8192 píxeles por lado, 16 megapíxeles y 8 MB. Incluye toda la hoja activa, sin barras ni paneles del editor. El MCP devuelve un bloque de imagen para que el asistente pueda verlo y un `filePath` con hash, revisión, `sheetId` y `sheetName`. Ese archivo se crea en la carpeta temporal del sistema bajo `NaraBizagui/exports`, con nombre único; el chat puede copiarlo a la ubicación del informe. Exportar PNG no guarda el BPMN ni acredita validación del proceso.
 
 ## Construcción
 
 Desde la raíz del repositorio: `npm ci`, `npm run build`, `npm test`. El paquete instalable es esta carpeta completa; no incluir `node_modules`, `local/`, fuentes de clientes ni códigos de vinculación. Las licencias del servidor se conservan en `server/dist/THIRD_PARTY_NOTICES.txt`.
+
+La edición manual de tablas se realiza por celdas en el lienzo (Enter aplica, Escape cancela, Tab avanza). El panel derecho ofrece formato y posición/tamaño. `style` aplica colores, grosor y texto; `erd_field_move` reordena campos por ID; `stage_split` divide una etapa en dos o tres columnas. La nulabilidad se conserva y es editable mediante `erd_field_upsert`. Las nuevas hojas empiezan vacías.

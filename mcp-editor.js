@@ -13,7 +13,7 @@
   PositionedLabelHandler.$inject = ['modeling'];
   modeler.get('commandStack').registerHandler('nara.mcp.positionedLabel', PositionedLabelHandler);
   let revision = crypto.randomUUID();
-  for (const event of ['commandStack.changed', 'import.done', 'root.set']) modeler.get('eventBus').on(event, () => { revision = crypto.randomUUID(); });
+  for (const event of ['commandStack.changed', 'import.done', 'root.set','nara.sheet.changed']) modeler.get('eventBus').on(event, () => { revision = crypto.randomUUID(); });
   const error = (code, message) => Object.assign(new Error(message), { code });
   function available() {
     if (!ready || loadingDiagram || saving || filePolling || window.NaraMicrosoftDialogOpen) throw error('EDITOR_BUSY', 'El visor está cargando, seleccionando o guardando un archivo. Intenta leer de nuevo.');
@@ -34,7 +34,7 @@
   };
   function describe(el) {
     const bo = el.businessObject;
-    return { id: el.id, type: el.type, name: el.type === 'bpmn:Group' ? stageName(el) : el.type === 'bpmn:TextAnnotation' ? bo.text || '' : bo.name || '', parentId: el.parent?.id, calledElement: bo.calledElement, x: el.x, y: el.y, width: el.width, height: el.height, sourceId: el.source?.id, targetId: el.target?.id, waypoints: el.waypoints?.map(p => ({ x: p.x, y: p.y })), documentation: (bo.documentation || []).map(d => d.text || '').join('\n\n'), dataState: bo.dataState?.name, role: roleFor(el), stage: phaseFor(el) };
+    return { id: el.id, type: el.type, name: el.type === 'bpmn:Group' ? stageName(el) : el.type === 'bpmn:TextAnnotation' ? bo.text || '' : bo.name || '', parentId: el.parent?.id, calledElement: bo.calledElement, x: el.x, y: el.y, width: el.width, height: el.height, sourceId: el.source?.id, targetId: el.target?.id, waypoints: el.waypoints?.map(p => ({ x: p.x, y: p.y })), documentation: (bo.documentation || []).map(d => d.text || '').join('\n\n'), dataState: bo.dataState?.name, visualStyle:window.NaraStylePanel?.read(el)||{}, role: roleFor(el), stage: phaseFor(el) };
   }
   async function read({ includeXml = false } = {}) {
     available();
@@ -42,18 +42,32 @@
     const { xml } = await modeler.saveXML({ format: true });
     const sha256 = await browserFiles.digest(xml);
     if (base !== revision) throw error('REVISION_CONFLICT', 'El diagrama cambió durante la lectura. Lee nuevamente.');
-    const canvas = modeler.get('canvas'), activeSheetId = canvas.getRootElement().id;
+    const canvas = modeler.get('canvas'), er=window.NaraER,activeSheetId = er?.active() || canvas.getRootElement().id;
+    if(er?.active()){
+      const dataModel=er.read(),elements=[...dataModel.tables.map(t=>({...t,type:'nara:Entity',height:window.NaraERModel.height(t)})),...dataModel.relationships.map(r=>({...r,type:'nara:Relationship'}))];
+      return {editorVersion:window.NaraAppVersion||'unknown',revision,sha256,fileName:browserFiles.name,diagramType:'erd',activeSheetId,sheets:modeler.get('naraSheets').list(),dirty,unappliedProperties:formPending(),canSaveToFile:Boolean(browserFiles.handle),selectedIds:er.selected()?[er.selected()]:[],selectedFieldId:er.selectedField(),warnings:(window.importWarnings||[]).map(w=>w.message||String(w)),canUndo:modeler.get('commandStack').canUndo(),canRedo:modeler.get('commandStack').canRedo(),totalElements:elements.length,elementsTruncated:elements.length>2000,elements:elements.slice(0,2000),dataModel,expandedCanvas:window.NaraExpandedCanvas?.()||false,...(includeXml?{xml}:{})};
+    }
     const elements = modeler.get('elementRegistry').getAll().filter(e => e.businessObject && !e.labelTarget && canvas.findRoot(e)?.id === activeSheetId);
-    return { revision, sha256, fileName: browserFiles.name, activeSheetId, sheets: modeler.get('naraSheets').list(), dirty, unappliedProperties: formPending(), canSaveToFile: Boolean(browserFiles.handle), selectedIds: modeler.get('selection').get().map(e => e.id), warnings: (window.importWarnings || []).map(w => w.message || String(w)), canUndo: modeler.get('commandStack').canUndo(), canRedo: modeler.get('commandStack').canRedo(), totalElements: elements.length, elementsTruncated: elements.length > 2000, elements: elements.slice(0, 2000).map(describe), ...(includeXml ? { xml } : {}) };
+    return { editorVersion:window.NaraAppVersion||'unknown', revision, sha256, fileName: browserFiles.name, diagramType:'bpmn', activeSheetId, sheets: modeler.get('naraSheets').list(), dirty, unappliedProperties: formPending(), canSaveToFile: Boolean(browserFiles.handle), selectedIds: modeler.get('selection').get().map(e => e.id), warnings: (window.importWarnings || []).map(w => w.message || String(w)), canUndo: modeler.get('commandStack').canUndo(), canRedo: modeler.get('commandStack').canRedo(), totalElements: elements.length, elementsTruncated: elements.length > 2000, elements: elements.slice(0, 2000).map(describe),expandedCanvas:window.NaraExpandedCanvas?.()||false, ...(includeXml ? { xml } : {}) };
   }
   async function edit({ expectedRevision, operation: op }) {
     guard(expectedRevision);
     if (op.type === 'open_bpmn') {
       const occupied = modeler.get('elementRegistry').getAll().some(e => e.businessObject && !e.labelTarget && e.parent && (e.type !== 'bpmn:StartEvent' || e.businessObject.name));
-      if (dirty || browserFiles.handle || occupied) throw error('DOCUMENT_NOT_EMPTY', 'Abrir mediante MCP requiere una pestaña nueva vacía, sin cambios ni archivo vinculado. Conserva el documento actual.');
+      if (dirty || browserFiles.handle || occupied || window.NaraER?.list().length) throw error('DOCUMENT_NOT_EMPTY', 'Abrir mediante MCP requiere una pestaña nueva vacía, sin cambios ni archivo vinculado. Conserva el documento actual.');
       await acceptBrowserSource({ name: op.fileName, xml: op.xml, handle: null });
       return { applied: true, ...(await read()) };
     }
+    if(op.type==='view'){window.NaraSetFocus(op.expanded);return{applied:true,...(await read())};}
+    if(op.type==='style'){const affectedId=window.NaraStylePanel.apply(op.elementId,op.style);return{applied:true,affectedId,...(await read())};}
+    if(op.type.startsWith('erd_')){const affectedId=window.NaraER.edit(op);return{applied:true,affectedId,...(await read())};}
+    if(window.NaraER?.active()&&['label','move','resize','delete'].includes(op.type)){
+      let erOp;
+      if(op.type==='delete')erOp={type:'erd_delete',elementId:op.elementId};
+      else{const entity=window.NaraERModel.table(window.NaraER.read(),op.elementId);erOp={type:'erd_table_update',tableId:entity.id,...(op.type==='label'?{name:op.text}:op.type==='move'?{x:entity.x+op.dx,y:entity.y+op.dy}:{x:op.x,y:op.y,width:op.width})};}
+      const affectedId=window.NaraER.edit(erOp);return{applied:true,affectedId,...(await read())};
+    }
+    if(window.NaraER?.active()&&['create','connect','stage','stage_split','lane_add','lane_split','documentation','sheet_link','subprocess_open','route','move_elements'].includes(op.type))throw error('WRONG_DIAGRAM_TYPE','Esta operación requiere una hoja BPMN. Para tablas y relaciones usa las operaciones erd_.');
     const modeling = modeler.get('modeling'), factory = modeler.get('elementFactory'), canvas = modeler.get('canvas'), rules = modeler.get('rules');
     let affected;
     if (op.type === 'label') {
@@ -112,8 +126,11 @@
       affected = element(op.elementId);
       if (!affected.parent) throw error('BPMN_RULE', 'No se puede eliminar la raíz.');
       modeling.removeElements([affected]);
+    } else if(op.type==='stage_split'){
+      const context={sourceId:element(op.elementId).id,count:op.count};modeler.get('commandStack').execute('project.stage.split',context);affected=context.stages[0];
     } else if (op.type === 'stage') {
-      const context = {};
+      if(op.sourceId)element(op.sourceId);
+      const context = op.sourceId?{sourceId:op.sourceId,direction:op.direction||'right'}:{};
       modeler.get('commandStack').execute('project.stage.add', context);
       affected = context.stage;
     } else if (op.type === 'lane_add' || op.type === 'lane_split') {
@@ -177,7 +194,7 @@
     if (!Number.isFinite(scale) || scale < 0.5 || scale > 3) throw error('INVALID_SCALE', 'La escala debe estar entre 0.5 y 3.');
     decorateStages(); decorateDocuments();
     await document.fonts.ready;
-    const { svg } = await modeler.saveSVG();
+    const svg = window.NaraER?.active()?window.NaraER.exportSvg():(await modeler.saveSVG()).svg;
     const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
     try {
       const image = new Image(); image.src = url; await image.decode();
@@ -191,7 +208,7 @@
       const dataUrl = canvas.toDataURL('image/png');
       if (revision !== expectedRevision) throw error('REVISION_CONFLICT', 'El diagrama cambió durante la exportación. Lee y exporta nuevamente.');
       if (dataUrl.length > 8 * 1024 * 1024 * 4 / 3 + 40) throw error('PNG_TOO_LARGE', 'El PNG supera 8 MB. Exporta con una escala menor.');
-      const sheetId = modeler.get('canvas').getRootElement().id;
+      const sheetId = window.NaraER?.active()||modeler.get('canvas').getRootElement().id;
       return { pngBase64: dataUrl.slice(dataUrl.indexOf(',') + 1), width: canvas.width, height: canvas.height, revision, fileName: browserFiles.name, sheetId, sheetName: modeler.get('naraSheets').list().find(s => s.id === sheetId)?.name, effectiveScale };
     } finally { URL.revokeObjectURL(url); }
   }

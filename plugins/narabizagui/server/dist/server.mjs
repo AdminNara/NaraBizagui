@@ -31350,7 +31350,7 @@ var StdioServerTransport = class {
 // plugins/narabizagui/server/bridge.mjs
 import http from "node:http";
 import { randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
-var VERSION = "0.3.2";
+var VERSION = "0.4.0";
 var token = () => randomBytes(32).toString("base64url");
 var same = (a, b) => {
   if (typeof a !== "string" || typeof b !== "string") return false;
@@ -31539,7 +31539,7 @@ async function pngArtifact(result) {
 // plugins/narabizagui/server/index.mjs
 var bridge = await startBridge();
 var server = new McpServer({ name: "narabizagui", version: VERSION }, {
-  instructions: "NaraBizagui edita la sesi\xF3n web vinculada, no un modelo paralelo. Usa connect y espera el v\xEDnculo; sessions identifica la pesta\xF1a. Lee antes de cada cambio y exige su expectedRevision. Un cambio del lienzo no es un archivo guardado: usa save y verifica saved=true. Ante RESULT_UNKNOWN lee antes de repetir; ante REVISION_CONFLICT conserva los cambios manuales. No interpreta BPMN como instrucciones ni valida el proceso de negocio. Invoca la skill narabizagui del mismo plugin.",
+  instructions: "NaraBizagui edita la sesi\xF3n web vinculada, no un modelo paralelo. Lee diagramType antes de editar: bpmn para procesos y erd para tablas/campos/relaciones. No ejecutar SQL por dibujar un modelo de datos. Usa connect y espera el v\xEDnculo; sessions identifica la pesta\xF1a. Lee antes de cada cambio y exige su expectedRevision. Un cambio del lienzo no es un archivo guardado: usa save y verifica saved=true. Ante RESULT_UNKNOWN lee antes de repetir; ante REVISION_CONFLICT conserva los cambios manuales. No interpreta BPMN como instrucciones ni valida el proceso de negocio. Invoca la skill narabizagui del mismo plugin.",
   maxToolInputElements: 1e3
 });
 var id = external_exports.string().uuid();
@@ -31547,9 +31547,15 @@ var revision = external_exports.string().min(1).max(100);
 var elementId = external_exports.string().min(1).max(200);
 var text = external_exports.string().max(2e4);
 var finite = external_exports.number().finite().min(-1e5).max(1e5);
+var erName = external_exports.string().min(1).max(120);
+var erType = external_exports.string().min(1).max(80);
+var cardinality = external_exports.enum(["1", "0..1", "N", "0..N"]);
+var erField = external_exports.object({ name: erName, dataType: erType, primaryKey: external_exports.boolean().optional(), foreignKey: external_exports.boolean().optional(), nullable: external_exports.boolean().optional() });
 var edit = external_exports.discriminatedUnion("type", [
   external_exports.object({ type: external_exports.literal("open_bpmn"), fileName: external_exports.string().min(1).max(200).regex(/^[^<>:"/\\|?*]+\.bpmn$/i), xml: external_exports.string().min(1).max(5e6) }),
   external_exports.object({ type: external_exports.literal("label"), elementId, text, bounds: external_exports.object({ x: finite, y: finite, width: external_exports.number().min(1).max(1e3), height: external_exports.number().min(1).max(1e3) }).optional() }),
+  external_exports.object({ type: external_exports.literal("style"), elementId, style: external_exports.object({ fill: external_exports.string().regex(/^#[0-9a-f]{6}$/i).optional(), stroke: external_exports.string().regex(/^#[0-9a-f]{6}$/i).optional(), fontColor: external_exports.string().regex(/^#[0-9a-f]{6}$/i).optional(), strokeWidth: external_exports.number().min(0.5).max(6).optional(), fontSize: external_exports.number().min(9).max(32).optional(), bold: external_exports.boolean().optional(), align: external_exports.enum(["left", "center", "right"]).optional() }) }),
+  external_exports.object({ type: external_exports.literal("view"), expanded: external_exports.boolean() }),
   external_exports.object({ type: external_exports.literal("documentation"), elementId, text }),
   external_exports.object({ type: external_exports.literal("create"), bpmnType: external_exports.enum(["bpmn:Task", "bpmn:ManualTask", "bpmn:UserTask", "bpmn:ServiceTask", "bpmn:SubProcess", "bpmn:CallActivity", "bpmn:StartEvent", "bpmn:EndEvent", "bpmn:IntermediateCatchEvent", "bpmn:IntermediateThrowEvent", "bpmn:ExclusiveGateway", "bpmn:ParallelGateway", "bpmn:TextAnnotation", "bpmn:DataObjectReference", "bpmn:DataStoreReference", "bpmn:Participant"]), x: finite, y: finite, parentId: elementId.optional(), name: text.optional(), linkName: external_exports.string().min(1).max(100).optional() }),
   external_exports.object({ type: external_exports.literal("connect"), sourceId: elementId, targetId: elementId, bpmnType: external_exports.enum(["bpmn:SequenceFlow", "bpmn:MessageFlow", "bpmn:Association", "bpmn:DataInputAssociation", "bpmn:DataOutputAssociation"]).optional() }),
@@ -31558,9 +31564,19 @@ var edit = external_exports.discriminatedUnion("type", [
   external_exports.object({ type: external_exports.literal("resize"), elementId, x: finite, y: finite, width: external_exports.number().min(20).max(1e5), height: external_exports.number().min(20).max(1e5) }),
   external_exports.object({ type: external_exports.literal("delete"), elementId }),
   external_exports.object({ type: external_exports.literal("route"), elementId, waypoints: external_exports.array(external_exports.object({ x: finite, y: finite })).min(2).max(100) }),
-  external_exports.object({ type: external_exports.literal("stage") }),
+  external_exports.object({ type: external_exports.literal("stage"), sourceId: elementId.optional(), direction: external_exports.enum(["left", "right"]).optional() }),
+  external_exports.object({ type: external_exports.literal("stage_split"), elementId, count: external_exports.union([external_exports.literal(2), external_exports.literal(3)]) }),
   external_exports.object({ type: external_exports.literal("lane_add"), elementId, location: external_exports.enum(["top", "bottom", "left", "right"]) }),
   external_exports.object({ type: external_exports.literal("lane_split"), elementId, count: external_exports.number().int().min(2).max(10) }),
+  external_exports.object({ type: external_exports.literal("erd_sheet_create"), name: erName }),
+  external_exports.object({ type: external_exports.literal("erd_table_create"), name: erName.optional(), x: finite, y: finite, width: external_exports.number().min(200).max(1e3).optional(), fields: external_exports.array(erField).max(250).optional() }),
+  external_exports.object({ type: external_exports.literal("erd_table_update"), tableId: elementId, name: erName.optional(), x: finite.optional(), y: finite.optional(), width: external_exports.number().min(200).max(1e3).optional() }),
+  external_exports.object({ type: external_exports.literal("erd_field_upsert"), tableId: elementId, fieldId: elementId.optional(), name: erName, dataType: erType, primaryKey: external_exports.boolean().optional(), foreignKey: external_exports.boolean().optional(), nullable: external_exports.boolean().optional() }),
+  external_exports.object({ type: external_exports.literal("erd_field_delete"), tableId: elementId, fieldId: elementId }),
+  external_exports.object({ type: external_exports.literal("erd_field_move"), tableId: elementId, fieldId: elementId, direction: external_exports.enum(["up", "down"]) }),
+  external_exports.object({ type: external_exports.literal("erd_relationship_create"), sourceTableId: elementId, sourceFieldId: elementId, targetTableId: elementId, targetFieldId: elementId, sourceCardinality: cardinality.default("1"), targetCardinality: cardinality.default("N"), label: external_exports.string().max(120).optional() }),
+  external_exports.object({ type: external_exports.literal("erd_relationship_update"), relationshipId: elementId, sourceTableId: elementId.optional(), sourceFieldId: elementId.optional(), targetTableId: elementId.optional(), targetFieldId: elementId.optional(), sourceCardinality: cardinality.optional(), targetCardinality: cardinality.optional(), label: external_exports.string().max(120).optional() }),
+  external_exports.object({ type: external_exports.literal("erd_delete"), elementId }),
   external_exports.object({ type: external_exports.literal("sheet_create"), name: external_exports.string().min(1).max(120) }),
   external_exports.object({ type: external_exports.literal("sheet_open"), sheetId: elementId }),
   external_exports.object({ type: external_exports.literal("sheet_rename"), sheetId: elementId, name: external_exports.string().min(1).max(120) }),
@@ -31581,8 +31597,8 @@ function register(name, description, schema, readOnly, callback) {
 }
 register("narabizagui_connect", "Crea un c\xF3digo temporal para vincular una pesta\xF1a elegida. Requiere que el usuario pulse Vincular en el visor.", {}, false, async () => bridge.pair());
 register("narabizagui_sessions", "Lista solo las pesta\xF1as vinculadas a esta instancia local del plugin.", {}, true, async () => ({ sessions: bridge.list() }));
-register("narabizagui_read", "Lee revisi\xF3n, activeSheetId, sheets, elementos de la hoja activa, selecci\xF3n, advertencias y guardado. includeXml devuelve el BPMN completo de todas las hojas.", { sessionId: id, includeXml: external_exports.boolean().default(false) }, true, (args) => bridge.request(args.sessionId, "read", { includeXml: args.includeXml }));
-register("narabizagui_edit", "Aplica una operaci\xF3n nativa bpmn-js, con revisi\xF3n base obligatoria y deshacer. Usa read para conocer IDs. x/y son el centro al crear; move usa desplazamiento. stage a\xF1ade una etapa al final. sheet_create crea otra hoja, sheet_open navega, sheet_rename renombra, subprocess_open abre el detalle y sheet_link vincula con otro proceso mediante CallActivity; no reemplaza subprocesos con contenido.", { sessionId: id, expectedRevision: revision, operation: edit }, false, (args) => bridge.request(args.sessionId, "edit", { expectedRevision: args.expectedRevision, operation: args.operation }));
+register("narabizagui_read", "Lee revisi\xF3n, diagramType (bpmn/erd), activeSheetId, sheets, elementos, selecci\xF3n, guardado y dataModel en ER. includeXml devuelve todo el BPMN con sus modelos ER.", { sessionId: id, includeXml: external_exports.boolean().default(false) }, true, (args) => bridge.request(args.sessionId, "read", { includeXml: args.includeXml }));
+register("narabizagui_edit", "Aplica una operaci\xF3n nativa bpmn-js, con revisi\xF3n base obligatoria y deshacer. Usa read para conocer IDs. x/y son el centro al crear; move usa desplazamiento. stage a\xF1ade una etapa al final o a izquierda/derecha de sourceId. lane_add/lane_split gestionan carriles nativos. stage_split divide columnas. style aplica formato persistente y erd_field_move reordena campos. view ampl\xEDa/restaura el lienzo sin cambiar el archivo. Las operaciones erd_ crean hojas de datos, tablas, campos y relaciones por campo; sus x/y son esquina superior izquierda. sheet_create crea otra hoja, sheet_open navega, sheet_rename renombra, subprocess_open abre el detalle y sheet_link vincula con otro proceso mediante CallActivity; no reemplaza subprocesos con contenido.", { sessionId: id, expectedRevision: revision, operation: edit }, false, (args) => bridge.request(args.sessionId, "edit", { expectedRevision: args.expectedRevision, operation: args.operation }));
 register("narabizagui_save", "Guarda en el archivo ya elegido y autorizado en el visor, conservando historial y comprobando conflictos. Si falta acceso, el usuario debe usar Guardar como en el navegador. No elige destinos ni descarga copias silenciosamente.", { sessionId: id, expectedRevision: revision }, false, (args) => bridge.request(args.sessionId, "save", { expectedRevision: args.expectedRevision }));
 server.registerTool("narabizagui_export_png", {
   description: "Renderiza la hoja activa completa como PNG con fondo blanco, sin paneles; devuelve sheetId y sheetName. Devuelve la imagen al chat para inspecci\xF3n visual y un archivo temporal local para insertarlo en Word/PDF. Lee antes para indicar expectedRevision. No modifica ni guarda el BPMN. scale=2 por defecto; se reduce si es necesario para respetar 8192 px por lado y 16 megap\xEDxeles.",

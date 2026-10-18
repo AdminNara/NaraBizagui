@@ -50,6 +50,27 @@ La interfaz muestra primero el inicio de sesión. Después abre OneDrive y ofrec
 
 El retorno de producción es `https://demo.naraconsultores.com/NaraBizagui/microsoft-auth.html`. Para desarrollo está registrado `http://localhost:8767/microsoft-auth.html`; se debe servir esta carpeta en ese origen. La página de retorno usa el puente de MSAL y no debe recibir una cabecera COOP que rompa la ventana de autenticación. La verificación de editor de Microsoft está pendiente; las políticas de otras organizaciones pueden impedir el consentimiento o exigir aprobación de su administrador. El diálogo de conexión describe los permisos y el tratamiento de los documentos.
 
+**Ampliar lienzo**, en el encabezado o en Vista, deja visibles el encabezado y el área de dibujo. Conserva el archivo, la conexión MCP y la hoja activa. **Salir de vista ampliada** o Escape recupera los paneles y la vista anterior. La atribución del motor permanece visible en el encabezado.
+
+En participantes y carriles hay controles directos para añadir carriles arriba/abajo (izquierda/derecha si son verticales) y dividirlos en dos o tres. Las etapas muestran **＋** a izquierda y derecha, división en dos o tres columnas y ajuste de bordes compartidos; insertar una columna conserva las figuras existentes. Los cuatro símbolos de documentos comparten el mismo vector en paleta, lienzo, vista previa y exportaciones.
+
+El panel derecho ofrece relleno, color y grosor de línea, color/tamaño de texto, negrita y posición/tamaño. En tablas ER también permite alinear el nombre de los campos. El formato se conserva en el archivo y en las exportaciones. Las hojas nuevas comienzan vacías.
+
+## Modelos de datos: entidad-relación
+
+Selecciona **Herramientas → Modelo de datos** para abrir o crear una hoja ER; también puedes elegir ese tipo al crear una hoja con **＋**.
+
+- Pulsa **Tabla** o arrástrala desde las herramientas para colocar una entidad. Arrastra su encabezado para moverla y el control de la esquina para ajustar su ancho. Doble clic en el encabezado edita el nombre directamente en el lienzo.
+- **＋ Campo**, dentro de la tabla, agrega una fila. Doble clic en el nombre, tipo de dato o celda de clave edita esa celda en el lienzo. Enter aplica y Escape cancela; Tab pasa a la siguiente celda. Las claves admiten PK, FK y PK/FK. Los controles de la fila permiten subir, bajar o eliminar el campo.
+- **Relación** permite elegir el campo de origen y el de destino. También puedes arrastrar entre los puntos de dos campos. La relación se crea al unir los campos; el panel derecho permite ajustar los extremos, nombre y cardinalidades `1`, `0..1`, `N` y `0..N`.
+- Deshacer/rehacer conserva los IDs de tablas, campos y relaciones. Eliminar un campo o tabla elimina sus relaciones asociadas; la interfaz pide confirmar cuando existen esas dependencias.
+
+Las hojas ER se guardan junto con los procesos en el mismo `.bpmn`, como extensión Nara de `Definitions.extensionElements`. No se representan como tareas BPMN. La extensión mantiene un modelo versionado con entidades, campos, relaciones y geometría. NaraBizagui lo vuelve a abrir; otros editores pueden conservar el XML sin ofrecer su edición visual. Se comprobó la relectura con bpmn-moddle con y sin el descriptor Nara, sin prometer compatibilidad visual con otros productos.
+
+El MCP lee `diagramType`, `dataModel` y la hoja activa, y permite editarla mediante operaciones `erd_`. SVG y PNG exportan el modelo de datos activo, incluidos campos, PK/FK y cardinalidades. Dibujar el modelo no crea ni modifica una base de datos, ni implica validar su diseño.
+
+Se pueden elegir archivos de carpetas de OneDrive/SharePoint sincronizadas. El cliente de sincronización gestiona su subida a Microsoft. No está implementada una conexión directa a Microsoft Graph.
+
 Los diagramas seleccionados no se suben a este sitio ni a este repositorio. Solo se publica el editor y sus recursos. Cada persona conserva sus archivos y permisos.
 
 ## Trabajo con Codex
@@ -75,7 +96,7 @@ La herramienta `narabizagui_export_png` devuelve la hoja activa completa como im
 
 ## Recursos
 
-`index.html`, `modelador.js`, `editor-tools.js`, `sheets.js`, `archivos.js`, `mcp-editor.js`, `mcp-bridge.js`, `modelador.css` y `assets/` forman la aplicación. `manifest.json` registra sus hashes al empaquetar. Las dependencias y su licencia se conservan en `vendor/`. El servidor MCP y la skill viven en `plugins/narabizagui/`; la web estática no ejecuta el servidor.
+`index.html`, `modelador.js`, `editor-tools.js`, `sheets.js`, `erd-model.js`, `erd-editor.js`, `editor-style.js`, `archivos.js`, `mcp-editor.js`, `mcp-bridge.js`, `modelador.css` y `assets/` forman la aplicación. `manifest.json` registra sus hashes al empaquetar. Las dependencias y su licencia se conservan en `vendor/`. El servidor MCP y la skill viven en `plugins/narabizagui/`; la web estática no ejecuta el servidor.
 
 Para desarrollar el plugin: `npm ci`, `npm run build`, `npm test`. El build incluye sus dependencias y licencias en el paquete y actualiza el manifiesto web.
 

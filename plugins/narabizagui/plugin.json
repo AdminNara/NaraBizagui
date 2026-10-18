@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "narabizagui",
-  "version": "0.3.2",
-  "description": "Skill y MCP local para editar el BPMN abierto en NaraBizagui, guardar con revisión y exportar PNG al chat o informes.",
+  "version": "0.4.0",
+  "description": "Skill y MCP local para editar procesos BPMN y modelos de datos ER, guardar con revisión y exportar PNG al chat.",
   "author": {
     "name": "Nara Consultores"
   },
@@ -11,8 +11,8 @@
       "requires_local_executor": true,
       "interface": {
         "displayName": "NaraBizagui by NaraLab",
-        "shortDescription": "Edita BPMN con tu sesión web",
-        "longDescription": "Una instalación con la skill NaraBizagui y el MCP local. Vincula una pestaña elegida, consulta su diagrama y aplica operaciones nativas con revisión y deshacer. Guarda en el archivo autorizado y comprueba la escritura. Requiere Node.js 22 o superior y un navegador de escritorio con acceso local permitido.",
+        "shortDescription": "Procesos y modelos de datos",
+        "longDescription": "Una instalación con skill y MCP local. Edita procesos BPMN y modelos ER de tablas, campos y relaciones; guarda todas sus hojas y exporta PNG al chat. Requiere Node.js 22+ y navegador de escritorio con acceso local.",
         "developerName": "Nara Consultores",
         "category": "Productivity",
         "capabilities": [

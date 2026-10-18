@@ -1,6 +1,6 @@
 'use strict';
 (() => {
-  function SheetManager(bpmnjs, canvas, commandStack, elementFactory, bpmnFactory, modeling, eventBus, elementRegistry, bpmnReplace, selection) {
+  function SheetManager(bpmnjs, canvas, commandStack, elementFactory, bpmnFactory, modeling, eventBus, elementRegistry, bpmnReplace, selection, naraER) {
     let importing = true, previousRoot, back = [], goingBack = false;
     const views = new Map();
     let dialogTarget = null;
@@ -10,7 +10,7 @@
     const processId = root => root.businessObject.$type === 'bpmn:Process' ? root.businessObject.id : root.businessObject.$type === 'bpmn:Collaboration' && root.businessObject.participants?.length === 1 ? root.businessObject.participants[0].processRef?.id : undefined;
     function list() {
       const seen = new Set();
-      return (definitions()?.diagrams || []).flatMap((diagram, index) => {
+      return [...(definitions()?.diagrams || []).flatMap((diagram, index) => {
         const bo = diagram.plane?.bpmnElement;
         if (!bo || seen.has(bo.id)) return [];
         const root = canvas.findRoot(bo.id + '_plane') || canvas.findRoot(bo.id);
@@ -18,7 +18,7 @@
         seen.add(bo.id);
         const child = bo.$type === 'bpmn:SubProcess';
         return [{ id: root.id, elementId: bo.id, name: bo.name || (index === 0 ? 'Proceso principal' : child ? 'Subproceso' : 'Proceso ' + (index + 1)), kind: child ? 'subprocess' : 'process', processId: processId(root) }];
-      });
+      }),...naraER.list()];
     }
     function canNavigate() {
       if (window.NaraPropertyDraftPending?.()) throw failure('FORM_PENDING', 'Aplica o descarta el texto pendiente en Propiedades antes de cambiar de hoja.');
@@ -26,25 +26,33 @@
     function render() {
       const nav = document.getElementById('sheetNavigation');
       nav.replaceChildren();
-      const current = canvas.getRootElement();
+      const currentId = naraER.active() || canvas.getRootElement()?.id;
       for (const sheet of list()) {
         const button = document.createElement('button');
         button.type = 'button'; button.role = 'tab'; button.dataset.sheet = sheet.id;
-        button.textContent = (sheet.kind === 'subprocess' ? '↳ ' : '') + sheet.name;
+        button.textContent = (sheet.kind === 'subprocess' ? '↳ ' : sheet.kind === 'erd' ? '▤ ' : '') + sheet.name;
         button.title = sheet.name + ' · doble clic para cambiar el nombre';
-        button.setAttribute('aria-selected', String(current?.id === sheet.id));
-        button.classList.toggle('active', current?.id === sheet.id);
+        button.setAttribute('aria-selected', String(currentId === sheet.id));
+        button.classList.toggle('active', currentId === sheet.id);
         button.onclick = () => { try { open(sheet.id); } catch (error) { report(error.message); } };
         button.ondblclick = () => nameDialog(sheet.id);
         nav.appendChild(button);
       }
-      document.getElementById('sheetBack').disabled = !back.some(id => canvas.findRoot(id));
+      document.getElementById('sheetBack').disabled = !back.some(exists);
+    }
+    const exists = id => canvas.findRoot(id) || naraER.list().some(sheet => sheet.id === id);
+    function changed(id) {
+      if (!importing && previousRoot && previousRoot !== id && !goingBack) back.push(previousRoot);
+      previousRoot=id;render();eventBus.fire('nara.sheet.changed');
     }
     function open(id) {
       canNavigate();
+      if (naraER.list().some(s => s.id === id)) { naraER.open(id); return; }
       const root = canvas.findRoot(id);
       if (!root) throw failure('SHEET_NOT_FOUND', 'La hoja no existe en este archivo.');
-      if (root === canvas.getRootElement()) return;
+      const wasEr=!!naraER.active();
+      naraER.close({silent:true});
+      if (root === canvas.getRootElement()) { if(wasEr) changed(root.id); return; }
       selection.select([]);
       canvas.setRootElement(root);
       if (views.has(root.id)) canvas.viewbox(views.get(root.id));
@@ -59,6 +67,7 @@
     }
     function rename(id, name) {
       canNavigate();
+      if(naraER.list().some(s=>s.id===id)){naraER.rename(id,String(name).trim().slice(0,120)||'Modelo de datos');return;}
       const root = canvas.findRoot(id);
       if (!root) throw failure('SHEET_NOT_FOUND', 'La hoja no existe.');
       modeling.updateProperties(root, { name: String(name).trim().slice(0, 120) || 'Proceso' });
@@ -101,7 +110,9 @@
           context.diagram = bpmnFactory.create('bpmndi:BPMNDiagram', { plane: context.root.di });
           context.root.di.$parent = context.diagram;
           context.previous = canvas.getRootElement();
+          context.previousEr = naraER.active();
         }
+        naraER.close({silent:true});
         context.root.businessObject.$parent = defs; context.diagram.$parent = defs;
         defs.get('rootElements').push(context.root.businessObject);
         defs.get('diagrams').push(context.diagram);
@@ -109,7 +120,7 @@
         return [context.root];
       };
       this.postExecute = context => {
-        modeling.createShape(elementFactory.createShape({ type: 'bpmn:StartEvent' }), { x: 160, y: 180 }, context.root);
+
       };
       this.revert = context => {
         const defs = definitions();
@@ -117,6 +128,7 @@
         defs.rootElements.splice(defs.rootElements.indexOf(context.root.businessObject), 1);
         defs.diagrams.splice(defs.diagrams.indexOf(context.diagram), 1);
         canvas.setRootElement(context.previous);
+        if(context.previousEr)naraER.open(context.previousEr);
         return [context.root];
       };
     });
@@ -143,28 +155,32 @@
       } finally { importing = false; previousRoot = initial?.id; back = []; render(); }
       return warnings;
     }
-    function nameDialog(id = null) {
+    function nameDialog(id = null, kind = 'bpmn') {
       try { canNavigate(); } catch (error) { report(error.message); return; }
       dialogTarget = id;
-      document.getElementById('sheetDialogHeading').textContent = id ? 'Cambiar nombre de la hoja' : 'Nueva hoja de proceso';
+      document.getElementById('sheetKindField').hidden=!!id;
+      document.getElementById('sheetKind').value=kind;
+      document.getElementById('sheetDialogHeading').textContent = id ? 'Cambiar nombre de la hoja' : kind==='erd'?'Nueva hoja de modelo de datos':'Nueva hoja de proceso';
       document.getElementById('saveSheetName').textContent = id ? 'Guardar nombre' : 'Crear hoja';
       const input = document.getElementById('sheetName');
       input.value = id ? list().find(s => s.id === id)?.name || '' : '';
       document.getElementById('sheetDialog').showModal(); input.focus(); input.select();
     }
     document.getElementById('newSheet').onclick = () => nameDialog();
+    document.getElementById('modeEr').onclick = () => { const sheet=naraER.list()[0];if(sheet){try{open(sheet.id);}catch(error){report(error.message);}}else nameDialog(null,'erd'); };
+    document.getElementById('modeBpmn').onclick = () => {const sheet=list().find(s=>s.kind==='process');if(sheet)try{open(sheet.id);}catch(error){report(error.message);}};
     document.getElementById('closeSheetDialog').onclick = () => document.getElementById('sheetDialog').close();
     document.getElementById('sheetForm').onsubmit = event => {
       event.preventDefault();
       try {
         const name = document.getElementById('sheetName').value;
-        if (dialogTarget) rename(dialogTarget, name); else create(name);
+        if (dialogTarget) rename(dialogTarget, name); else if(document.getElementById('sheetKind').value==='erd')naraER.create(name);else create(name);
         document.getElementById('sheetDialog').close();
       } catch (error) { report(error.message); }
     };
     document.getElementById('sheetBack').onclick = () => {
       let id;
-      while ((id = back.pop()) && !canvas.findRoot(id)) { /* Skip removed sheets. */ }
+      while ((id = back.pop()) && !exists(id)) { /* Skip removed sheets. */ }
       if (id) { goingBack = true; try { open(id); } catch (error) { back.push(id); report(error.message); } finally { goingBack = false; render(); } }
     };
     document.getElementById('openSubprocess').onclick = () => { try { openSubprocess(selection.get()[0]?.id); } catch (error) { report(error.message); } };
@@ -172,10 +188,9 @@
     eventBus.on('import.parse.start', () => { importing = true; back = []; views.clear(); previousRoot = undefined; });
     eventBus.on('canvas.viewbox.changed', event => { if (!importing && canvas.getRootElement()) views.set(canvas.getRootElement().id, { ...event.viewbox }); });
     eventBus.on('root.set', event => {
-      if (!importing && previousRoot && previousRoot !== event.element.id && !goingBack) back.push(previousRoot);
-      previousRoot = event.element.id;
-      render(); eventBus.fire('nara.sheet.changed');
+      naraER.close({silent:true});changed(event.element.id);
     });
+    eventBus.on('nara.erd.view.changed',()=>changed(naraER.active()||canvas.getRootElement()?.id));
     eventBus.on(['commandStack.changed', 'element.changed'], () => { if (!importing) render(); });
     eventBus.on('element.dblclick', 2000, event => {
       if (!['bpmn:SubProcess','bpmn:CallActivity'].includes(event.element.type)) return;
@@ -184,6 +199,6 @@
     });
     this.list = list; this.open = open; this.create = create; this.rename = rename; this.link = link; this.openSubprocess = openSubprocess; this.importAdditional = importAdditional;
   }
-  SheetManager.$inject = ['bpmnjs','canvas','commandStack','elementFactory','bpmnFactory','modeling','eventBus','elementRegistry','bpmnReplace','selection'];
+  SheetManager.$inject = ['bpmnjs','canvas','commandStack','elementFactory','bpmnFactory','modeling','eventBus','elementRegistry','bpmnReplace','selection','naraER'];
   window.NaraSheetsModule = { __init__: ['naraSheets'], naraSheets: ['type', SheetManager] };
 })();

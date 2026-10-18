@@ -35,7 +35,8 @@ function DocumentPalette(palette) {
 DocumentPalette.$inject = ['palette'];
 const documentPaletteModule = {__init__: ['projectDocumentPalette'], projectDocumentPalette: ['type', DocumentPalette]};
 const modeler = new BpmnJS({
-  additionalModules: [documentPaletteModule, window.NaraEditorTools, window.NaraSheetsModule],
+  additionalModules: [documentPaletteModule, window.NaraEditorTools, window.NaraERModule, window.NaraSheetsModule, window.NaraStyleModule],
+  moddleExtensions: {nara:window.NaraERModdle},
   container: '#canvas',
   textRenderer: {
     defaultStyle: {fontFamily: 'Arial', fontSize: 16},
@@ -43,6 +44,7 @@ const modeler = new BpmnJS({
   }
 });
 window.bpmnModeler = modeler;
+window.NaraAppVersion = '0.4.0';
 window.diagramReady = false;
 window.diagramError = null;
 // Agrupa los cambios nativos para poder deshacer toda la columna en un paso.
@@ -50,6 +52,21 @@ function AddStageHandler(modeling, elementFactory, bpmnFactory, canvas, elementR
   this.preExecute = context => {
     const current = canvas.getRootElement();
     const stages = elementRegistry.getAll().filter(e => isStage(e) && canvas.findRoot(e) === current).sort((a,b) => a.x-b.x);
+    if (context.sourceId) {
+      const source = stages.find(e => e.id === context.sourceId);
+      if (!source || !['left','right'].includes(context.direction)) throw new Error('Selecciona una etapa de la hoja actual.');
+      if(!Number.isFinite(source.width)||!Number.isFinite(source.height)||source.width<20||source.height<20)throw new Error('Ajusta el tamaño de la etapa antes de añadir otra columna.');
+      const step = context.direction === 'left' ? -source.width : source.width;
+      let x = source.x + step;
+      let collision;
+      while ((collision=stages.find(e => e.x < x + source.width - 1 && e.x + e.width > x + 1 && e.y < source.y + source.height && e.y + e.height > source.y))) x=context.direction==='left'?collision.x-source.width:collision.x+collision.width;
+      if(Math.abs(x)>100000)throw new Error('La columna quedaría fuera del área de modelado.');
+      const prefix = activeDiagram?.stagePrefix || 'Stage_';
+      let number = 1; while (elementRegistry.get(prefix + 'Etapa_' + number)) number++;
+      const shape = elementFactory.createShape({ type:'bpmn:Group', businessObject:bpmnFactory.create('bpmn:Group',{id:prefix+'Etapa_'+number}), width:source.width, height:source.height });
+      context.stage = modeling.createShape(shape,{x:x+source.width/2,y:source.y+source.height/2},current);
+      return;
+    }
     const pools = elementRegistry.getAll().filter(e => e.type === 'bpmn:Participant' && canvas.findRoot(e) === current);
     const first = stages[0], last = stages.at(-1);
     const x = last ? Math.max(...stages.map(e => e.x+e.width)) : pools.length ? Math.min(...pools.map(e => e.x))+60 : 140;
@@ -76,6 +93,7 @@ function AddStageHandler(modeling, elementFactory, bpmnFactory, canvas, elementR
 AddStageHandler.$inject = ['modeling','elementFactory','bpmnFactory','canvas','elementRegistry'];
 modeler.get('commandStack').registerHandler('project.stage.add',AddStageHandler);
 function isStage(element) { return element.type === 'bpmn:Group' && element.id.startsWith(activeDiagram?.stagePrefix || 'Stage_'); }
+window.NaraStagePrefix = () => activeDiagram?.stagePrefix || 'Stage_';
 function beginStage(event) {
   if (!ready) return;
   const registry = modeler.get('elementRegistry');
@@ -136,6 +154,7 @@ function showExternalChange(message) {
 }
 function renderStageNavigation() {
   const nav = byId('stageNavigation'); nav.replaceChildren();
+  if(window.NaraER?.active()){nav.hidden=true;return;}
   const all = document.createElement('button'); all.textContent = 'Vista general'; all.dataset.stage = 'all'; all.className = 'active'; all.onclick = fit; nav.appendChild(all);
   const canvas = modeler.get('canvas');
   const stages = modeler.get('elementRegistry').getAll().filter(e => isStage(e) && canvas.findRoot(e) === canvas.getRootElement()).sort((a,b) => a.x-b.x);
@@ -213,8 +232,8 @@ async function startStandalone() {
   status('Abre un BPMN o crea un proceso. Los archivos se manejan en tu equipo.');
 }
 async function newBrowserDiagram(force=false) {
-  if (!force && dirty && !confirm('Hay cambios sin guardar. ¿Crear otro diagrama y descartarlos?')) return;
-  await modeler.createDiagram();const {xml}=await modeler.saveXML({format:true});
+  if (!force && (dirty||window.NaraPropertyDraftPending?.()) && !confirm('Hay cambios sin guardar. ¿Crear otro diagrama y descartarlos?')) return;
+  await modeler.createDiagram();modeler.get('modeling').removeElements(modeler.get('elementRegistry').getAll().filter(e=>e.type==='bpmn:StartEvent'));const {xml}=await modeler.saveXML({format:true});
   await browserFiles.attach({name:'Sin título.bpmn',xml,handle:null});
   browserFileContext(browserFiles.name);await openDiagram(xml);byId('externalChange').hidden=true;
 }
@@ -230,12 +249,13 @@ async function acceptBrowserSource(source) {
 }
 async function openBrowserFile() {
   if (!window.showOpenFilePicker) {byId('open').click();return;}
-  if (dirty && !confirm('Hay cambios sin guardar. ¿Abrir otro archivo y descartarlos?')) return;
+  if ((dirty||window.NaraPropertyDraftPending?.()) && !confirm('Hay cambios sin guardar. ¿Abrir otro archivo y descartarlos?')) return;
   try {await acceptBrowserSource(await browserFiles.pickOpen());}
   catch(error){if(error.name!=='AbortError')status(error.message);}
 }
 async function saveBrowserFile(saveAs=false) {
   if(saving || window.NaraMicrosoftDialogOpen)return;
+  if(window.NaraPropertyDraftPending?.()){status('Aplica o cierra la edición pendiente antes de guardar.');return;}
   const microsoft=browserFiles.handle?.storageKind==='microsoft';
   if (microsoft && saveAs) {window.NaraMicrosoftUI.saveAs();return;}
   if (!microsoft && !window.showSaveFilePicker){await exportBpmn();status('Este navegador descarga una copia. Para guardar directamente usa Edge o Chrome de escritorio.');return;}
@@ -253,7 +273,7 @@ async function saveBrowserFile(saveAs=false) {
 }
 async function reloadBrowserFile() {
   if(!browserFiles.handle){status('Abre el archivo de nuevo para leer su última versión.');return;}
-  if(dirty && !confirm('Hay cambios sin guardar. ¿Cargar el archivo y descartarlos?'))return;
+  if((dirty||window.NaraPropertyDraftPending?.()) && !confirm('Hay cambios sin guardar. ¿Cargar el archivo y descartarlos?'))return;
   loadingDiagram=true;
   try{await acceptBrowserSource(await browserFiles.read());if(browserFiles.handle?.storageKind==='microsoft')browserFiles.handle.uncertain=false;}catch(error){status(error.message);}finally{loadingDiagram=false;}
 }
@@ -267,7 +287,7 @@ async function pollBrowserFile() {
   try{
     const source=await browserFiles.read();
     if(saving || loadingDiagram || source.hash===browserFiles.hash)return;
-    if(dirty)showExternalChange();else await acceptBrowserSource(source);
+    if(dirty||window.NaraPropertyDraftPending?.())showExternalChange();else await acceptBrowserSource(source);
   }catch(error){status('No se pudo leer el archivo abierto: '+error.message);}finally{filePolling=false;}
 }
 async function showHistory() {
@@ -300,15 +320,18 @@ function setRibbonCollapsed(collapsed) {
   byId('toggleRibbon').setAttribute('aria-expanded', String(!collapsed));
   const label = collapsed ? 'Expandir barra superior' : 'Minimizar barra superior';
   byId('toggleRibbon').setAttribute('aria-label', label); byId('toggleRibbon').title = label;
-  requestAnimationFrame(() => modeler.get('canvas').resized());
+  requestAnimationFrame(() => {modeler.get('canvas').resized();if(window.NaraER?.active())window.NaraER.resize();});
 }
 function showDetail() {
+  if(document.body.classList.contains('focus-mode'))focusCanvas(false);
   byId('workspace').classList.remove('right-hidden');
   byId('rightPanel').hidden = false;
   byId('showRight').hidden = true;
   if (innerWidth <= 850) byId('workspace').classList.add('mobile-detail');
-  byId('propertiesPanel').hidden = false;
-  requestAnimationFrame(() => modeler.get('canvas').resized());
+  byId('propertiesPanel').hidden = !!window.NaraER?.active();
+  byId('erdPropertiesPanel').hidden = !window.NaraER?.active();
+  if(window.NaraER?.active())window.NaraER.renderProperties();
+  requestAnimationFrame(() => {modeler.get('canvas').resized();if(window.NaraER?.active())window.NaraER.resize();});
 }
 function togglePanel(side, explicit) {
   const workspace = byId('workspace');
@@ -317,12 +340,13 @@ function togglePanel(side, explicit) {
   byId(side + 'Panel').hidden = hidden;
   byId(side === 'left' ? 'showLeft' : 'showRight').hidden = !hidden;
   if (side === 'right' && hidden) workspace.classList.remove('mobile-detail');
-  requestAnimationFrame(() => modeler.get('canvas').resized());
+  requestAnimationFrame(() => {modeler.get('canvas').resized();if(window.NaraER?.active())window.NaraER.resize();});
 }
 function markStage(id) {
   document.querySelectorAll('[data-stage]').forEach(button => button.classList.toggle('active', button.dataset.stage === id));
 }
 function fit() {
+  if(window.NaraER?.active()){window.NaraER.fit();return;}
   modeler.get('canvas').zoom('fit-viewport', 'auto');
   markStage('all');
 }
@@ -339,6 +363,7 @@ function focusStage(id) {
   markStage(id);
 }
 function zoom(value) {
+  if(window.NaraER?.active()){window.NaraER.zoom(value);return;}
   const canvas = modeler.get('canvas');
   canvas.zoom(Math.max(0.1, Math.min(2, value)));
   markStage('');
@@ -364,14 +389,11 @@ function mountPalette() {
   const attribution = document.querySelector('#canvas .bjs-powered-by') || document.querySelector('#attributionHost .bjs-powered-by');
   if (attribution) byId('attributionHost').appendChild(attribution);
 }
-const documentFormats = {
-  Excel: {letter: 'X', color: '#277653'}, Word: {letter: 'W', color: '#326aa6'},
-  Manual: {letter: 'M', color: '#a97836'}, Datos: {letter: 'D', color: '#6b66a0'}, Documento: {letter: '', color: '#667b8b'}
-};
+const documentFormats = new Set(['Excel','Word','Manual','Datos','Documento']);
 function isDocument(el) { return el && ['bpmn:DataObjectReference', 'bpmn:DataStoreReference'].includes(el.type); }
 function documentInfo(el) {
   const parts = (el.businessObject.dataState?.name || '').split(' · ');
-  return {format: documentFormats[parts[0]] ? parts[0] : 'Documento', use: ['Entrada', 'Salida', 'Entrada/Salida', 'Referencia'].includes(parts[1]) ? parts[1] : 'Referencia'};
+  return {format: documentFormats.has(parts[0]) ? parts[0] : 'Documento', use: ['Entrada', 'Salida', 'Entrada/Salida', 'Referencia'].includes(parts[1]) ? parts[1] : 'Referencia'};
 }
 function documentState(format, use) {
   return modeler.get('bpmnFactory').create('bpmn:DataState', {name: format + ' · ' + use});
@@ -396,25 +418,7 @@ function beginSubprocess(event) {
   status('Coloca el subproceso. Haz doble clic para abrir su hoja de detalle.');
 }
 function decorateDocuments() {
-  const registry = modeler.get('elementRegistry');
-  const svgNS = 'http://www.w3.org/2000/svg';
-  for (const el of registry.getAll().filter(isDocument)) {
-    const visual = registry.getGraphics(el)?.querySelector('.djs-visual');
-    if (!visual) continue;
-    visual.querySelector('.document-format-mark')?.remove();
-    const info = documentInfo(el), format = documentFormats[info.format];
-    if (!format.letter) continue;
-    const group = document.createElementNS(svgNS, 'g'); group.classList.add('document-format-mark'); group.setAttribute('pointer-events', 'none');
-    const box = document.createElementNS(svgNS, 'rect');
-    for (const [key, value] of Object.entries({x: 4, y: 14, width: Math.max(26, el.width - 8), height: 19, rx: 2, fill: format.color})) box.setAttribute(key, value);
-    const label = document.createElementNS(svgNS, 'text');
-    for (const [key, value] of Object.entries({x: el.width / 2, y: 28, 'text-anchor': 'middle', fill: '#fff', 'font-family': 'Arial', 'font-size': '15', 'font-weight': '700'})) label.setAttribute(key, value);
-    label.textContent = format.letter;
-    const io = document.createElementNS(svgNS, 'text');
-    for (const [key, value] of Object.entries({x: el.width / 2, y: el.height - 2, 'text-anchor': 'middle', fill: '#355972', 'font-family': 'Arial', 'font-size': '9', 'font-weight': '700'})) io.setAttribute(key, value);
-    io.textContent = {Entrada: 'E', Salida: 'S', 'Entrada/Salida': 'E/S', Referencia: 'R'}[info.use];
-    group.append(box, label, io); visual.appendChild(group);
-  }
+  // DocumentSymbols renders the same vectors as the palette through bpmn-js.
 }
 function populateDocumentActivities() {
   const target = byId('documentActivity'); target.replaceChildren(new Option('Seleccionar actividad', ''));
@@ -463,34 +467,18 @@ function stageName(stage) {
   return stage.businessObject.categoryValueRef?.value || stage.businessObject.categoryValue?.value || stage.businessObject.name || '';
 }
 function decorateStages() {
-  const registry = modeler.get('elementRegistry');
-  for (const el of registry.getAll().filter(e => e.id.startsWith(activeDiagram?.stagePrefix || 'Stage_') && e.type === 'bpmn:Group')) {
-    const gfx = registry.getGraphics(el);
-    const visual = gfx?.querySelector('.djs-visual');
-    if (!visual) continue;
-    const outline = visual.querySelector('rect:not(.stage-header-fill)');
-    if (outline) {
-      outline.setAttribute('fill', 'none');
-      outline.setAttribute('stroke', '#c6d5e1');
-      outline.setAttribute('stroke-width', '1.4');
-      outline.setAttribute('stroke-dasharray', 'none');
-      outline.setAttribute('rx', '0');
-      outline.setAttribute('ry', '0');
-      Object.assign(outline.style, { fill: 'none', stroke: '#8fa9bd', strokeWidth: '1.4px', strokeDasharray: 'none' });
-    }
-    let header = visual.querySelector('.stage-header-fill');
-    if (!header) {
-      header = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      header.classList.add('stage-header-fill');
-      visual.insertBefore(header, visual.firstChild);
-    }
-    for (const [key, value] of Object.entries({x: 0, y: 0, width: el.width, height: 48, fill: '#e9f2f9', stroke: 'none'})) header.setAttribute(key, value);
-    const label = registry.get(el.id + '_label');
-    const labelGfx = label ? registry.getGraphics(label) : null;
-    labelGfx?.querySelectorAll('text').forEach(t => {
-      t.setAttribute('font-size', '14px'); t.setAttribute('font-weight', '600'); t.setAttribute('fill', '#214b6a');
-      t.style.fontSize = '14px'; t.style.fontWeight = '600';
-    });
+  const registry=modeler.get('elementRegistry'),NS='http://www.w3.org/2000/svg';
+  for(const el of registry.getAll().filter(isStage)){
+    const gfx=registry.getGraphics(el),visual=gfx?.querySelector('.djs-visual');if(!visual)continue;
+    const style=window.NaraStylePanel?.read(el)||{};gfx.classList.add('nara-stage');
+    const outline=visual.querySelector('rect:not(.stage-header-fill)');
+    if(outline){for(const [key,value]of Object.entries({fill:'none',stroke:style.stroke||'#55758c','stroke-width':style.strokeWidth||1.4,'stroke-dasharray':'none',rx:0,ry:0}))outline.setAttribute(key,value);Object.assign(outline.style,{fill:'none',stroke:style.stroke||'#55758c',strokeWidth:(style.strokeWidth||1.4)+'px',strokeDasharray:'none'});}
+    let header=visual.querySelector('.stage-header-fill');if(!header){header=document.createElementNS(NS,'rect');header.classList.add('stage-header-fill');visual.insertBefore(header,visual.firstChild);}
+    for(const [key,value]of Object.entries({x:0,y:0,width:el.width,height:34,fill:style.fill||'#edf3f7',stroke:style.stroke||'#55758c','stroke-width':style.strokeWidth||1.4}))header.setAttribute(key,value);
+    let hit=gfx.querySelector('.nara-stage-header-hit');if(!hit){hit=document.createElementNS(NS,'rect');hit.setAttribute('class','djs-hit djs-hit-all nara-stage-header-hit');gfx.appendChild(hit);}for(const [key,value]of Object.entries({x:0,y:0,width:el.width,height:34,fill:'transparent','pointer-events':'all'}))hit.setAttribute(key,value);
+    // Labels use the native Group category and native editing; place their visual inside the column header.
+    const label=registry.get(el.id+'_label'),labelGfx=label?registry.getGraphics(label):null;
+    if(labelGfx){const box=labelGfx.querySelector('.djs-visual')?.getBBox();if(box)labelGfx.setAttribute('transform',`translate(${el.x+el.width/2-box.x-box.width/2},${el.y+17-box.y-box.height/2})`);labelGfx.querySelectorAll('text').forEach(t=>{t.style.fill=style.fontColor||'#214b6a';t.style.fontSize=(style.fontSize||14)+'px';t.style.fontWeight=style.bold===false?'400':'600';});}
   }
 }
 function roleFor(el) {
@@ -550,11 +538,13 @@ function download(content, type, filename) {
   document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 async function exportBpmn() {
+  if(window.NaraPropertyDraftPending?.())throw new Error('Aplica o cierra la edición pendiente antes de exportar.');
   const {xml} = await modeler.saveXML({format: true});
   download(xml, 'application/xml', activeDiagram ? activeDiagram.exportName+'.bpmn' : browserFiles.name);
   status('Copia BPMN exportada.');
 }
 async function saveBpmn() {
+  if(window.NaraPropertyDraftPending?.())throw new Error('Aplica o cierra la edición pendiente antes de guardar.');
   if (standalone || detached || !activeDiagram) { await saveBrowserFile(); return; }
   const {xml} = await modeler.saveXML({format: true});
   const sequence = editSequence;
@@ -568,11 +558,13 @@ async function saveBpmn() {
   } finally { saving = false; }
 }
 async function exportSvg() {
-  decorateStages(); decorateDocuments(); const {svg} = await modeler.saveSVG();
+  if(window.NaraPropertyDraftPending?.())throw new Error('Aplica o cierra la edición pendiente antes de exportar.');
+  decorateStages(); const svg = window.NaraER?.active() ? window.NaraER.exportSvg() : (await modeler.saveSVG()).svg;
   download(svg, 'image/svg+xml', (activeDiagram?.exportName || 'diagrama') + '.svg'); status('Imagen SVG exportada.');
 }
 async function exportPng() {
-  decorateStages(); decorateDocuments(); const {svg} = await modeler.saveSVG();
+  if(window.NaraPropertyDraftPending?.())throw new Error('Aplica o cierra la edición pendiente antes de exportar.');
+  decorateStages(); const svg = window.NaraER?.active() ? window.NaraER.exportSvg() : (await modeler.saveSVG()).svg;
   const url = URL.createObjectURL(new Blob([svg], {type: 'image/svg+xml'}));
   try {
     const image = new Image(); await new Promise((resolve, reject) => { image.onload = resolve; image.onerror = reject; image.src = url; });
@@ -599,6 +591,19 @@ window.decorateDocuments = decorateDocuments;
 function refreshActions() {
   const stack = modeler.get('commandStack'); byId('undo').disabled = !stack.canUndo(); byId('redo').disabled = !stack.canRedo();
 }
+let focusState=null;
+function updateFocusSheet(){const id=window.NaraER?.active()||modeler.get('canvas').getRootElement()?.id;byId('focusSheet').textContent=modeler.get('naraSheets').list().find(s=>s.id===id)?.name||'';}
+function focusCanvas(enabled=!document.body.classList.contains('focus-mode')){
+  if(enabled===document.body.classList.contains('focus-mode'))return;
+  const host=byId('attributionHost');
+  if(enabled){focusState={parent:host.parentNode,next:host.nextSibling,sheet:window.NaraER?.active()||modeler.get('canvas').getRootElement()?.id,erView:window.NaraER?.view(),bpmnView:modeler.get('canvas').viewbox()};byId('focusCanvas').before(host);}
+  else if(focusState)focusState.parent.insertBefore(host,focusState.next?.parentNode===focusState.parent?focusState.next:null);
+  document.body.classList.toggle('focus-mode',enabled);byId('focusCanvas').textContent=enabled?'Salir de vista ampliada':'Ampliar lienzo';byId('focusCanvas').setAttribute('aria-pressed',String(enabled));byId('focusSheet').hidden=!enabled;updateFocusSheet();
+  requestAnimationFrame(()=>{modeler.get('canvas').resized();if(window.NaraER?.active())window.NaraER.resize();if(!enabled&&focusState){const id=window.NaraER?.active()||modeler.get('canvas').getRootElement()?.id;if(id===focusState.sheet){if(window.NaraER?.active())window.NaraER.restoreView(focusState.erView);else modeler.get('canvas').viewbox(focusState.bpmnView);}focusState=null;}});
+}
+byId('focusCanvas').onclick=()=>focusCanvas();byId('focusCanvasRibbon').onclick=()=>focusCanvas(true);
+window.NaraSetFocus=focusCanvas;window.NaraExpandedCanvas=()=>document.body.classList.contains('focus-mode');
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&document.body.classList.contains('focus-mode')&&!document.querySelector('dialog[open],.djs-popup'))focusCanvas(false);});
 document.querySelectorAll('[data-ribbon]').forEach(button => button.onclick = () => showRibbon(button.dataset.ribbon));
 byId('toggleRibbon').onclick = () => setRibbonCollapsed(!byId('ribbon').hidden);
 byId('documentUse').onchange = applyDocumentControls;
@@ -610,9 +615,9 @@ byId('tabProperties').onclick = () => showDetail();
 byId('properties').onclick = () => showDetail('properties');
 byId('toggleLeft').onclick = () => togglePanel('left'); byId('hideLeft').onclick = () => togglePanel('left', true); byId('showLeft').onclick = () => togglePanel('left', false);
 byId('toggleRight').onclick = () => togglePanel('right'); byId('hideRight').onclick = () => togglePanel('right', true); byId('showRight').onclick = () => { togglePanel('right', false); showDetail('properties'); };
-byId('undo').onclick = () => modeler.get('commandStack').undo(); byId('redo').onclick = () => modeler.get('commandStack').redo();
-byId('delete').onclick = () => { if (selected) modeler.get('modeling').removeElements([selected]); };
-byId('plus').onclick = () => zoom(modeler.get('canvas').zoom() * 1.2); byId('minus').onclick = () => zoom(modeler.get('canvas').zoom() / 1.2);
+byId('undo').onclick = () => {if(window.NaraPropertyDraftPending?.())status('Aplica o cierra la edición pendiente antes de deshacer.');else modeler.get('commandStack').undo();}; byId('redo').onclick = () => {if(window.NaraPropertyDraftPending?.())status('Aplica o cierra la edición pendiente antes de rehacer.');else modeler.get('commandStack').redo();};
+byId('delete').onclick = () => { if(window.NaraER?.active())window.NaraER.deleteSelection();else if (selected) modeler.get('modeling').removeElements([selected]); };
+byId('plus').onclick = () => zoom((window.NaraER?.active()?window.NaraER.scale():modeler.get('canvas').zoom()) * 1.2); byId('minus').onclick = () => zoom((window.NaraER?.active()?window.NaraER.scale():modeler.get('canvas').zoom()) / 1.2);
 byId('actualSize').onclick = () => zoom(1); byId('zoomValue').onclick = fit; byId('zoomRange').oninput = event => zoom(Number(event.target.value) / 100);
 byId('save').onclick = () => saveBpmn().catch(error => status(error.message));
 byId('saveAs').onclick = () => saveBrowserFile(true);
@@ -629,7 +634,7 @@ byId('exportSvg').onclick = () => exportSvg().catch(error => status(error.messag
 byId('exportPng').onclick = () => exportPng().catch(error => status(error.message));
 byId('open').onchange = async event => {
   const file = event.target.files[0];
-  if (file && (!dirty || confirm('Hay cambios sin guardar. ¿Abrir el archivo y descartar esos cambios?'))) {
+  if (file && (!(dirty||window.NaraPropertyDraftPending?.()) || confirm('Hay cambios sin guardar. ¿Abrir el archivo y descartar esos cambios?'))) {
     try{await acceptBrowserSource({name:file.name,xml:await file.text(),handle:null});}catch(error){status(error.message);}
   }
   event.target.value = '';
@@ -655,19 +660,49 @@ byId('propertyForm').onsubmit = event => {
 const eventBus = modeler.get('eventBus');
 eventBus.on('selection.changed', event => {
   if (event.newSelection[0]?.id !== selected?.id) keepDocumentDraft = null;
-  updateProperties(event.newSelection[0] || null);
+  updateProperties(event.newSelection[0] || null);window.NaraStylePanel?.refresh();
 });
 eventBus.on('nara.properties', () => showDetail());
+function StageSplitHandler(modeling,elementFactory,bpmnFactory,canvas,elementRegistry){
+  this.preExecute=context=>{const source=elementRegistry.get(context.sourceId);if(!source||!isStage(source)||![2,3].includes(context.count)||source.width/context.count<80)throw Error('La etapa necesita al menos 80 px por columna.');
+    const width=source.width/context.count,x=source.x,y=source.y,height=source.height;modeling.resizeShape(source,{x,y,width,height},null,{naraStageSync:true});
+    context.stages=[source];for(let i=1;i<context.count;i++){let n=1,prefix=window.NaraStagePrefix();while(elementRegistry.get(prefix+'Etapa_'+n))n++;const shape=elementFactory.createShape({type:'bpmn:Group',businessObject:bpmnFactory.create('bpmn:Group',{id:prefix+'Etapa_'+n}),width,height});context.stages.push(modeling.createShape(shape,{x:x+width*(i+.5),y:y+height/2},canvas.getRootElement()));}
+  };this.execute=()=>[];this.revert=()=>[];
+}
+StageSplitHandler.$inject=['modeling','elementFactory','bpmnFactory','canvas','elementRegistry'];
+modeler.get('commandStack').registerHandler('project.stage.split',StageSplitHandler);
+eventBus.on('nara.stage.split',event=>{const context={sourceId:event.element.id,count:event.count};modeler.get('commandStack').execute('project.stage.split',context);modeler.get('selection').select(context.stages[0]);});
+eventBus.on('commandStack.shape.resize.preExecute',1600,event=>{
+  const c=event.context,s=c.shape;if(!isStage(s)||c.hints?.naraStageSync)return;
+  const stages=modeler.get('elementRegistry').getAll().filter(e=>isStage(e)&&e!==s&&modeler.get('canvas').findRoot(e)===modeler.get('canvas').findRoot(s));
+  const band=stages.filter(e=>Math.abs(e.y-s.y)<1&&Math.abs(e.height-s.height)<1),connected=new Set([s]),queue=[s];
+  while(queue.length){const current=queue.pop();for(const peer of band)if(!connected.has(peer)&&(Math.abs(peer.x+peer.width-current.x)<1||Math.abs(peer.x-current.x-current.width)<1)){connected.add(peer);queue.push(peer);}}
+  const same=[...connected].filter(e=>e!==s),left=same.find(e=>Math.abs(e.x+e.width-s.x)<1),right=same.find(e=>Math.abs(e.x-s.x-s.width)<1),b=c.newBounds;
+  if((left&&left.width+b.x-s.x<80)||(right&&right.width-(b.x+b.width-s.x-s.width)<80))throw Error('Conserva al menos 80 px en cada etapa.');
+  c.naraStagePeers={same,left,right,old:{x:s.x,y:s.y,width:s.width,height:s.height}};
+});
+eventBus.on('commandStack.shape.resize.postExecuted',event=>{
+  const c=event.context,p=c.naraStagePeers;if(!p)return;const s=c.shape,modeling=modeler.get('modeling');
+  for(const peer of p.same){let x=peer.x,width=peer.width;if(peer===p.left)width+=s.x-p.old.x;if(peer===p.right){const delta=s.x+s.width-p.old.x-p.old.width;x+=delta;width-=delta;}
+    if(x!==peer.x||width!==peer.width||s.y!==p.old.y||s.height!==p.old.height)modeling.resizeShape(peer,{x,y:s.y,width,height:s.height},null,{naraStageSync:true});}
+});
+eventBus.on('nara.stage.insert', event => {
+  const context = {sourceId:event.element.id,direction:event.direction};
+  modeler.get('commandStack').execute('project.stage.add',context);
+  modeler.get('selection').select(context.stage);
+  status('Etapa añadida. Puedes cambiar su nombre con doble clic.');
+});
 eventBus.on('nara.openSubprocess', event => {
   try { modeler.get('naraSheets').openSubprocess(event.element.id); } catch (error) { status(error.message); }
 });
-eventBus.on('nara.sheet.changed', () => { renderStageNavigation(); updateProperties(null); });
+eventBus.on('nara.sheet.changed', () => { renderStageNavigation(); updateProperties(null);updateFocusSheet(); });
 eventBus.on('commandStack.shape.create.postExecuted', event => {
   const shape = event.context.shape;
   if (isStage(shape) && !stageName(shape)) modeler.get('modeling').updateLabel(shape, 'Nueva etapa', {x: shape.x + 10, y: shape.y + 8, width: shape.width - 20, height: 32});
 });
 
 window.NaraPropertyDraftPending = () => {
+  if(window.NaraER?.pending())return true;
   if (!selected || byId('propertyForm').hidden) return false;
   const bo = selected.businessObject;
   const name = selected.type === 'bpmn:Group' ? stageName(selected) : selected.type === 'bpmn:TextAnnotation' ? bo.text || '' : bo.name || '';
@@ -675,7 +710,7 @@ window.NaraPropertyDraftPending = () => {
 };
 eventBus.on('commandStack.changed', () => {
   if (ready) { setDirty(true); editSequence += 1; }
-  refreshActions(); decorateStages(); decorateDocuments(); renderStageNavigation();
+  refreshActions(); window.NaraStylePanel?.refresh(); decorateStages(); decorateDocuments(); renderStageNavigation();
   queueMicrotask(() => {
     if (selected) {
       updateProperties(modeler.get('elementRegistry').get(selected.id) || null);
@@ -687,8 +722,10 @@ eventBus.on('commandStack.changed', () => {
   });
 });
 eventBus.on('canvas.viewbox.changed', event => {
+  if(window.NaraER?.active())return;
   const value = Math.round(event.viewbox.scale * 100); byId('zoomValue').textContent = value + ' %'; byId('zoomRange').value = String(value);
 });
+eventBus.on('nara.erd.zoom',event=>{const value=Math.round(event.scale*100);byId('zoomValue').textContent=value+' %';byId('zoomRange').value=String(value);});
 document.addEventListener('keydown', event => {
   if (!(event.ctrlKey || event.metaKey)) return;
   if (event.key.toLowerCase() === 's') { event.preventDefault(); saveBpmn().catch(error => status(error.message)); return; }
@@ -696,7 +733,7 @@ document.addEventListener('keydown', event => {
   if (event.key.toLowerCase() === 'z') { event.preventDefault(); modeler.get('commandStack')[event.shiftKey ? 'redo' : 'undo'](); }
   if (event.key.toLowerCase() === 'y') { event.preventDefault(); modeler.get('commandStack').redo(); }
 });
-window.addEventListener('beforeunload', event => { if (dirty) { event.preventDefault(); event.returnValue = ''; } });
+window.addEventListener('beforeunload', event => { if (dirty||window.NaraPropertyDraftPending?.()) { event.preventDefault(); event.returnValue = ''; } });
 window.addEventListener('resize', () => modeler.get('canvas').resized());
 window.addEventListener('focus', () => pollFile());
 document.addEventListener('visibilitychange', () => {if(document.visibilityState==='visible')pollFile();});

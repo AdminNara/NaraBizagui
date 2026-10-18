@@ -1,7 +1,7 @@
 {
   "name": "narabizagui",
-  "version": "0.3.2",
-  "description": "Skill y MCP local para editar la sesión abierta de NaraBizagui.",
+  "version": "0.4.0",
+  "description": "Skill y MCP local para editar procesos BPMN y modelos de datos ER, guardar con revisión y exportar PNG al chat.",
   "author": {
     "name": "Nara Consultores"
   },
@@ -10,8 +10,8 @@
   "requires_local_executor": true,
   "interface": {
     "displayName": "NaraBizagui by NaraLab",
-    "shortDescription": "Edita BPMN con tu sesión web",
-    "longDescription": "Skill y MCP local en una instalación. Vincula una pestaña elegida, edita mediante operaciones nativas y guarda en el archivo autorizado. Requiere Node.js 22 o superior y acceso local del navegador.",
+    "shortDescription": "Procesos y modelos de datos",
+    "longDescription": "Skill y MCP local en una instalación. Vincula una pestaña elegida, edita procesos y modelos ER con revisión y deshacer, amplía el lienzo y exporta PNG. Requiere Node.js 22+ y acceso local del navegador.",
     "developerName": "Nara Consultores",
     "category": "Productivity",
     "capabilities": [

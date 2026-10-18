@@ -7,13 +7,15 @@
   <link rel="stylesheet" href="vendor/diagram-js.css?v=08ead062d4284cb1">
   <link rel="stylesheet" href="vendor/bpmn.css?v=b4b8f7070233c196">
   <link rel="stylesheet" href="vendor/bpmn-js.css?v=b09861c8e7030764">
-  <link rel="stylesheet" href="modelador.css?v=ebaeae0524b0865d">
+  <link rel="stylesheet" href="modelador.css?v=878a2f37afc2239e">
 </head>
 <body>
   <header class="titlebar">
     <div class="brand" aria-label="NaraBizagui by NaraLab"><img class="brand-logo unified-brand" src="assets/narabizagui_blanco.png" alt="NaraBizagui by NaraLab"></div>
     <div class="model-title"><span id="projectName" class="project-context"></span><span id="diagramTitle">Abriendo proyecto…</span></div>
     <span id="dirtyState" class="save-state">Sin cambios pendientes</span>
+    <span id="focusSheet" class="focus-sheet" hidden></span>
+    <button id="focusCanvas" class="codex-button" title="Vista ampliada del lienzo" aria-pressed="false">Ampliar lienzo</button>
     <button id="connectMicrosoft" class="codex-button">Conectar Microsoft</button>
     <button id="connectCodex" class="codex-button">Conectar con Codex</button>
   </header>
@@ -36,21 +38,23 @@
       <div class="ribbon-hint" id="fileModeHint">Guardar actualiza el archivo. Guardar como elige otro destino.</div>
     </div>
     <div class="ribbon-content" data-content="vista" hidden>
+      <div class="ribbon-group"><button id="focusCanvasRibbon"><span class="button-symbol">⛶</span>Ampliar lienzo</button><span class="group-caption">Espacio de trabajo</span></div>
       <div class="ribbon-group"><button data-fit><span class="button-symbol">⊞</span>Encajar todo</button><button id="actualSize"><span class="button-symbol">1:1</span>Tamaño real</button><span class="group-caption">Zoom</span></div>
       <div class="ribbon-group"><button id="toggleLeft"><span class="button-symbol">▥</span>Panel de herramientas</button><button id="toggleRight"><span class="button-symbol">▥</span>Panel de detalle</button><span class="group-caption">Paneles</span></div>
       <div class="ribbon-hint">Selecciona una etapa en la barra del diagrama para enfocarla.<br>Usa la mano para desplazar el lienzo.</div>
     </div>
   </div>
   <main class="workspace right-hidden" id="workspace">
-    <aside class="left-panel" id="leftPanel" aria-label="Herramientas BPMN">
+    <aside class="left-panel" id="leftPanel" aria-label="Herramientas de diagramas">
       <div class="panel-heading"><h2>Herramientas</h2><button id="hideLeft" class="icon-button" aria-label="Ocultar herramientas">‹</button></div>
-      <p class="panel-subtitle">Elementos BPMN</p>
-      <div id="paletteHost"></div>
+      <div class="tool-modes" aria-label="Tipo de diagrama"><button id="modeBpmn" aria-pressed="true">BPMN</button><button id="modeEr" aria-pressed="false">Modelo de datos</button></div>
+      <div id="bpmnTools"><p class="panel-subtitle">Elementos BPMN</p><div id="paletteHost"></div></div>
+      <div id="erdTools" hidden><p class="panel-subtitle">Entidad · relación</p><div class="erd-tools-grid"><button id="erdNewTable"><span aria-hidden="true">▤</span>Tabla</button><button id="erdNewRelation"><span aria-hidden="true">⇢</span>Relación</button><button id="erdAddField"><span aria-hidden="true">＋</span>Campo</button><button id="erdShowProperties"><span aria-hidden="true">≡</span>Propiedades</button></div><button id="erdFit" class="secondary-button">Encajar modelo</button><p class="panel-subtitle">Arrastra el encabezado de una tabla para moverla. Doble clic en un campo para editarlo. Une los puntos de dos campos para relacionarlos.</p></div>
     </aside>
     <section class="diagram-area" aria-label="Diagrama editable">
-      <div class="diagram-strip"><select id="diagramSelect" class="diagram-select" aria-label="Diagrama del proyecto"></select><button id="reloadDiagram" class="text-button" title="Volver a cargar el archivo del proyecto">Recargar diagrama</button><a id="fileModeLink" class="text-button" href="?modo=archivos">Abrir modo archivos</a><button id="showLeft" class="text-button" hidden>Mostrar herramientas</button><button id="showRight" class="text-button">Propiedades</button><span class="strip-note">Roles × etapas</span></div>
+      <div class="diagram-strip"><select id="diagramSelect" class="diagram-select" aria-label="Diagrama del proyecto"></select><button id="reloadDiagram" class="text-button" title="Volver a cargar el archivo del proyecto">Recargar diagrama</button><a id="fileModeLink" class="text-button" href="?modo=archivos">Abrir modo archivos</a><button id="showLeft" class="text-button" hidden>Mostrar herramientas</button><button id="showRight" class="text-button">Propiedades</button><span class="strip-note" id="diagramKindNote">Roles × etapas</span></div>
       <div id="externalChange" class="change-notice" hidden><span id="externalChangeText"></span><button id="exportLocalChanges">Exportar mis cambios</button><button id="loadDiskChanges">Cargar archivo actualizado</button></div>
-      <div id="canvas"></div>
+      <div id="canvas"><svg id="erdCanvas" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Modelo de datos editable" hidden></svg></div>
       <nav class="stage-navigation" id="stageNavigation" aria-label="Enfocar etapa" hidden><button data-stage="all" class="active">Vista general</button></nav>
       <div class="sheet-bar"><button id="sheetBack" class="sheet-back" title="Volver a la hoja anterior" aria-label="Volver a la hoja anterior" disabled>←</button><nav id="sheetNavigation" class="sheet-navigation" role="tablist" aria-label="Hojas del archivo BPMN"></nav><button id="newSheet" class="new-sheet" aria-label="Nueva hoja de proceso" title="Nueva hoja de proceso">＋</button></div>
     </section>
@@ -72,9 +76,15 @@
           <button type="submit" class="primary-button">Aplicar cambios</button>
         </form>
       </div>
+      <div class="detail-body" id="erdPropertiesPanel" hidden>
+        <div id="erdEmptySelection" class="empty-selection"><h2>Modelo de datos</h2><p>Selecciona una tabla, un campo o una relación.</p></div>
+        <div id="erdTableProperties" hidden><h2>Tabla</h2><form id="erdTableForm"><label for="erdTableName">Nombre de tabla</label><input id="erdTableName" maxlength="120" required><label for="erdTableWidth">Ancho de tabla</label><input id="erdTableWidth" type="number" min="200" max="1000" required><button class="primary-button" type="submit">Aplicar tabla</button></form><h3>Campos</h3><div id="erdFieldList"></div></div>
+        <div id="erdRelationProperties" hidden><h2>Relación</h2><p id="erdRelationSummary"></p><form id="erdRelationForm"><label for="erdRelationSource">Campo de origen</label><select id="erdRelationSource" required></select><label for="erdSourceCardinality">Cardinalidad de origen</label><select id="erdSourceCardinality"><option>1</option><option>0..1</option><option>N</option><option>0..N</option></select><label for="erdRelationTarget">Campo de destino</label><select id="erdRelationTarget" required></select><label for="erdTargetCardinality">Cardinalidad de destino</label><select id="erdTargetCardinality"><option>1</option><option>0..1</option><option>N</option><option>0..N</option></select><label for="erdRelationLabel">Nombre de relación (opcional)</label><input id="erdRelationLabel" maxlength="120"><button type="submit">Guardar relación</button></form></div>
+        <button id="erdDeleteSelection" class="secondary-button">Eliminar selección</button>
+      </div>
     </aside>
   </main>
-  <footer class="statusbar"><span class="status-dot" aria-hidden="true"></span><span id="status" role="status">Abriendo modelo…</span><span class="status-spacer"></span><span id="attributionHost" title="bpmn.io · licencia del motor de modelado"></span><span class="status-version">Modelador 1.0</span><button id="minus" aria-label="Reducir zoom">−</button><input id="zoomRange" type="range" min="10" max="150" value="50" aria-label="Nivel de zoom"><button id="plus" aria-label="Aumentar zoom">+</button><button id="zoomValue" title="Encajar diagrama">50 %</button></footer>
+  <footer class="statusbar"><span class="status-dot" aria-hidden="true"></span><span id="status" role="status">Abriendo modelo…</span><span class="status-spacer"></span><span id="attributionHost" title="bpmn.io · licencia del motor de modelado"></span><span class="status-version">Modelador 0.4.0</span><button id="minus" aria-label="Reducir zoom">−</button><input id="zoomRange" type="range" min="10" max="150" value="50" aria-label="Nivel de zoom"><button id="plus" aria-label="Aumentar zoom">+</button><button id="zoomValue" title="Encajar diagrama">50 %</button></footer>
   <input id="open" type="file" accept=".bpmn,.xml" hidden>
   <dialog id="historyDialog"><div class="history-heading"><h2>Historial de archivos de este navegador</h2><button id="closeHistory" aria-label="Cerrar historial">×</button></div><p>Revisiones anteriores conservadas al guardar. Puedes descargar una copia. Este historial depende de los datos de este navegador.</p><div id="historyItems"></div></dialog>
   <script src="vendor/bpmn-modeler.production.min.js?v=5956b3e36ce23b3f"></script>
@@ -102,12 +112,15 @@
   </dialog>
   <script src="vendor/microsoft-client.js?v=a7ad704d1ac81045"></script>
   <script src="archivos.js?v=053d08cb36b53d8f"></script>
-  <dialog id="sheetDialog" class="codex-dialog" aria-labelledby="sheetDialogHeading"><form id="sheetForm"><div class="history-heading"><h2 id="sheetDialogHeading">Nueva hoja de proceso</h2><button type="button" id="closeSheetDialog" aria-label="Cerrar hoja">×</button></div><p><label for="sheetName">Nombre de la hoja</label><input id="sheetName" maxlength="120" required autocomplete="off"></p><button type="submit" id="saveSheetName">Crear hoja</button></form></dialog>
+  <dialog id="sheetDialog" class="codex-dialog" aria-labelledby="sheetDialogHeading"><form id="sheetForm"><div class="history-heading"><h2 id="sheetDialogHeading">Nueva hoja de proceso</h2><button type="button" id="closeSheetDialog" aria-label="Cerrar hoja">×</button></div><p id="sheetKindField"><label for="sheetKind">Tipo de hoja</label><select id="sheetKind"><option value="bpmn">Proceso BPMN</option><option value="erd">Modelo de datos · entidad-relación</option></select></p><p><label for="sheetName">Nombre de la hoja</label><input id="sheetName" maxlength="120" required autocomplete="off"></p><button type="submit" id="saveSheetName">Crear hoja</button></form></dialog>
   <script src="vendor/sheets-import.js?v=c0b00ddb98c9b5c3"></script>
-  <script src="editor-tools.js?v=78e4d7cbb4c5c30c"></script>
-  <script src="sheets.js?v=1372801afdc0c22e"></script>
-  <script src="modelador.js?v=c81ecbb88dcad569"></script>
-  <script src="mcp-editor.js?v=388b331b897756a1"></script>
+  <script src="editor-tools.js?v=100abbb2c310118f"></script>
+  <script src="erd-model.js?v=e373fbf5bec1168a"></script>
+  <script src="erd-editor.js?v=8dc4d2b842285cea"></script>
+  <script src="sheets.js?v=976ea816940c2076"></script>
+  <script src="editor-style.js?v=8e086dc33e594857"></script>
+  <script src="modelador.js?v=3f87444ac9196857"></script>
+  <script src="mcp-editor.js?v=f372be2828831bde"></script>
   <script src="mcp-bridge.js?v=80dc1ddad7ae993f"></script>
   <script src="microsoft-ui.js?v=ad4a0f21be5cc9fa"></script>
 </body></html>
