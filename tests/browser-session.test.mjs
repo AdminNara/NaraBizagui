@@ -11,7 +11,7 @@ function tabStorage() {
   const data = new Map();
   return { getItem: key => data.get(key) ?? null, setItem: (key, value) => data.set(key, value), removeItem: key => data.delete(key) };
 }
-function openTab({ storage, hash = '', revision = 'r1', temporaryFailures = 0 }) {
+function openTab({ storage, hash = '', revision = 'r1', temporaryFailures = 0,readError }) {
   const nodes = new Map(), events = new Map(), calls = [];
   const stats = { failures: 0, reads: 0 };
   const get = id => {
@@ -26,7 +26,7 @@ function openTab({ storage, hash = '', revision = 'r1', temporaryFailures = 0 })
     history: { replaceState() {} }, AbortController, AbortSignal, URLSearchParams,
     setTimeout: fn => setTimeout(fn, 0),
     window: { addEventListener: (type, callback) => events.set(type, callback),
-      NaraBizaguiEditor: { async read() { stats.reads++; return { revision }; } } },
+      NaraBizaguiEditor: { async read() { stats.reads++;if(readError)throw readError;return { revision }; } } },
     async fetch(url, options) {
       calls.push(new URL(url).pathname);
       if (String(url).endsWith('/poll') && temporaryFailures-- > 0) { stats.failures++; throw new TypeError('Temporary network interruption'); }
@@ -92,4 +92,13 @@ test('malformed tab storage is discarded without making a local request', () => 
   const tab = openTab({ storage });
   assert.equal(storage.getItem(storageKey), null);
   assert.equal(tab.calls.length, 0);
+});
+
+test('browser and server preserve actionable error metadata without retrying the editor command',async t=>{
+ const bridge=await startBridge(),storage=tabStorage();let tab;
+ t.after(async()=>{tab?.unload();await bridge.close();});
+ tab=openTab({storage,hash:'#mcp='+bridge.pair().pairingCode,readError:Object.assign(Error('Still restoring'),{code:'EDITOR_NOT_READY',busyReason:'restoring_microsoft',retryable:true,retryAfterMs:250,recovery:'wait_once'})});
+ await tab.get('codexForm').onsubmit({preventDefault(){}});
+ await assert.rejects(bridge.request(bridge.list()[0].sessionId,'read',{}),{code:'EDITOR_NOT_READY',busyReason:'restoring_microsoft',retryable:true,retryAfterMs:250,recovery:'wait_once'});
+ assert.equal(tab.stats.reads,1);
 });

@@ -67,6 +67,13 @@ test('timeout distinguishes undelivered from an unconfirmed result and expires t
   assert.equal((await post(bridge.port, `/sessions/${session.sessionId}/result`, { commandId: poll.command.id, result: {} }, session.sessionToken)).status, 409);
 });
 
+test('batch timing separates bridge transport from editor measurements',async t=>{
+ const bridge=await startBridge();t.after(()=>bridge.close());const session=await pair(bridge);
+ const pending=bridge.request(session.sessionId,'editBatch',{}),poll=await(await post(bridge.port,`/sessions/${session.sessionId}/poll`,{},session.sessionToken)).json();
+ await post(bridge.port,`/sessions/${session.sessionId}/result`,{commandId:poll.command.id,result:{applied:true,timings:{applyMs:3}}},session.sessionToken);
+ const result=await pending;assert.equal(result.timings.applyMs,3);assert.ok(result.timings.transport.queueMs>=0);assert.ok(result.timings.transport.roundTripMs>=result.timings.transport.queueMs);assert.equal('firstVisibleMs'in result.timings,false);
+});
+
 test('bundled plugin starts outside the checkout without npm install and serves real MCP', async t => {
   const dir = await mkdtemp(path.join(os.tmpdir(), 'narabizagui-plugin-'));
   const plugin = path.join(dir, 'plugin');
@@ -87,7 +94,7 @@ test('bundled plugin starts outside the checkout without npm install and serves 
   assert.ok(discovered.some(tool=>tool.name==='narabizagui_validate'));
   assert.ok(discovered.some(tool=>tool.name==='narabizagui_edit_batch'));
   const connection = (await client.callTool({ name: 'narabizagui_connect', arguments: {} })).structuredContent;
-  assert.equal(connection.toolContract,'structure-v1');assert.equal(connection.serverVersion,'0.6.0');
+  assert.equal(connection.toolContract,'coordination-v1');assert.equal(connection.serverVersion,'0.7.0');
   const [port, code] = connection.pairingCode.split('.');
   const paired = await (await post(port, '/pair', { code })).json();
   const sessions = (await client.callTool({ name: 'narabizagui_sessions', arguments: {} })).structuredContent.sessions;
@@ -96,6 +103,14 @@ test('bundled plugin starts outside the checkout without npm install and serves 
   const poll = await (await post(port, `/sessions/${paired.sessionId}/poll`, {}, paired.sessionToken)).json();
   await post(port, `/sessions/${paired.sessionId}/result`, { commandId: poll.command.id, result: { revision: 'test', dirty: false } }, paired.sessionToken);
   assert.equal((await pending).structuredContent.revision, 'test');
+  const autoSession=client.callTool({name:'narabizagui_read',arguments:{waitForReadyMs:0}});
+  const autoPoll=await(await post(port,`/sessions/${paired.sessionId}/poll`,{},paired.sessionToken)).json();
+  assert.equal(autoPoll.command.args.detail,'summary');
+  await post(port,`/sessions/${paired.sessionId}/result`,{commandId:autoPoll.command.id,result:{revision:'auto',documentReady:true}},paired.sessionToken);
+  assert.equal((await autoSession).structuredContent.sessionId,paired.sessionId);
+  const nextConnection=(await client.callTool({name:'narabizagui_connect',arguments:{}})).structuredContent;
+  const [nextPort,nextCode]=nextConnection.pairingCode.split('.');await post(nextPort,'/pair',{code:nextCode});
+  const ambiguous=await client.callTool({name:'narabizagui_read',arguments:{}});assert.equal(ambiguous.isError,true);assert.equal(JSON.parse(ambiguous.content[0].text).code,'AMBIGUOUS_SESSION');
   const bad = await client.callTool({ name: 'narabizagui_edit', arguments: { sessionId: paired.sessionId, operation: { type: 'delete', elementId: 'x' } } });
   assert.equal(bad.isError, true, 'An edit without a base revision must be rejected by the MCP schema');
 });

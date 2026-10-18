@@ -31355,7 +31355,7 @@ import http from "node:http";
 import { randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 
 // plugins/narabizagui/shared/contract.mjs
-var TOOL_CONTRACT = "structure-v1";
+var TOOL_CONTRACT = "coordination-v1";
 var BATCH_LIMIT = 200;
 var BATCH_OPERATIONS = ["label", "documentation", "create", "connect", "move", "resize", "move_elements", "route", "properties", "lane_split", "lane_add", "matrix", "clear"];
 var BPMN_CREATE_TYPES = ["bpmn:Task", "bpmn:ManualTask", "bpmn:UserTask", "bpmn:ServiceTask", "bpmn:SendTask", "bpmn:ReceiveTask", "bpmn:ScriptTask", "bpmn:BusinessRuleTask", "bpmn:SubProcess", "bpmn:CallActivity", "bpmn:StartEvent", "bpmn:EndEvent", "bpmn:IntermediateCatchEvent", "bpmn:IntermediateThrowEvent", "bpmn:ExclusiveGateway", "bpmn:InclusiveGateway", "bpmn:ParallelGateway", "bpmn:ComplexGateway", "bpmn:EventBasedGateway", "bpmn:TextAnnotation", "bpmn:DataObjectReference", "bpmn:DataStoreReference", "bpmn:Participant"];
@@ -31367,7 +31367,7 @@ var EVENT_KINDS = {
 };
 
 // plugins/narabizagui/server/bridge.mjs
-var VERSION = "0.6.0";
+var VERSION = "0.7.0";
 var token = () => randomBytes(32).toString("base64url");
 var same = (a, b) => {
   if (typeof a !== "string" || typeof b !== "string") return false;
@@ -31418,6 +31418,7 @@ async function startBridge({ allowedOrigins = ["https://demo.naraconsultores.com
     const pending = session.pending;
     if (pending && !pending.delivered && pending.command.deadline > Date.now()) {
       pending.delivered = true;
+      pending.deliveredAt = Date.now();
       reply(res, 200, { command: pending.command, serverVersion: VERSION, toolContract: TOOL_CONTRACT });
       return true;
     }
@@ -31463,8 +31464,11 @@ async function startBridge({ allowedOrigins = ["https://demo.naraconsultores.com
         if (!pending || input.commandId !== pending.command.id || !pending.delivered) return reply(res, 409, { error: "Comando vencido o ya confirmado." });
         clearTimeout(pending.timer);
         session.pending = null;
-        if (input.error) pending.reject(fail(String(input.error.code || "EDITOR_ERROR"), String(input.error.message || "El visor rechaz\xF3 la operaci\xF3n.")));
-        else pending.resolve(input.result);
+        if (input.error) pending.reject(Object.assign(fail(String(input.error.code || "EDITOR_ERROR"), String(input.error.message || "El visor rechaz\xF3 la operaci\xF3n.")), Object.fromEntries(["busyReason", "retryable", "retryAfterMs", "recovery"].filter((key) => input.error[key] !== void 0).map((key) => [key, input.error[key]]))));
+        else {
+          if (pending.command.action === "editBatch" && input.result && typeof input.result === "object") input.result.timings = { ...input.result.timings, transport: { queueMs: pending.deliveredAt - pending.started, roundTripMs: Date.now() - pending.started } };
+          pending.resolve(input.result);
+        }
         reply(res, 200, { accepted: true });
         return;
       }
@@ -31510,7 +31514,7 @@ async function startBridge({ allowedOrigins = ["https://demo.naraconsultores.com
       if (session.pending) return Promise.reject(fail("BUSY", "Espera el resultado de la operaci\xF3n anterior."));
       return new Promise((resolve, reject) => {
         const command = { id: randomUUID(), action, args, deadline: Date.now() + timeoutMs };
-        const pending = { command, resolve, reject, delivered: false };
+        const pending = { command, resolve, reject, delivered: false, started: Date.now() };
         pending.timer = setTimeout(() => {
           session.pending = null;
           reject(fail(pending.delivered ? "RESULT_UNKNOWN" : "NOT_RESPONDING", pending.delivered ? "La pesta\xF1a recibi\xF3 el comando pero no confirm\xF3 el resultado. Lee su estado antes de repetir cualquier cambio o guardado." : "La pesta\xF1a no recibi\xF3 el comando a tiempo. No se aplic\xF3. Comprueba que sigue abierta."));
@@ -31611,16 +31615,24 @@ async function startServer(bridgeOptions = {}) {
         const result = await callback(args);
         return { content: [{ type: "text", text: JSON.stringify(result) }], structuredContent: result };
       } catch (error51) {
-        return { isError: true, content: [{ type: "text", text: JSON.stringify({ code: error51.code || "ERROR", message: error51.message, ...error51.retryAfterMs ? { retryAfterMs: error51.retryAfterMs } : {}, ...error51.busyReason ? { busyReason: error51.busyReason } : {} }) }] };
+        return { isError: true, content: [{ type: "text", text: JSON.stringify({ code: error51.code || "ERROR", message: error51.message, ...Object.fromEntries(["busyReason", "retryable", "retryAfterMs", "recovery"].filter((key) => error51[key] !== void 0).map((key) => [key, error51[key]])) }) }] };
       }
     });
   }
   register("narabizagui_connect", "Crea un c\xF3digo temporal para vincular una pesta\xF1a elegida. Requiere que el usuario pulse Vincular en el visor.", {}, false, async () => bridge.pair());
   register("narabizagui_sessions", "Lista pesta\xF1as vinculadas y la versi\xF3n/contrato del servidor realmente activo. Una instalaci\xF3n nueva no recarga las herramientas de un chat anterior.", {}, true, async () => ({ serverVersion: VERSION, toolContract: TOOL_CONTRACT, sessions: bridge.list() }));
-  register("narabizagui_read", "Lee versi\xF3n y contrato activos, revisi\xF3n, capacidades, disposici\xF3n de edici\xF3n y autoguardado. detail=summary devuelve estado ligero y no sirve para validaci\xF3n integral. Las lecturas completas conservan propiedades, geometr\xEDa, filtros y XML opcional.", { sessionId: id, detail: external_exports.enum(["full", "summary"]).default("full"), includeXml: external_exports.boolean().default(false), includePropertyFields: external_exports.boolean().default(false), elementIds: external_exports.array(elementId).min(1).max(250).optional() }, true, async (args) => ({ serverVersion: VERSION, toolContract: TOOL_CONTRACT, ...await bridge.request(args.sessionId, "read", { detail: args.detail, includeXml: args.includeXml, includePropertyFields: args.includePropertyFields, elementIds: args.elementIds }) }));
+  register("narabizagui_read", "Una consulta de preparaci\xF3n: versi\xF3n/contrato, sesi\xF3n, archivo, hoja, revisi\xF3n, disponibilidad y autoguardado. Si omites sessionId solo se selecciona una \xFAnica pesta\xF1a vinculada; varias requieren identificarla. detail=summary omite geometr\xEDa y devuelve diagn\xF3stico cuando no est\xE1 listo; no sirve para validar el proceso. Espera una sola vez hasta waitForReadyMs a la inicializaci\xF3n y recuperaci\xF3n de Microsoft; un error terminal no se reintenta.", { sessionId: id.optional(), detail: external_exports.enum(["full", "summary"]).default("summary"), waitForReadyMs: external_exports.number().int().min(0).max(5e3).default(5e3), includeXml: external_exports.boolean().default(false), includePropertyFields: external_exports.boolean().default(false), elementIds: external_exports.array(elementId).min(1).max(250).optional() }, true, async (args) => {
+    let sessionId = args.sessionId;
+    if (!sessionId) {
+      const sessions = bridge.list().filter((s) => s.connected);
+      if (sessions.length !== 1) throw Object.assign(Error(sessions.length ? "Identifica una de las pesta\xF1as vinculadas antes de consultar." : "Vincula una pesta\xF1a mediante Conectar con Codex."), { code: sessions.length ? "AMBIGUOUS_SESSION" : "NOT_CONNECTED", retryable: false, recovery: sessions.length ? "select_session" : "connect" });
+      sessionId = sessions[0].sessionId;
+    }
+    return { serverVersion: VERSION, toolContract: TOOL_CONTRACT, sessionId, ...await bridge.request(sessionId, "read", { detail: args.includeXml || args.includePropertyFields || args.elementIds ? "full" : args.detail, waitForReadyMs: args.waitForReadyMs, includeXml: args.includeXml, includePropertyFields: args.includePropertyFields, elementIds: args.elementIds }) };
+  });
   register("narabizagui_validate", "Valida la hoja activa sin editar. Devuelve incidencias con c\xF3digos e IDs, enlaces por \xE1mbito, condiciones y geometr\xEDa real. review permite representaci\xF3n explicativa; formal exige condiciones. No aprueba el negocio ni ejecuta expresiones.", { sessionId: id, expectedRevision: revision, profile: external_exports.enum(["review", "formal"]).default("review"), geometry: external_exports.boolean().default(true), maxIssues: external_exports.number().int().min(1).max(1e3).default(200) }, true, (args) => bridge.request(args.sessionId, "validate", { expectedRevision: args.expectedRevision, profile: args.profile, geometry: args.geometry, maxIssues: args.maxIssues }));
   const batchOperation = external_exports.discriminatedUnion("type", edit.options.filter((schema) => BATCH_OPERATIONS.includes(schema.shape.type.value)).map((schema) => schema.extend({ as: external_exports.string().regex(/^[A-Za-z][A-Za-z0-9_-]{0,63}$/).optional() })));
-  register("narabizagui_edit_batch", "Prevalida de 1 a 200 operaciones BPMN y aplica en un Deshacer, con requestId estable para evitar duplicados. Admite matrix (participante, carriles, etapas, figuras y enlaces en un paso), clear con scope=active y carriles nativos. La matriz devuelve claves para referencias @clave posteriores. dryRun comprueba sin modificar; requireValid rechaza el plan si hay errores de auditor\xEDa. No guarda ni incluye hojas o ER. Espera brevemente al autoguardado y revalida la revisi\xF3n. Ante fallo comprueba la recuperaci\xF3n antes de repetir.", { sessionId: id, expectedRevision: revision, requestId: external_exports.string().uuid(), operations: external_exports.array(batchOperation).min(1).max(BATCH_LIMIT), dryRun: external_exports.boolean().default(false), fit: external_exports.boolean().default(true), requireValid: external_exports.boolean().default(false) }, false, (args) => bridge.request(args.sessionId, "editBatch", { expectedRevision: args.expectedRevision, requestId: args.requestId, operations: args.operations, dryRun: args.dryRun, fit: args.fit, requireValid: args.requireValid }));
+  register("narabizagui_edit_batch", "Prevalida y aplica de 1 a 200 operaciones BPMN con alias, revisi\xF3n obligatoria, un Deshacer e idempotencia. Admite procesos completos, matrix, clear de hoja activa y carriles. presentation.expandedCanvas y fit preparan la vista dentro de la misma petici\xF3n. response=summary devuelve revisi\xF3n, alias y validaci\xF3n sin las figuras; full incluye geometr\xEDa. El resultado distingue tiempo de editor, transporte y primer cuadro confirmado; no mide la espera total del usuario. dryRun no aplica ni cambia la vista; requireValid rechaza errores sin tocar el modelo. Respeta autoguardado. No incluye hojas ni ER.", { sessionId: id, expectedRevision: revision, requestId: external_exports.string().uuid(), operations: external_exports.array(batchOperation).min(1).max(BATCH_LIMIT), dryRun: external_exports.boolean().default(false), fit: external_exports.boolean().default(true), presentation: external_exports.object({ expandedCanvas: external_exports.boolean().optional() }).default({}), response: external_exports.enum(["summary", "full"]).default("summary"), requireValid: external_exports.boolean().default(false) }, false, (args) => bridge.request(args.sessionId, "editBatch", { expectedRevision: args.expectedRevision, requestId: args.requestId, operations: args.operations, dryRun: args.dryRun, fit: args.fit, presentation: args.presentation, response: args.response, requireValid: args.requireValid }));
   register("narabizagui_edit", "Aplica una operaci\xF3n nativa bpmn-js, con revisi\xF3n base obligatoria y deshacer. properties edita los campos de semanticProperties seg\xFAn propertyFields de read y reutiliza la validaci\xF3n manual. create.eventDefinition configura el tipo de evento. Usa read para conocer IDs. x/y son el centro al crear; move usa desplazamiento. stage a\xF1ade una etapa al final o a izquierda/derecha de sourceId. lane_add/lane_split gestionan carriles nativos. stage_split divide columnas. style aplica formato persistente y erd_field_move reordena campos. view ampl\xEDa/restaura el lienzo sin cambiar el archivo. Las operaciones erd_ crean hojas de datos, tablas, campos y relaciones por campo; sus x/y son esquina superior izquierda. sheet_create crea otra hoja, sheet_open navega, sheet_rename renombra, subprocess_open abre el detalle y sheet_link vincula con otro proceso mediante CallActivity; no reemplaza subprocesos con contenido.", { sessionId: id, expectedRevision: revision, operation: edit }, false, (args) => bridge.request(args.sessionId, "edit", { expectedRevision: args.expectedRevision, operation: args.operation }));
   register("narabizagui_save", "Guarda en el archivo ya elegido y autorizado en el visor, conservando historial y comprobando conflictos. Si falta acceso, el usuario debe usar Guardar como en el navegador. No elige destinos ni descarga copias silenciosamente.", { sessionId: id, expectedRevision: revision }, false, (args) => bridge.request(args.sessionId, "save", { expectedRevision: args.expectedRevision }));
   server.registerTool("narabizagui_export_png", {

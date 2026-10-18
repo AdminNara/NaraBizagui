@@ -2,7 +2,7 @@ import http from 'node:http';
 import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { TOOL_CONTRACT } from '../shared/contract.mjs';
 
-export const VERSION = '0.6.0';
+export const VERSION = '0.7.0';
 const token = () => randomBytes(32).toString('base64url');
 const same = (a, b) => {
   if (typeof a !== 'string' || typeof b !== 'string') return false;
@@ -49,6 +49,7 @@ export async function startBridge({ allowedOrigins = ['https://demo.naraconsulto
     const pending = session.pending;
     if (pending && !pending.delivered && pending.command.deadline > Date.now()) {
       pending.delivered = true;
+      pending.deliveredAt=Date.now();
       reply(res, 200, { command: pending.command,serverVersion:VERSION,toolContract:TOOL_CONTRACT });
       return true;
     }
@@ -90,8 +91,8 @@ export async function startBridge({ allowedOrigins = ['https://demo.naraconsulto
         if (!pending || input.commandId !== pending.command.id || !pending.delivered) return reply(res, 409, { error: 'Comando vencido o ya confirmado.' });
         clearTimeout(pending.timer);
         session.pending = null;
-        if (input.error) pending.reject(fail(String(input.error.code || 'EDITOR_ERROR'), String(input.error.message || 'El visor rechazó la operación.')));
-        else pending.resolve(input.result);
+        if (input.error) pending.reject(Object.assign(fail(String(input.error.code || 'EDITOR_ERROR'), String(input.error.message || 'El visor rechazó la operación.')),Object.fromEntries(['busyReason','retryable','retryAfterMs','recovery'].filter(key=>input.error[key]!==undefined).map(key=>[key,input.error[key]]))));
+        else{if(pending.command.action==='editBatch'&&input.result&&typeof input.result==='object')input.result.timings={...input.result.timings,transport:{queueMs:pending.deliveredAt-pending.started,roundTripMs:Date.now()-pending.started}};pending.resolve(input.result);}
         reply(res, 200, { accepted: true });
         return;
       }
@@ -122,7 +123,7 @@ export async function startBridge({ allowedOrigins = ['https://demo.naraconsulto
       if (session.pending) return Promise.reject(fail('BUSY', 'Espera el resultado de la operación anterior.'));
       return new Promise((resolve, reject) => {
         const command = { id: randomUUID(), action, args, deadline: Date.now() + timeoutMs };
-        const pending = { command, resolve, reject, delivered: false };
+        const pending = { command, resolve, reject, delivered: false,started:Date.now() };
         pending.timer = setTimeout(() => {
           session.pending = null;
           reject(fail(pending.delivered ? 'RESULT_UNKNOWN' : 'NOT_RESPONDING', pending.delivered ? 'La pestaña recibió el comando pero no confirmó el resultado. Lee su estado antes de repetir cualquier cambio o guardado.' : 'La pestaña no recibió el comando a tiempo. No se aplicó. Comprueba que sigue abierta.'));

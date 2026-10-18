@@ -35,8 +35,8 @@ var NaraModelAudit = (() => {
   });
 
   // plugins/narabizagui/shared/contract.mjs
-  var PROTOCOL_VERSION = 3;
-  var TOOL_CONTRACT = "structure-v1";
+  var PROTOCOL_VERSION = 4;
+  var TOOL_CONTRACT = "coordination-v1";
   var BATCH_LIMIT = 200;
   var BATCH_OPERATIONS = ["label", "documentation", "create", "connect", "move", "resize", "move_elements", "route", "properties", "lane_split", "lane_add", "matrix", "clear"];
   var BPMN_CREATE_TYPES = ["bpmn:Task", "bpmn:ManualTask", "bpmn:UserTask", "bpmn:ServiceTask", "bpmn:SendTask", "bpmn:ReceiveTask", "bpmn:ScriptTask", "bpmn:BusinessRuleTask", "bpmn:SubProcess", "bpmn:CallActivity", "bpmn:StartEvent", "bpmn:EndEvent", "bpmn:IntermediateCatchEvent", "bpmn:IntermediateThrowEvent", "bpmn:ExclusiveGateway", "bpmn:InclusiveGateway", "bpmn:ParallelGateway", "bpmn:ComplexGateway", "bpmn:EventBasedGateway", "bpmn:TextAnnotation", "bpmn:DataObjectReference", "bpmn:DataStoreReference", "bpmn:Participant"];

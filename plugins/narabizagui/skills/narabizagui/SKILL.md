@@ -17,6 +17,18 @@ Selecciona el objetivo y carga únicamente su skill:
 
 Para un montaje nuevo, resuelve con las fuentes y decisiones existentes: alcance, nivel de formalización (representación para revisión o reglas BPMN formales), responsables internos/participantes independientes, etapas, detalle/hojas y destino editable. Pregunta solamente lo que no se pueda inferir y cambie materialmente el resultado. No repitas preguntas ya resueltas ni impongas un levantamiento completo para una corrección pequeña.
 
+## Recorrido habitual para cambios sencillos
+
+Objetivo operativo: una lectura de preparación, un bloque de edición/presentación y una única confirmación visual cuando corresponda. Reutiliza las instrucciones ya leídas, sesión, esquema y capacidades verificados mientras no cambien servidor, contrato, build o pestaña. No vuelvas a explorar el catálogo de herramientas, repositorio, historial de publicación o documentación para cada figura. Los fallos del producto se investigan como trabajo de mantenimiento cuando realmente impiden continuar; una petición de dibujo no exige repetir una auditoría del producto.
+
+En la primera consulta usa `read(detail:"summary",waitForReadyMs:5000)`: puede resolver una única sesión vinculada sin llamar antes a `sessions`. Varias sesiones requieren identificar la correcta. Exige `documentReady:true` y `readiness.canEdit:true`. La respuesta trae sesión, archivo, hoja, revisión, versión, disponibilidad y autoguardado. Para una edición sobre contenido existente cuya geometría no conozcas, pide una lectura completa; si la revisión/hash coincide con el snapshot completo ya conocido, reutilízalo. Una edición o recarga externa invalida esa reutilización.
+
+Usa `edit_batch(response:"summary",presentation:{expandedCanvas:true},fit:true)` cuando debas ampliar y encajar. Incluye todas las operaciones compatibles en ese bloque. Reutiliza alias/revisión/validación devueltos: no añadas consultas o una segunda auditoría solo para repetir información ya confirmada. No vuelvas a encajar después del bloque. Una captura del lienzo basta para confirmar una solicitud visual; exporta PNG cuando se pida una imagen/informe o sea la única comprobación visual disponible, evitando producir ambas evidencias por rutina.
+
+El MCP espera de forma acotada a la inicialización, recuperación Microsoft y autoguardado. Si devuelve un diagnóstico pendiente después de esa espera, permite como máximo otra consulta ligera solo cuando haya progreso real o haya transcurrido el `retryAfterMs` indicado. No encadenes la misma lectura fallida. `retryable:false` requiere su recuperación concreta; `FORM_PENDING` o un selector abierto no autorizan a descartar contenido. Ante cambio de revisión, conserva la edición manual y relee para reconciliar, sin sustituirla a ciegas.
+
+El tiempo de un bloque no es toda la espera del usuario. `timings` separa preparación, prevalidación, aplicación, presentación, confirmación y transporte; `firstVisibleMs` solo existe si se confirmó un cuadro visible del editor. No atribuyas a voz/modelo una latencia que el MCP no observa. Prioriza el primer resultado visible y comunica solo el resultado o un bloqueo útil, sin repetir promesas de avance.
+
 ## Ritmo según el modo de interacción
 
 Usa la señal de voz o texto que proporcione el host. Una transcripción o una frase coloquial no demuestra que la voz siga activa. Si el host no informa el modo, sigue la preferencia explícita del usuario; no hagas una pregunta adicional solo para clasificarlo. Si cambia de modo, conserva lo ya acordado y adapta el ritmo.

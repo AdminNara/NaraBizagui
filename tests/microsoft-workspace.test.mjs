@@ -180,6 +180,15 @@ test('the real import guard preserves user work changed during asynchronous seri
   assert.equal(context.browserDocumentVersion, 1);
 });
 
+test('the UI exposes restoration as pending until startup and workspace resume both settle',async()=>{
+ const f=fixture(),startup=defer(),resume=defer();f.auth.initialized=Promise.resolve();f.auth.onChange=()=>{};f.workspace.resume=()=>resume.promise;
+ const nodes=new Map(),byId=id=>{if(!nodes.has(id))nodes.set(id,{open:false,value:'',classList:{toggle(){}},setAttribute(){},querySelectorAll:()=>[],replaceChildren(){},addEventListener(){}});return nodes.get(id);};
+ const context={byId,browserFiles:{handle:null},saving:false,ready:true,dirty:false,loadingDiagram:false,filePolling:false,standalone:true,browserDocumentVersion:1,window:{projectReady:true,NaraInitialDocumentVersion:1,NaraPropertyDraftPending:()=>false,NaraStartup:startup.promise,NaraMicrosoft:{create:()=>({auth:f.auth,files:f.files,workspace:f.workspace})}},status(){}};
+ vm.runInNewContext(await readFile(new URL('../microsoft-ui.js',import.meta.url),'utf8'),context);
+ assert.equal(context.window.NaraMicrosoftUI.restoring(),true);startup.resolve();await new Promise(resolve=>setImmediate(resolve));assert.equal(context.window.NaraMicrosoftUI.restoring(),true);
+ resume.resolve(false);await new Promise(resolve=>setImmediate(resolve));assert.equal(context.window.NaraMicrosoftUI.restoring(),false);
+});
+
 test('the UI preserves a recovered diagram as an unsaved copy if its account changes during import', async () => {
   const f = fixture(); f.workspace.rememberFile(f.handle, ref);
   f.auth.initialized = Promise.resolve(); f.auth.onChange = () => {};

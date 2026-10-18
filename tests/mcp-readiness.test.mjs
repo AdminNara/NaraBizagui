@@ -4,13 +4,14 @@ import {readFile} from 'node:fs/promises';
 import {randomUUID,createHash} from 'node:crypto';
 import vm from 'node:vm';
 const source=await readFile(new URL('../mcp-editor.js',import.meta.url),'utf8');
+const readinessSource=await readFile(new URL('../editor-readiness.js',import.meta.url),'utf8');
 function fixture(){
  const callbacks=new Map(),root={id:'Process',type:'bpmn:Process',businessObject:{$type:'bpmn:Process',name:''}},task={id:'Task',type:'bpmn:Task',businessObject:{$type:'bpmn:Task',name:'Original'}};task.parent=root;
  const counts={serialized:0,digested:0,fit:0,edits:0};
  const context={ready:true,loadingDiagram:false,saving:false,filePolling:false,dirty:false,setTimeout,crypto:{randomUUID},stageName:()=>'',roleFor:()=>'',phaseFor:()=>'',keepDocumentDraft:null,status(){},fit(){counts.fit++;},window:{NaraPropertyDraftPending:()=>false},browserFiles:{name:'Generic.bpmn',handle:null,async digest(xml){counts.digested++;return createHash('sha256').update(xml).digest('hex');}}};
  const services={eventBus:{on:(key,fn)=>callbacks.set(key,fn)},commandStack:{registerHandler(){},canUndo:()=>false,canRedo:()=>false},elementRegistry:{get:id=>id==='Task'?task:root,getAll:()=>[root,task]},canvas:{getRootElement:()=>root,findRoot:e=>e.parent||e},naraSheets:{list:()=>[{id:'Process',name:'Generic'}]},selection:{get:()=>[],select(){}},modeling:{updateLabel(e,text){e.businessObject.name=text;counts.edits++;context.dirty=true;callbacks.get('commandStack.changed')();}}};
  context.modeler={get:key=>services[key],async saveXML(){counts.serialized++;return{xml:'<model name="'+task.businessObject.name+'"/>'};}};
- vm.runInNewContext(source,context);return{context,editor:context.window.NaraBizaguiEditor,counts,task,services};
+ vm.runInNewContext(readinessSource,context);vm.runInNewContext(source,context);return{context,editor:context.window.NaraBizaguiEditor,counts,task,services};
 }
 test('reads remain available during autosave and unchanged revisions serialize only once',async()=>{
  const f=fixture();f.context.saving=true;
@@ -37,4 +38,28 @@ test('fit is a view operation and does not change revision, content or dirty sta
 test('a pending property draft is rejected without silently applying it',async()=>{
  const f=fixture(),before=await f.editor.read();f.context.window.NaraPropertyDraftPending=()=>true;
  await assert.rejects(f.editor.edit({expectedRevision:before.revision,operation:{type:'label',elementId:'Task',text:'Overwrite'}}),{code:'FORM_PENDING'});assert.equal(f.counts.edits,0);
+});
+
+test('a failed initialization returns a terminal diagnostic without serializing or pretending to be ready',async()=>{
+ const f=fixture();f.context.ready=false;f.context.window.diagramError='Import failed';
+ const status=await f.editor.read({detail:'summary',waitForReadyMs:5000});
+ assert.equal(status.documentReady,false);assert.equal(status.readiness.busyReason,'initialization_failed');assert.equal(status.readiness.retryable,false);assert.equal(status.readiness.message,'Import failed');assert.equal(f.counts.serialized,0);
+ await assert.rejects(f.editor.read(),{code:'EDITOR_INITIALIZATION_FAILED'});
+});
+test('a readiness read waits for Microsoft restoration before returning the document revision',async()=>{
+ const f=fixture();let restoring=true;f.context.window.NaraMicrosoftUI={restoring:()=>restoring};
+ const pending=f.editor.read({detail:'summary',waitForReadyMs:1000});
+ setTimeout(()=>{f.services.modeling.updateLabel(f.task,'Restored document');restoring=false;},10);
+ const after=await pending;assert.equal(after.documentReady,true);assert.equal(after.readiness.canEdit,true);assert.equal(f.counts.serialized,1);
+ assert.equal(after.sha256,(await f.editor.read()).sha256);
+});
+test('a timed-out startup reports its reason and does not serialize an unstable document',async()=>{
+ const f=fixture();f.context.window.NaraStartupPending=true;
+ const status=await f.editor.read({detail:'summary',waitForReadyMs:10});
+ assert.equal(status.documentReady,false);assert.equal(status.readiness.busyReason,'initializing');assert.equal(status.readiness.recovery,'wait_once');assert.equal(f.counts.serialized,0);
+});
+
+test('a preparation summary waits out autosave so the next call can edit directly',async()=>{
+ const f=fixture();f.context.saving=true;setTimeout(()=>{f.context.saving=false;},10);
+ const result=await f.editor.read({detail:'summary',waitForReadyMs:1000});assert.equal(result.readiness.canEdit,true);assert.equal(f.counts.serialized,1);
 });

@@ -7,6 +7,8 @@ description: Conservar una versión editable de NaraBizagui, comprobar el guarda
 
 Lee [el contrato común](../../shared/workflow.md). Identifica la hoja y revisión solicitadas; no vuelvas a construir o validar todo el proceso para una exportación sencilla. Si existen hallazgos relevantes de la revisión, consérvalos como límites de la entrega.
 
+Una solicitud de ver el cambio en el editor se confirma allí; no activa por sí sola una exportación para informe. Reutiliza el estado confirmado del bloque o una lectura resumida vigente para exportar. Una sola imagen comprobada basta; no añadas además una captura equivalente ni guardados manuales si el destino/autoguardado ya están autorizados.
+
 Para guardado nativo usa `narabizagui_save` solo con el archivo elegido y autorizado en el visor. Si falta destino o permiso, explica el paso específico en la interfaz; no simules selectores ni inventes rutas. Informa guardado únicamente con `saved:true` y hash comprobado. El destino puede ser local o Microsoft; conectar Microsoft y conectar el MCP son autorizaciones distintas.
 
 Cuando esté autorizado conservar una copia local del XML leído, guarda el contenido exacto de `read(includeXml:true)` en el proyecto o destino acordado y verifica su hash. Identifícala como copia exportada: no acredita guardado nativo ni permite cerrar un lienzo con cambios pendientes por inferencia.
