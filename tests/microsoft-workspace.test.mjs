@@ -47,6 +47,18 @@ test('account and tenant histories stay isolated, including when switching back'
   assert.equal(f.workspace.read().recent[0].id, 'file-1');
 });
 
+test('favorite folders retain only references, are bounded and isolated by tenant', () => {
+  const f=fixture();
+  for(let index=0;index<16;index++)f.workspace.toggleFavorite({...ref,id:'folder-'+index,name:'Folder '+index,xml:'private-content',accessToken:'private-token'});
+  assert.equal(f.workspace.favorites().length,12);
+  assert.equal(f.workspace.favorites()[0].id,'folder-15');
+  assert.doesNotMatch([...f.values.values()].join(''),/private|xml|accessToken/);
+  f.auth.account={...account,tenantId:'another-tenant'};assert.equal(f.workspace.favorites().length,0);
+  f.auth.account={...account};assert.equal(f.workspace.favorites().length,12);
+  f.workspace.toggleFavorite({...ref,id:'folder-15'});assert.equal(f.workspace.favorites().length,11);
+  f.workspace.forget();assert.equal(f.workspace.favorites().length,0);assert.equal(f.values.size,0);
+});
+
 test('recents are bounded, unique by drive/item and reordered when reopened', () => {
   const f = fixture();
   for (let n = 0; n < 20; n++) f.workspace.rememberFile({ ...f.handle, itemId: 'file-' + n, name: n + '.bpmn' }, ref);

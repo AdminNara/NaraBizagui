@@ -35,7 +35,7 @@ function DocumentPalette(palette) {
 DocumentPalette.$inject = ['palette'];
 const documentPaletteModule = {__init__: ['projectDocumentPalette'], projectDocumentPalette: ['type', DocumentPalette]};
 const modeler = new BpmnJS({
-  additionalModules: [documentPaletteModule, window.NaraEditorTools, window.NaraERModule, window.NaraSheetsModule, window.NaraStyleModule],
+  additionalModules: [documentPaletteModule, window.NaraEditorTools, window.NaraERModule, window.NaraSheetsModule, window.NaraStyleModule, window.NaraGridModule],
   moddleExtensions: {nara:window.NaraERModdle},
   container: '#canvas',
   textRenderer: {
@@ -45,7 +45,7 @@ const modeler = new BpmnJS({
 });
 window.bpmnModeler = modeler;
 const semanticProperties = window.NaraBpmnProperties.mount(modeler, byId('semanticFields'), () => basePropertyDraftPending());
-window.NaraAppVersion = '0.5.0';
+window.NaraAppVersion = '0.6.0';
 window.NaraAppBuild = document.querySelector('meta[name=narabizagui-build]')?.content || 'unknown';
 window.diagramReady = false;
 window.diagramError = null;
@@ -755,15 +755,18 @@ byId('open').onchange = async event => {
   }
   event.target.value = '';
 };
-byId('propertyForm').onsubmit = event => {
-  event.preventDefault(); if (!selected) return;
-  let semanticChanges;
-  try { semanticChanges = semanticProperties.prepare(); } catch (error) { status(error.message); return; }
+function applyProperties() {
+  if (!selected || !basePropertyDraftPending() && !semanticProperties.pending()) return false;
+  if (!byId('propertyForm').checkValidity()) throw Error('Completa los campos indicados para aplicar el cambio.');
+  const semanticChanges = semanticProperties.prepare();
   keepDocumentDraft = null;
   const modeling = modeler.get('modeling');
   semanticProperties.transaction(() => {
-  if (selected.type === 'bpmn:TextAnnotation') modeling.updateProperties(selected, {text: byId('elementName').value});
-  else modeling.updateLabel(selected, byId('elementName').value);
+  const previousName=selected.type==='bpmn:TextAnnotation'?selected.businessObject.text||'':selected.type==='bpmn:Group'?stageName(selected):selected.businessObject.name||'';
+  if(byId('elementName').value!==previousName){
+    if (selected.type === 'bpmn:TextAnnotation') modeling.updateProperties(selected, {text: byId('elementName').value});
+    else modeling.updateLabel(selected, byId('elementName').value);
+  }
   const description = byId('elementDocumentation').value;
   const previousDescription = (selected.businessObject.documentation || []).map(d => d.text || '').join('\n\n');
   if (isDocument(selected)) {
@@ -776,7 +779,13 @@ byId('propertyForm').onsubmit = event => {
   }
   for (const apply of semanticChanges) apply();
   });
-  decorateStages(); decorateDocuments(); updateProperties(selected); status('Cambios aplicados.');
+  decorateStages(); decorateDocuments(); updateProperties(selected); return true;
+}
+window.NaraApplyProperties=applyProperties;
+window.NaraWorkspaceFile=()=>({name:browserFiles.name,cloud:browserFiles.handle?.storageKind==='microsoft',document:browserDocumentVersion,location:browserFiles.handle?.storageKind==='microsoft'?(window.NaraMicrosoftUI?.location()||'Microsoft'):browserFiles.handle?'Este equipo · archivo autorizado':'Sin ubicación · elige dónde guardar'});
+window.NaraRefreshProperties=()=>updateProperties(selected);
+byId('propertyForm').onsubmit = event => {
+  event.preventDefault();try{applyProperties();}catch(error){status(error.message);}
 };
 const eventBus = modeler.get('eventBus');
 eventBus.on('selection.changed', event => {
@@ -828,7 +837,7 @@ function basePropertyDraftPending() {
   const name = selected.type === 'bpmn:Group' ? stageName(selected) : selected.type === 'bpmn:TextAnnotation' ? bo.text || '' : bo.name || '';
   return byId('elementName').value !== name || byId('elementDocumentation').value !== (bo.documentation || []).map(d => d.text || '').join('\n\n');
 }
-window.NaraPropertyDraftPending = () => Boolean(window.NaraER?.pending() || basePropertyDraftPending() || semanticProperties.pending());
+window.NaraPropertyDraftPending = () => Boolean(window.NaraER?.pending() || basePropertyDraftPending() || semanticProperties.pending() || window.NaraInstantEdit?.pending());
 eventBus.on('commandStack.changed', () => {
   if (ready) { setDirty(true); editSequence += 1; }
   refreshActions(); window.NaraStylePanel?.refresh(); decorateStages(); decorateDocuments(); renderStageNavigation();

@@ -44,7 +44,9 @@ export class MicrosoftWorkspace {
     try { if (key) { this.storage().setItem(key, JSON.stringify(clean(value))); return true; } } catch { /* Browser storage may be unavailable. */ }
     return false;
   }
-  forget() { try { const key = this.key(); if (key) this.storage().removeItem(key); } catch { /* No persistent state to clear. */ } }
+  forget() { try { const key = this.key(); if (key) {this.storage().removeItem(key);this.storage().removeItem(key+'.favorites');} } catch { /* No persistent state to clear. */ } }
+  favorites() {try{const key=this.key();if(!key)return[];const saved=JSON.parse(this.storage().getItem(key+'.favorites')||'[]');return Array.isArray(saved)?saved.slice(0,12).map(reference).filter(Boolean):[];}catch{return[];}}
+  toggleFavorite(folder) {const ref=reference(folder),key=this.key();if(!ref||!key)return false;const values=this.favorites(),existing=values.findIndex(value=>sameFile(value,ref));if(existing>=0)values.splice(existing,1);else values.unshift(ref);try{this.storage().setItem(key+'.favorites',JSON.stringify(values.slice(0,12)));return true;}catch{return false;}}
   rememberFolder(folder) { const value = this.read(); value.folder = reference(folder); return this.write(value); }
   rememberFile(handle, context, { updateFolder = true } = {}) {
     if (handle.storageKind !== 'microsoft' || handle.accountId !== this.auth.account?.homeAccountId) return false;

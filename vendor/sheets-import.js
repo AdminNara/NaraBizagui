@@ -11,9 +11,18 @@
   function isArray(obj) {
     return nativeToString.call(obj) === "[object Array]";
   }
+  function isObject(obj) {
+    return nativeToString.call(obj) === "[object Object]";
+  }
+  function isNumber(obj) {
+    return nativeToString.call(obj) === "[object Number]";
+  }
   function isFunction(obj) {
     const tag = nativeToString.call(obj);
     return tag === "[object Function]" || tag === "[object AsyncFunction]" || tag === "[object GeneratorFunction]" || tag === "[object AsyncGeneratorFunction]" || tag === "[object Proxy]";
+  }
+  function isString(obj) {
+    return nativeToString.call(obj) === "[object String]";
   }
   function has(target, key) {
     return !isNil(target) && nativeHasOwnProperty.call(target, key);
@@ -55,6 +64,20 @@
       }
     }
   }
+  function reduce(collection, iterator, result) {
+    forEach(collection, function(value, idx) {
+      result = iterator(result, value, idx);
+    });
+    return result;
+  }
+  function every(collection, matcher) {
+    return !!reduce(collection, function(matches, val, key) {
+      return matches && matcher(val, key);
+    }, true);
+  }
+  function some(collection, matcher) {
+    return !!find(collection, matcher);
+  }
   function map(collection, fn) {
     let result = [];
     forEach(collection, function(val, key) {
@@ -63,8 +86,8 @@
     return result;
   }
   function toMatcher(matcher) {
-    return isFunction(matcher) ? matcher : (e) => {
-      return e === matcher;
+    return isFunction(matcher) ? matcher : (e2) => {
+      return e2 === matcher;
     };
   }
   function identity(arg) {
@@ -73,13 +96,16 @@
   function toNum(arg) {
     return Number(arg);
   }
+  function assign(target, ...others) {
+    return Object.assign(target, ...others);
+  }
 
   // node_modules/bpmn-js/lib/import/Util.js
-  function elementToString(e) {
-    if (!e) {
+  function elementToString(e2) {
+    if (!e2) {
       return "<null>";
     }
-    return "<" + e.$type + (e.id ? ' id="' + e.id : "") + '" />';
+    return "<" + e2.$type + (e2.id ? ' id="' + e2.id : "") + '" />';
   }
 
   // node_modules/bpmn-js/lib/util/CompatibilityUtil.js
@@ -100,8 +126,8 @@
     return element.$instanceOf(type);
   }
   function findDisplayCandidate(definitions) {
-    return find(definitions.rootElements, function(e) {
-      return is(e, "bpmn:Process") || is(e, "bpmn:Collaboration");
+    return find(definitions.rootElements, function(e2) {
+      return is(e2, "bpmn:Process") || is(e2, "bpmn:Collaboration");
     });
   }
   function BpmnTreeWalker(handler) {
@@ -109,8 +135,8 @@
     var deferred = [];
     var diMap = {};
     function contextual(fn, ctx) {
-      return function(e) {
-        fn(e, ctx);
+      return function(e2) {
+        fn(e2, ctx);
       };
     }
     function handled(element) {
@@ -232,8 +258,8 @@
       handled(process);
     }
     function handleUnhandledProcesses(rootElements, ctx) {
-      var processes = filter(rootElements, function(e) {
-        return !isHandled(e) && is(e, "bpmn:Process") && e.laneSets;
+      var processes = filter(rootElements, function(e2) {
+        return !isHandled(e2) && is(e2, "bpmn:Process") && e2.laneSets;
       });
       processes.forEach(contextual(handleProcess, ctx));
     }
@@ -256,13 +282,13 @@
       visitIfDi(artifact, context);
     }
     function handleArtifacts(artifacts, context) {
-      forEach(artifacts, function(e) {
-        if (is(e, "bpmn:Association")) {
+      forEach(artifacts, function(e2) {
+        if (is(e2, "bpmn:Association")) {
           deferred.push(function() {
-            handleArtifact(e, context);
+            handleArtifact(e2, context);
           });
         } else {
-          handleArtifact(e, context);
+          handleArtifact(e2, context);
         }
       });
     }
@@ -374,8 +400,16 @@
     var bo = getBusinessObject(element);
     return bo && typeof bo.$instanceOf === "function" && bo.$instanceOf(type);
   }
+  function isAny(element, types) {
+    return some(types, function(t) {
+      return is2(element, t);
+    });
+  }
   function getBusinessObject(element) {
     return element && element.businessObject || element;
+  }
+  function getDi(element) {
+    return element && element.di;
   }
 
   // node_modules/bpmn-js/lib/import/Importer.js
@@ -420,9 +454,9 @@
           warnings
         });
         return resolve({ warnings });
-      } catch (e) {
-        e.warnings = warnings;
-        return reject(e);
+      } catch (e2) {
+        e2.warnings = warnings;
+        return reject(e2);
       }
     });
   }
@@ -490,6 +524,1089 @@
     }
   }
 
+  // node_modules/bpmn-js/lib/util/DiUtil.js
+  function isHorizontal(element) {
+    if (!is2(element, "bpmn:Participant") && !is2(element, "bpmn:Lane")) {
+      return void 0;
+    }
+    var isHorizontal4 = getDi(element).isHorizontal;
+    if (isHorizontal4 === void 0) {
+      return true;
+    }
+    return isHorizontal4;
+  }
+
+  // node_modules/bpmn-js/lib/features/modeling/util/ModelingUtil.js
+  function getParent(element, anyType) {
+    if (isString(anyType)) {
+      anyType = [anyType];
+    }
+    while (element = element.parent) {
+      if (isAny(element, anyType)) {
+        return element;
+      }
+    }
+    return null;
+  }
+  function isDirectionHorizontal(element, elementRegistry) {
+    var parent = getParent(element, "bpmn:Process");
+    if (parent) {
+      return true;
+    }
+    var types = ["bpmn:Participant", "bpmn:Lane"];
+    parent = getParent(element, types);
+    if (parent) {
+      return isHorizontal(parent);
+    } else if (isAny(element, types)) {
+      return isHorizontal(element);
+    }
+    var process;
+    for (process = getBusinessObject(element); process; process = process.$parent) {
+      if (is2(process, "bpmn:Process")) {
+        break;
+      }
+    }
+    if (!elementRegistry) {
+      return true;
+    }
+    var pool = elementRegistry.find(function(shape) {
+      var businessObject = getBusinessObject(shape);
+      return businessObject && businessObject.get("processRef") === process;
+    });
+    if (!pool) {
+      return true;
+    }
+    return isHorizontal(pool);
+  }
+
+  // node_modules/bpmn-js/lib/features/grid-snapping/BpmnGridSnapping.js
+  function BpmnGridSnapping(eventBus) {
+    eventBus.on([
+      "create.init",
+      "shape.move.init"
+    ], function(event) {
+      var context = event.context, shape = event.shape;
+      if (isAny(shape, [
+        "bpmn:Participant",
+        "bpmn:SubProcess",
+        "bpmn:TextAnnotation"
+      ])) {
+        if (!context.gridSnappingContext) {
+          context.gridSnappingContext = {};
+        }
+        context.gridSnappingContext.snapLocation = "top-left";
+      }
+    });
+  }
+  BpmnGridSnapping.$inject = ["eventBus"];
+
+  // node_modules/inherits-browser/dist/index.es.js
+  function e(e2, t) {
+    t && (e2.super_ = t, e2.prototype = Object.create(t.prototype, { constructor: { value: e2, enumerable: false, writable: true, configurable: true } }));
+  }
+
+  // node_modules/diagram-js/lib/command/CommandInterceptor.js
+  var DEFAULT_PRIORITY = 1e3;
+  function CommandInterceptor(eventBus) {
+    this._eventBus = eventBus;
+  }
+  CommandInterceptor.$inject = ["eventBus"];
+  function unwrapEvent(fn, that) {
+    return function(event) {
+      return fn.call(that || null, event.context, event.command, event);
+    };
+  }
+  CommandInterceptor.prototype.on = function(events, hook, priority, handlerFn, unwrap, that) {
+    if (isFunction(hook) || isNumber(hook)) {
+      that = unwrap;
+      unwrap = handlerFn;
+      handlerFn = priority;
+      priority = hook;
+      hook = null;
+    }
+    if (isFunction(priority)) {
+      that = unwrap;
+      unwrap = handlerFn;
+      handlerFn = priority;
+      priority = DEFAULT_PRIORITY;
+    }
+    if (isObject(unwrap)) {
+      that = unwrap;
+      unwrap = false;
+    }
+    if (!isFunction(handlerFn)) {
+      throw new Error("handlerFn must be a function");
+    }
+    if (!isArray(events)) {
+      events = [events];
+    }
+    var eventBus = this._eventBus;
+    forEach(events, function(event) {
+      var fullEvent = ["commandStack", event, hook].filter(function(e2) {
+        return e2;
+      }).join(".");
+      eventBus.on(fullEvent, priority, unwrap ? unwrapEvent(handlerFn, that) : handlerFn, that);
+    });
+  };
+  CommandInterceptor.prototype.canExecute = createHook("canExecute");
+  CommandInterceptor.prototype.preExecute = createHook("preExecute");
+  CommandInterceptor.prototype.preExecuted = createHook("preExecuted");
+  CommandInterceptor.prototype.execute = createHook("execute");
+  CommandInterceptor.prototype.executed = createHook("executed");
+  CommandInterceptor.prototype.postExecute = createHook("postExecute");
+  CommandInterceptor.prototype.postExecuted = createHook("postExecuted");
+  CommandInterceptor.prototype.revert = createHook("revert");
+  CommandInterceptor.prototype.reverted = createHook("reverted");
+  function createHook(hook) {
+    const hookFn = function(events, priority, handlerFn, unwrap, that) {
+      if (isFunction(events) || isNumber(events)) {
+        that = unwrap;
+        unwrap = handlerFn;
+        handlerFn = priority;
+        priority = events;
+        events = null;
+      }
+      this.on(events, hook, priority, handlerFn, unwrap, that);
+    };
+    return hookFn;
+  }
+
+  // node_modules/diagram-js/lib/features/grid-snapping/behavior/ResizeBehavior.js
+  function ResizeBehavior(eventBus, gridSnapping) {
+    CommandInterceptor.call(this, eventBus);
+    this._gridSnapping = gridSnapping;
+    var self = this;
+    this.preExecute("shape.resize", function(event) {
+      var context = event.context, hints = context.hints || {}, autoResize = hints.autoResize;
+      if (!autoResize) {
+        return;
+      }
+      var shape = context.shape, newBounds = context.newBounds;
+      if (isString(autoResize)) {
+        context.newBounds = self.snapComplex(newBounds, autoResize);
+      } else {
+        context.newBounds = self.snapSimple(shape, newBounds);
+      }
+    });
+  }
+  ResizeBehavior.$inject = [
+    "eventBus",
+    "gridSnapping",
+    "modeling"
+  ];
+  e(ResizeBehavior, CommandInterceptor);
+  ResizeBehavior.prototype.snapSimple = function(shape, newBounds) {
+    var gridSnapping = this._gridSnapping;
+    newBounds.width = gridSnapping.snapValue(newBounds.width, {
+      min: newBounds.width
+    });
+    newBounds.height = gridSnapping.snapValue(newBounds.height, {
+      min: newBounds.height
+    });
+    newBounds.x = shape.x + shape.width / 2 - newBounds.width / 2;
+    newBounds.y = shape.y + shape.height / 2 - newBounds.height / 2;
+    return newBounds;
+  };
+  ResizeBehavior.prototype.snapComplex = function(newBounds, directions) {
+    if (/w|e/.test(directions)) {
+      newBounds = this.snapHorizontally(newBounds, directions);
+    }
+    if (/n|s/.test(directions)) {
+      newBounds = this.snapVertically(newBounds, directions);
+    }
+    return newBounds;
+  };
+  ResizeBehavior.prototype.snapHorizontally = function(newBounds, directions) {
+    var gridSnapping = this._gridSnapping, west = /w/.test(directions), east = /e/.test(directions);
+    var snappedNewBounds = {};
+    snappedNewBounds.width = gridSnapping.snapValue(newBounds.width, {
+      min: newBounds.width
+    });
+    if (east) {
+      if (west) {
+        snappedNewBounds.x = gridSnapping.snapValue(newBounds.x, {
+          max: newBounds.x
+        });
+        snappedNewBounds.width += gridSnapping.snapValue(newBounds.x - snappedNewBounds.x, {
+          min: newBounds.x - snappedNewBounds.x
+        });
+      } else {
+        newBounds.x = newBounds.x + newBounds.width - snappedNewBounds.width;
+      }
+    }
+    assign(newBounds, snappedNewBounds);
+    return newBounds;
+  };
+  ResizeBehavior.prototype.snapVertically = function(newBounds, directions) {
+    var gridSnapping = this._gridSnapping, north = /n/.test(directions), south = /s/.test(directions);
+    var snappedNewBounds = {};
+    snappedNewBounds.height = gridSnapping.snapValue(newBounds.height, {
+      min: newBounds.height
+    });
+    if (north) {
+      if (south) {
+        snappedNewBounds.y = gridSnapping.snapValue(newBounds.y, {
+          max: newBounds.y
+        });
+        snappedNewBounds.height += gridSnapping.snapValue(newBounds.y - snappedNewBounds.y, {
+          min: newBounds.y - snappedNewBounds.y
+        });
+      } else {
+        newBounds.y = newBounds.y + newBounds.height - snappedNewBounds.height;
+      }
+    }
+    assign(newBounds, snappedNewBounds);
+    return newBounds;
+  };
+
+  // node_modules/diagram-js/lib/features/grid-snapping/behavior/SpaceToolBehavior.js
+  var HIGH_PRIORITY = 2e3;
+  function SpaceToolBehavior(eventBus, gridSnapping) {
+    eventBus.on([
+      "spaceTool.move",
+      "spaceTool.end"
+    ], HIGH_PRIORITY, function(event) {
+      var context = event.context;
+      if (!context.initialized) {
+        return;
+      }
+      var axis = context.axis;
+      var snapped;
+      if (axis === "x") {
+        snapped = gridSnapping.snapValue(event.dx);
+        event.x = event.x + snapped - event.dx;
+        event.dx = snapped;
+      } else {
+        snapped = gridSnapping.snapValue(event.dy);
+        event.y = event.y + snapped - event.dy;
+        event.dy = snapped;
+      }
+    });
+  }
+  SpaceToolBehavior.$inject = [
+    "eventBus",
+    "gridSnapping"
+  ];
+
+  // node_modules/diagram-js/lib/features/grid-snapping/behavior/index.js
+  var behavior_default = {
+    __init__: [
+      "gridSnappingResizeBehavior",
+      "gridSnappingSpaceToolBehavior"
+    ],
+    gridSnappingResizeBehavior: ["type", ResizeBehavior],
+    gridSnappingSpaceToolBehavior: ["type", SpaceToolBehavior]
+  };
+
+  // node_modules/diagram-js/lib/features/snapping/SnapUtil.js
+  function isSnapped(event, axis) {
+    var snapped = event.snapped;
+    if (!snapped) {
+      return false;
+    }
+    if (typeof axis === "string") {
+      return snapped[axis];
+    }
+    return snapped.x && snapped.y;
+  }
+  function setSnapped(event, axis, value) {
+    if (typeof axis !== "string") {
+      throw new Error("axis must be in [x, y]");
+    }
+    if (typeof value !== "number" && value !== false) {
+      throw new Error("value must be Number or false");
+    }
+    var delta, previousValue = event[axis];
+    var snapped = event.snapped = event.snapped || {};
+    if (value === false) {
+      snapped[axis] = false;
+    } else {
+      snapped[axis] = true;
+      delta = value - previousValue;
+      event[axis] += delta;
+      event["d" + axis] += delta;
+    }
+    return previousValue;
+  }
+
+  // node_modules/diagram-js/lib/features/keyboard/KeyboardUtil.js
+  function isCmd(event) {
+    if (event.altKey) {
+      return false;
+    }
+    return event.ctrlKey || event.metaKey;
+  }
+
+  // node_modules/diagram-js/lib/features/grid-snapping/GridUtil.js
+  var SPACING = 10;
+  function quantize(value, quantum, fn) {
+    if (!fn) {
+      fn = "round";
+    }
+    return Math[fn](value / quantum) * quantum;
+  }
+
+  // node_modules/diagram-js/lib/features/grid-snapping/GridSnapping.js
+  var LOWER_PRIORITY = 1200;
+  var LOW_PRIORITY = 800;
+  function GridSnapping(elementRegistry, eventBus, config) {
+    var active = !config || config.active !== false;
+    this._eventBus = eventBus;
+    var self = this;
+    eventBus.on("diagram.init", LOW_PRIORITY, function() {
+      self.setActive(active);
+    });
+    eventBus.on([
+      "create.move",
+      "create.end",
+      "bendpoint.move.move",
+      "bendpoint.move.end",
+      "connect.move",
+      "connect.end",
+      "connectionSegment.move.move",
+      "connectionSegment.move.end",
+      "resize.move",
+      "resize.end",
+      "shape.move.move",
+      "shape.move.end"
+    ], LOWER_PRIORITY, function(event) {
+      var originalEvent = event.originalEvent;
+      if (!self.active || originalEvent && isCmd(originalEvent)) {
+        return;
+      }
+      var context = event.context, gridSnappingContext = context.gridSnappingContext;
+      if (!gridSnappingContext) {
+        gridSnappingContext = context.gridSnappingContext = {};
+      }
+      ["x", "y"].forEach(function(axis) {
+        var options = {};
+        var snapOffset = getSnapOffset(event, axis, elementRegistry);
+        if (snapOffset) {
+          options.offset = snapOffset;
+        }
+        var snapConstraints = getSnapConstraints(event, axis);
+        if (snapConstraints) {
+          assign(options, snapConstraints);
+        }
+        if (!isSnapped(event, axis)) {
+          self.snapEvent(event, axis, options);
+        }
+      });
+    });
+  }
+  GridSnapping.prototype.snapEvent = function(event, axis, options) {
+    var snappedValue = this.snapValue(event[axis], options);
+    setSnapped(event, axis, snappedValue);
+  };
+  GridSnapping.prototype.getGridSpacing = function() {
+    return SPACING;
+  };
+  GridSnapping.prototype.snapValue = function(value, options) {
+    var offset = 0;
+    if (options && options.offset) {
+      offset = options.offset;
+    }
+    value += offset;
+    value = quantize(value, SPACING);
+    var min, max;
+    if (options && options.min) {
+      min = options.min;
+      if (isNumber(min)) {
+        min = quantize(min + offset, SPACING, "ceil");
+        value = Math.max(value, min);
+      }
+    }
+    if (options && options.max) {
+      max = options.max;
+      if (isNumber(max)) {
+        max = quantize(max + offset, SPACING, "floor");
+        value = Math.min(value, max);
+      }
+    }
+    value -= offset;
+    return value;
+  };
+  GridSnapping.prototype.isActive = function() {
+    return this.active;
+  };
+  GridSnapping.prototype.setActive = function(active) {
+    this.active = active;
+    this._eventBus.fire("gridSnapping.toggle", { active });
+  };
+  GridSnapping.prototype.toggleActive = function() {
+    this.setActive(!this.active);
+  };
+  GridSnapping.$inject = [
+    "elementRegistry",
+    "eventBus",
+    "config.gridSnapping"
+  ];
+  function getSnapConstraints(event, axis) {
+    var context = event.context, createConstraints = context.createConstraints, resizeConstraints = context.resizeConstraints || {}, gridSnappingContext = context.gridSnappingContext, snapConstraints = gridSnappingContext.snapConstraints;
+    if (snapConstraints && snapConstraints[axis]) {
+      return snapConstraints[axis];
+    }
+    if (!snapConstraints) {
+      snapConstraints = gridSnappingContext.snapConstraints = {};
+    }
+    if (!snapConstraints[axis]) {
+      snapConstraints[axis] = {};
+    }
+    var direction = context.direction;
+    if (createConstraints) {
+      if (isHorizontal2(axis)) {
+        snapConstraints.x.min = createConstraints.left;
+        snapConstraints.x.max = createConstraints.right;
+      } else {
+        snapConstraints.y.min = createConstraints.top;
+        snapConstraints.y.max = createConstraints.bottom;
+      }
+    }
+    var minResizeConstraints = resizeConstraints.min, maxResizeConstraints = resizeConstraints.max;
+    if (minResizeConstraints) {
+      if (isHorizontal2(axis)) {
+        if (isWest(direction)) {
+          snapConstraints.x.max = minResizeConstraints.left;
+        } else {
+          snapConstraints.x.min = minResizeConstraints.right;
+        }
+      } else {
+        if (isNorth(direction)) {
+          snapConstraints.y.max = minResizeConstraints.top;
+        } else {
+          snapConstraints.y.min = minResizeConstraints.bottom;
+        }
+      }
+    }
+    if (maxResizeConstraints) {
+      if (isHorizontal2(axis)) {
+        if (isWest(direction)) {
+          snapConstraints.x.min = maxResizeConstraints.left;
+        } else {
+          snapConstraints.x.max = maxResizeConstraints.right;
+        }
+      } else {
+        if (isNorth(direction)) {
+          snapConstraints.y.min = maxResizeConstraints.top;
+        } else {
+          snapConstraints.y.max = maxResizeConstraints.bottom;
+        }
+      }
+    }
+    return snapConstraints[axis];
+  }
+  function getSnapOffset(event, axis, elementRegistry) {
+    var context = event.context, shape = event.shape, gridSnappingContext = context.gridSnappingContext, snapLocation = gridSnappingContext.snapLocation, snapOffset = gridSnappingContext.snapOffset;
+    if (snapOffset && isNumber(snapOffset[axis])) {
+      return snapOffset[axis];
+    }
+    if (!snapOffset) {
+      snapOffset = gridSnappingContext.snapOffset = {};
+    }
+    if (!isNumber(snapOffset[axis])) {
+      snapOffset[axis] = 0;
+    }
+    if (!shape) {
+      return snapOffset[axis];
+    }
+    if (!elementRegistry.get(shape.id)) {
+      if (isHorizontal2(axis)) {
+        snapOffset[axis] += shape[axis] + shape.width / 2;
+      } else {
+        snapOffset[axis] += shape[axis] + shape.height / 2;
+      }
+    }
+    if (!snapLocation) {
+      return snapOffset[axis];
+    }
+    if (axis === "x") {
+      if (/left/.test(snapLocation)) {
+        snapOffset[axis] -= shape.width / 2;
+      } else if (/right/.test(snapLocation)) {
+        snapOffset[axis] += shape.width / 2;
+      }
+    } else {
+      if (/top/.test(snapLocation)) {
+        snapOffset[axis] -= shape.height / 2;
+      } else if (/bottom/.test(snapLocation)) {
+        snapOffset[axis] += shape.height / 2;
+      }
+    }
+    return snapOffset[axis];
+  }
+  function isHorizontal2(axis) {
+    return axis === "x";
+  }
+  function isNorth(direction) {
+    return direction.indexOf("n") !== -1;
+  }
+  function isWest(direction) {
+    return direction.indexOf("w") !== -1;
+  }
+
+  // node_modules/diagram-js/lib/features/grid-snapping/index.js
+  var grid_snapping_default = {
+    __depends__: [behavior_default],
+    __init__: ["gridSnapping"],
+    gridSnapping: ["type", GridSnapping]
+  };
+
+  // node_modules/diagram-js/lib/util/Geometry.js
+  var ALIGNED_THRESHOLD = 2;
+  function pointsAligned(a, b) {
+    var points = Array.from(arguments).flat();
+    const axisMap = {
+      "x": "v",
+      "y": "h"
+    };
+    for (const [axis, orientation] of Object.entries(axisMap)) {
+      if (pointsAlignedOnAxis(axis, points)) {
+        return orientation;
+      }
+    }
+    return false;
+  }
+  function pointsAlignedOnAxis(axis, points) {
+    const referencePoint = points[0];
+    return every(points, function(point) {
+      return Math.abs(referencePoint[axis] - point[axis]) <= ALIGNED_THRESHOLD;
+    });
+  }
+
+  // node_modules/path-intersection/intersect.js
+  var math = Math;
+  var PI = math.PI;
+  var mmin = math.min;
+  var mmax = math.max;
+  var pow = math.pow;
+  var abs = math.abs;
+  var arcNumber = "-?(?:\\d+\\.?\\d*|\\.\\d+)(?:[eE][-+]?\\d+)?";
+  var arcSeparator = "[\\s]*,?[\\s]*";
+  var arcValues = new RegExp(
+    "(?=(" + arcNumber + "))\\1" + arcSeparator + "(?=(" + arcNumber + "))\\2" + arcSeparator + "(?=(" + arcNumber + "))\\3" + arcSeparator + "([01])" + arcSeparator + "([01])" + arcSeparator + "(?=(" + arcNumber + "))\\6" + arcSeparator + "(?=(" + arcNumber + "))\\7" + arcSeparator,
+    "g"
+  );
+
+  // node_modules/diagram-js/lib/util/ModelUtil.js
+  function isConnection(value) {
+    return isObject(value) && has(value, "waypoints");
+  }
+
+  // node_modules/diagram-js/lib/layout/LayoutUtil.js
+  function roundPoint(point) {
+    return {
+      x: Math.round(point.x),
+      y: Math.round(point.y)
+    };
+  }
+  function asTRBL(bounds) {
+    return {
+      top: bounds.y,
+      right: bounds.x + (bounds.width || 0),
+      bottom: bounds.y + (bounds.height || 0),
+      left: bounds.x
+    };
+  }
+  function getBoundsMid(bounds) {
+    return roundPoint({
+      x: bounds.x + (bounds.width || 0) / 2,
+      y: bounds.y + (bounds.height || 0) / 2
+    });
+  }
+  function getConnectionMid(connection) {
+    var waypoints = connection.waypoints;
+    var parts = waypoints.reduce(function(parts2, point, index) {
+      var lastPoint = waypoints[index - 1];
+      if (lastPoint) {
+        var lastPart = parts2[parts2.length - 1];
+        var startLength = lastPart && lastPart.endLength || 0;
+        var length = distance(lastPoint, point);
+        parts2.push({
+          start: lastPoint,
+          end: point,
+          startLength,
+          endLength: startLength + length,
+          length
+        });
+      }
+      return parts2;
+    }, []);
+    var totalLength = parts.reduce(function(length, part) {
+      return length + part.length;
+    }, 0);
+    var midLength = totalLength / 2;
+    var i = 0;
+    var midSegment = parts[i];
+    while (midSegment.endLength < midLength) {
+      midSegment = parts[++i];
+    }
+    var segmentProgress = (midLength - midSegment.startLength) / midSegment.length;
+    var midPoint = {
+      x: midSegment.start.x + (midSegment.end.x - midSegment.start.x) * segmentProgress,
+      y: midSegment.start.y + (midSegment.end.y - midSegment.start.y) * segmentProgress
+    };
+    return midPoint;
+  }
+  function getMid(element) {
+    if (isConnection(element)) {
+      return getConnectionMid(element);
+    }
+    return getBoundsMid(element);
+  }
+  function getOrientation(rect, reference, padding) {
+    padding = padding || 0;
+    if (!isObject(padding)) {
+      padding = { x: padding, y: padding };
+    }
+    var rectOrientation = asTRBL(rect), referenceOrientation = asTRBL(reference);
+    var top = rectOrientation.bottom + padding.y <= referenceOrientation.top, right = rectOrientation.left - padding.x >= referenceOrientation.right, bottom = rectOrientation.top - padding.y >= referenceOrientation.bottom, left = rectOrientation.right + padding.x <= referenceOrientation.left;
+    var vertical = top ? "top" : bottom ? "bottom" : null, horizontal = left ? "left" : right ? "right" : null;
+    if (horizontal && vertical) {
+      return vertical + "-" + horizontal;
+    } else {
+      return horizontal || vertical || "intersect";
+    }
+  }
+  function distance(a, b) {
+    return Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2));
+  }
+
+  // node_modules/diagram-js/lib/features/auto-place/AutoPlaceUtil.js
+  var PLACEMENT_DETECTION_PAD = 10;
+  var DEFAULT_DISTANCE = 50;
+  var DEFAULT_MAX_DISTANCE = 250;
+  function findFreePosition(source, element, position, getNextPosition) {
+    var connectedAtPosition;
+    while (connectedAtPosition = getConnectedAtPosition(source, position, element)) {
+      position = getNextPosition(element, position, connectedAtPosition);
+    }
+    return position;
+  }
+  function generateGetNextPosition(nextPositionDirection) {
+    return function(element, previousPosition, connectedAtPosition) {
+      var nextPosition = {
+        x: previousPosition.x,
+        y: previousPosition.y
+      };
+      ["x", "y"].forEach(function(axis) {
+        var nextPositionDirectionForAxis = nextPositionDirection[axis];
+        if (!nextPositionDirectionForAxis) {
+          return;
+        }
+        var dimension = axis === "x" ? "width" : "height";
+        var margin = nextPositionDirectionForAxis.margin, minDistance = nextPositionDirectionForAxis.minDistance;
+        if (margin < 0) {
+          nextPosition[axis] = Math.min(
+            connectedAtPosition[axis] + margin - element[dimension] / 2,
+            previousPosition[axis] - minDistance + margin
+          );
+        } else {
+          nextPosition[axis] = Math.max(
+            connectedAtPosition[axis] + connectedAtPosition[dimension] + margin + element[dimension] / 2,
+            previousPosition[axis] + minDistance + margin
+          );
+        }
+      });
+      return nextPosition;
+    };
+  }
+  function getConnectedAtPosition(source, position, element) {
+    var bounds = {
+      x: position.x - element.width / 2,
+      y: position.y - element.height / 2,
+      width: element.width,
+      height: element.height
+    };
+    var closure = getAutoPlaceClosure(source);
+    return find(closure, function(target) {
+      if (target === element) {
+        return false;
+      }
+      var orientation = getOrientation(target, bounds, PLACEMENT_DETECTION_PAD);
+      return orientation === "intersect";
+    });
+  }
+  function getConnectedDistance(source, hints) {
+    if (!hints) {
+      hints = {};
+    }
+    function getDefaultWeight(connection) {
+      return connection.source === source ? 1 : -1;
+    }
+    var defaultDistance = hints.defaultDistance || DEFAULT_DISTANCE, direction = hints.direction || "e", filter2 = hints.filter, getWeight = hints.getWeight || getDefaultWeight, maxDistance = hints.maxDistance || DEFAULT_MAX_DISTANCE, reference = hints.reference || "start";
+    if (!filter2) {
+      filter2 = noneFilter;
+    }
+    function getDistance2(a, b) {
+      if (direction === "n") {
+        if (reference === "start") {
+          return asTRBL(a).top - asTRBL(b).bottom;
+        } else if (reference === "center") {
+          return asTRBL(a).top - getMid(b).y;
+        } else {
+          return asTRBL(a).top - asTRBL(b).top;
+        }
+      } else if (direction === "w") {
+        if (reference === "start") {
+          return asTRBL(a).left - asTRBL(b).right;
+        } else if (reference === "center") {
+          return asTRBL(a).left - getMid(b).x;
+        } else {
+          return asTRBL(a).left - asTRBL(b).left;
+        }
+      } else if (direction === "s") {
+        if (reference === "start") {
+          return asTRBL(b).top - asTRBL(a).bottom;
+        } else if (reference === "center") {
+          return getMid(b).y - asTRBL(a).bottom;
+        } else {
+          return asTRBL(b).bottom - asTRBL(a).bottom;
+        }
+      } else {
+        if (reference === "start") {
+          return asTRBL(b).left - asTRBL(a).right;
+        } else if (reference === "center") {
+          return getMid(b).x - asTRBL(a).right;
+        } else {
+          return asTRBL(b).right - asTRBL(a).right;
+        }
+      }
+    }
+    var sourcesDistances = source.incoming.filter(filter2).map(function(connection) {
+      var weight = getWeight(connection);
+      var distance2 = weight < 0 ? getDistance2(connection.source, source) : getDistance2(source, connection.source);
+      return {
+        id: connection.source.id,
+        distance: distance2,
+        weight
+      };
+    });
+    var targetsDistances = source.outgoing.filter(filter2).map(function(connection) {
+      var weight = getWeight(connection);
+      var distance2 = weight > 0 ? getDistance2(source, connection.target) : getDistance2(connection.target, source);
+      return {
+        id: connection.target.id,
+        distance: distance2,
+        weight
+      };
+    });
+    var distances = sourcesDistances.concat(targetsDistances).reduce(function(accumulator, currentValue) {
+      accumulator[currentValue.id + "__weight_" + currentValue.weight] = currentValue;
+      return accumulator;
+    }, {});
+    var distancesGrouped = reduce(distances, function(accumulator, currentValue) {
+      var distance2 = currentValue.distance, weight = currentValue.weight;
+      if (distance2 < 0 || distance2 > maxDistance) {
+        return accumulator;
+      }
+      if (!accumulator[String(distance2)]) {
+        accumulator[String(distance2)] = 0;
+      }
+      accumulator[String(distance2)] += 1 * weight;
+      if (!accumulator.distance || accumulator[accumulator.distance] < accumulator[String(distance2)]) {
+        accumulator.distance = distance2;
+      }
+      return accumulator;
+    }, {});
+    return distancesGrouped.distance || defaultDistance;
+  }
+  function getAutoPlaceClosure(source) {
+    var allConnected = getConnected(source);
+    if (source.host) {
+      allConnected = allConnected.concat(getConnected(source.host));
+    }
+    if (source.attachers) {
+      allConnected = allConnected.concat(source.attachers.reduce(function(shapes, attacher) {
+        return shapes.concat(getConnected(attacher));
+      }, []));
+    }
+    return allConnected;
+  }
+  function getConnected(element) {
+    return getTargets(element).concat(getSources(element));
+  }
+  function getSources(shape) {
+    return shape.incoming.map(function(connection) {
+      return connection.source;
+    });
+  }
+  function getTargets(shape) {
+    return shape.outgoing.map(function(connection) {
+      return connection.target;
+    });
+  }
+  function noneFilter() {
+    return true;
+  }
+
+  // node_modules/bpmn-js/lib/features/auto-place/BpmnAutoPlaceUtil.js
+  function getNewShapePosition(source, element, elementRegistry) {
+    var placeHorizontally = isDirectionHorizontal(source, elementRegistry);
+    if (is2(element, "bpmn:TextAnnotation")) {
+      return getTextAnnotationPosition(source, element, placeHorizontally);
+    }
+    if (isAny(element, ["bpmn:DataObjectReference", "bpmn:DataStoreReference"])) {
+      return getDataElementPosition(source, element, placeHorizontally);
+    }
+    if (is2(element, "bpmn:FlowNode")) {
+      return getFlowNodePosition(source, element, placeHorizontally);
+    }
+  }
+  function getFlowNodePosition(source, element, placeHorizontally) {
+    var sourceTrbl = asTRBL(source);
+    var sourceMid = getMid(source);
+    var placement = placeHorizontally ? {
+      directionHint: "e",
+      minDistance: 80,
+      baseOrientation: "left",
+      boundaryOrientation: "top",
+      start: "top",
+      end: "bottom"
+    } : {
+      directionHint: "s",
+      minDistance: 90,
+      baseOrientation: "top",
+      boundaryOrientation: "left",
+      start: "left",
+      end: "right"
+    };
+    var connectedDistance = getConnectedDistance(source, {
+      filter: function(connection) {
+        return is2(connection, "bpmn:SequenceFlow");
+      },
+      direction: placement.directionHint
+    });
+    var margin = 30, minDistance = placement.minDistance, orientation = placement.baseOrientation;
+    if (is2(source, "bpmn:BoundaryEvent")) {
+      orientation = getOrientation(source, source.host, -25);
+      if (orientation.indexOf(placement.boundaryOrientation) !== -1) {
+        margin *= -1;
+      }
+    }
+    var position = placeHorizontally ? {
+      x: sourceTrbl.right + connectedDistance + element.width / 2,
+      y: sourceMid.y + getDistance(orientation, minDistance, placement)
+    } : {
+      x: sourceMid.x + getDistance(orientation, minDistance, placement),
+      y: sourceTrbl.bottom + connectedDistance + element.height / 2
+    };
+    var nextPosition = {
+      margin,
+      minDistance
+    };
+    var nextPositionDirection = placeHorizontally ? {
+      y: nextPosition
+    } : {
+      x: nextPosition
+    };
+    return findFreePosition(source, element, position, generateGetNextPosition(nextPositionDirection));
+  }
+  function getDistance(orientation, minDistance, placement) {
+    if (orientation.includes(placement.start)) {
+      return -1 * minDistance;
+    } else if (orientation.includes(placement.end)) {
+      return minDistance;
+    } else {
+      return 0;
+    }
+  }
+  function getTextAnnotationPosition(source, element, placeHorizontally) {
+    var sourceTrbl = asTRBL(source);
+    var position = placeHorizontally ? {
+      x: sourceTrbl.right + element.width / 2,
+      y: sourceTrbl.top - 50 - element.height / 2
+    } : {
+      x: sourceTrbl.right + 50 + element.width / 2,
+      y: sourceTrbl.bottom + element.height / 2
+    };
+    if (isConnection(source)) {
+      position = getMid(source);
+      if (placeHorizontally) {
+        position.x += 100;
+        position.y -= 50;
+      } else {
+        position.x += 100;
+        position.y += 50;
+      }
+    }
+    var nextPosition = {
+      margin: placeHorizontally ? -30 : 30,
+      minDistance: 20
+    };
+    var nextPositionDirection = placeHorizontally ? {
+      y: nextPosition
+    } : {
+      x: nextPosition
+    };
+    return findFreePosition(source, element, position, generateGetNextPosition(nextPositionDirection));
+  }
+  function getDataElementPosition(source, element, placeHorizontally) {
+    var sourceTrbl = asTRBL(source);
+    var position = placeHorizontally ? {
+      x: sourceTrbl.right - 10 + element.width / 2,
+      y: sourceTrbl.bottom + 40 + element.width / 2
+    } : {
+      x: sourceTrbl.left - 40 - element.width / 2,
+      y: sourceTrbl.bottom - 10 + element.height / 2
+    };
+    var nextPosition = {
+      margin: 30,
+      minDistance: 30
+    };
+    var nextPositionDirection = placeHorizontally ? {
+      x: nextPosition
+    } : {
+      y: nextPosition
+    };
+    return findFreePosition(source, element, position, generateGetNextPosition(nextPositionDirection));
+  }
+
+  // node_modules/bpmn-js/lib/features/grid-snapping/behavior/GridSnappingAutoPlaceBehavior.js
+  var HIGH_PRIORITY2 = 2e3;
+  function GridSnappingAutoPlaceBehavior(eventBus, gridSnapping, elementRegistry) {
+    eventBus.on("autoPlace", HIGH_PRIORITY2, function(context) {
+      var source = context.source, sourceMid = getMid(source), shape = context.shape;
+      var position = getNewShapePosition(source, shape, elementRegistry);
+      ["x", "y"].forEach(function(axis) {
+        var options = {};
+        if (position[axis] === sourceMid[axis]) {
+          return;
+        }
+        if (position[axis] > sourceMid[axis]) {
+          options.min = position[axis];
+        } else {
+          options.max = position[axis];
+        }
+        if (is2(shape, "bpmn:TextAnnotation")) {
+          if (isHorizontal3(axis)) {
+            options.offset = -shape.width / 2;
+          } else {
+            options.offset = -shape.height / 2;
+          }
+        }
+        position[axis] = gridSnapping.snapValue(position[axis], options);
+      });
+      return position;
+    });
+  }
+  GridSnappingAutoPlaceBehavior.$inject = [
+    "eventBus",
+    "gridSnapping",
+    "elementRegistry"
+  ];
+  function isHorizontal3(axis) {
+    return axis === "x";
+  }
+
+  // node_modules/bpmn-js/lib/features/grid-snapping/behavior/GridSnappingParticipantBehavior.js
+  var HIGHER_PRIORITY = 1750;
+  function GridSnappingParticipantBehavior(canvas, eventBus, gridSnapping) {
+    eventBus.on([
+      "create.start",
+      "shape.move.start"
+    ], HIGHER_PRIORITY, function(event) {
+      var context = event.context, shape = context.shape, rootElement = canvas.getRootElement();
+      if (!is2(shape, "bpmn:Participant") || !is2(rootElement, "bpmn:Process") || !rootElement.children.length) {
+        return;
+      }
+      var createConstraints = context.createConstraints;
+      if (!createConstraints) {
+        return;
+      }
+      shape.width = gridSnapping.snapValue(shape.width, { min: shape.width });
+      shape.height = gridSnapping.snapValue(shape.height, { min: shape.height });
+    });
+  }
+  GridSnappingParticipantBehavior.$inject = [
+    "canvas",
+    "eventBus",
+    "gridSnapping"
+  ];
+
+  // node_modules/bpmn-js/lib/features/grid-snapping/behavior/GridSnappingLayoutConnectionBehavior.js
+  var HIGH_PRIORITY3 = 3e3;
+  function GridSnappingLayoutConnectionBehavior(eventBus, gridSnapping, modeling) {
+    CommandInterceptor.call(this, eventBus);
+    this._gridSnapping = gridSnapping;
+    var self = this;
+    this.postExecuted([
+      "connection.create",
+      "connection.layout"
+    ], HIGH_PRIORITY3, function(event) {
+      var context = event.context, connection = context.connection, hints = context.hints || {}, waypoints = connection.waypoints;
+      if (hints.connectionStart || hints.connectionEnd || hints.createElementsBehavior === false) {
+        return;
+      }
+      if (!hasMiddleSegments(waypoints)) {
+        return;
+      }
+      modeling.updateWaypoints(connection, self.snapMiddleSegments(waypoints));
+    });
+  }
+  GridSnappingLayoutConnectionBehavior.$inject = [
+    "eventBus",
+    "gridSnapping",
+    "modeling"
+  ];
+  e(GridSnappingLayoutConnectionBehavior, CommandInterceptor);
+  GridSnappingLayoutConnectionBehavior.prototype.snapMiddleSegments = function(waypoints) {
+    var gridSnapping = this._gridSnapping, snapped;
+    waypoints = waypoints.slice();
+    for (var i = 1; i < waypoints.length - 2; i++) {
+      snapped = snapSegment(gridSnapping, waypoints[i], waypoints[i + 1]);
+      waypoints[i] = snapped[0];
+      waypoints[i + 1] = snapped[1];
+    }
+    return waypoints;
+  };
+  function hasMiddleSegments(waypoints) {
+    return waypoints.length > 3;
+  }
+  function horizontallyAligned(aligned) {
+    return aligned === "h";
+  }
+  function verticallyAligned(aligned) {
+    return aligned === "v";
+  }
+  function snapSegment(gridSnapping, segmentStart, segmentEnd) {
+    var aligned = pointsAligned(segmentStart, segmentEnd);
+    var snapped = {};
+    if (horizontallyAligned(aligned)) {
+      snapped.y = gridSnapping.snapValue(segmentStart.y);
+    }
+    if (verticallyAligned(aligned)) {
+      snapped.x = gridSnapping.snapValue(segmentStart.x);
+    }
+    if ("x" in snapped || "y" in snapped) {
+      segmentStart = assign({}, segmentStart, snapped);
+      segmentEnd = assign({}, segmentEnd, snapped);
+    }
+    return [segmentStart, segmentEnd];
+  }
+
+  // node_modules/bpmn-js/lib/features/grid-snapping/behavior/index.js
+  var behavior_default2 = {
+    __init__: [
+      "gridSnappingAutoPlaceBehavior",
+      "gridSnappingParticipantBehavior",
+      "gridSnappingLayoutConnectionBehavior"
+    ],
+    gridSnappingAutoPlaceBehavior: ["type", GridSnappingAutoPlaceBehavior],
+    gridSnappingParticipantBehavior: ["type", GridSnappingParticipantBehavior],
+    gridSnappingLayoutConnectionBehavior: ["type", GridSnappingLayoutConnectionBehavior]
+  };
+
+  // node_modules/bpmn-js/lib/features/grid-snapping/index.js
+  var grid_snapping_default2 = {
+    __depends__: [
+      grid_snapping_default,
+      behavior_default2
+    ],
+    __init__: ["bpmnGridSnapping"],
+    bpmnGridSnapping: ["type", BpmnGridSnapping]
+  };
+
   // scripts/sheets-import-entry.js
   window.NaraImportBpmnDiagram = importBpmnDiagram;
+  window.NaraGridModule = grid_snapping_default2;
 })();

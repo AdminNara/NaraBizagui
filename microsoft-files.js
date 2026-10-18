@@ -67,6 +67,13 @@ export class MicrosoftFiles {
   async children(folder, nextLink) {
     return this.request(nextLink || `drives/${id(folder.driveId)}/items/${id(folder.id)}/children?$select=id,name,folder,file,size,eTag,parentReference,webUrl&$top=100`);
   }
+  async versions(handle, nextLink=null) {
+    if(handle?.store!==this||handle.storageKind!=='microsoft')throw problem('INVALID_TARGET','Selecciona un archivo Microsoft de esta conexión.');
+    this.assertAccount(handle.accountId);
+    const endpoint=handle.endpoint()+'/versions';
+    if(nextLink&&!graphUrl(nextLink).startsWith(graphUrl(endpoint)+'?'))throw problem('INVALID_TARGET','La página de versiones no corresponde a este archivo.');
+    return this.request(nextLink||endpoint,{},FILE_SCOPES,handle.accountId);
+  }
   async folder(folder) {
     const item = await this.request(`drives/${id(folder.driveId)}/items/${id(folder.id)}?$select=id,name,folder,root,parentReference`);
     if (!item.folder || !item.id || !item.name) throw problem('INVALID_TARGET', 'Microsoft no devolvió una carpeta disponible.');

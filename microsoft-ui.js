@@ -32,6 +32,7 @@
     byId('msSiteForm').hidden = recentView || provider !== 'sharepoint';
     list.setAttribute('aria-busy', String(busy));
     for (const button of list.querySelectorAll('button')) button.disabled = busy || (mode === 'save' && button.dataset.kind === 'file');
+    window.NaraWorkspaceUI?.refreshMicrosoft();
   }
   async function run(action, pending = 'Cargando…') {
     if (busy) return; busy = true; controls(); message(pending);
@@ -216,7 +217,13 @@
       byId('externalChange').hidden = true; dialog.close(); status('BPMN guardado en Microsoft · Contenido comprobado.');
     } finally { saving = false; window.naraAutoSave?.refresh(); }
   }, 'Guardando y comprobando…');
-  window.NaraMicrosoftUI = { saveAs: () => open('save') };
+  window.NaraMicrosoftUI = { saveAs: () => open('save'), open, recents:()=>{open();if(dialog.open&&auth.account)recentFiles();},
+    navigation:()=>({connected:Boolean(auth.account),busy,favorites:workspace.favorites(),canFavorite:!busy&&Boolean(folder)&&!recentView,isFavorite:Boolean(folder&&workspace.favorites().some(value=>value.id===folder.id&&value.driveId===folder.driveId))}),
+    toggleFavorite:()=>{if(!busy&&folder)workspace.toggleFavorite({...folder,...context()});window.NaraWorkspaceUI?.refreshMicrosoft();},
+    openFavorite:index=>{const value=workspace.favorites()[index];if(!value||busy)return;provider=value.provider;byId('msSiteUrl').value=value.siteUrl||'';recentView=false;run(()=>showFolder(value,{trail:[]}));},
+    location:()=>{const last=workspace.read().last,handle=browserFiles.handle;if(handle?.storageKind!=='microsoft')return'Microsoft';const provider=last?.id===handle.itemId&&last.provider==='sharepoint'?'SharePoint':'OneDrive';const path=handle.parent?.path?.split('root:')[1];return provider+(path?' · '+path:handle.parent?.name?' · '+handle.parent.name:'');},
+    versions:async(nextLink=null)=>{const handle=browserFiles.handle;if(handle?.storageKind!=='microsoft')throw Error('El archivo actual no está en Microsoft.');const result=await cloud.versions(handle,nextLink);if(browserFiles.handle!==handle)throw Error('El archivo cambió durante la consulta. Abre de nuevo su información.');return result;}
+  };
   auth.onChange(({ previous, account, reason }) => {
     if (previous && previous !== account) detachCloud();
     reset(); controls();

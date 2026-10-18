@@ -28,6 +28,7 @@
     } catch { remember(null); }
   }
   const say = text => { message.textContent = text; };
+  const activity=(state,message)=>{if(typeof window.dispatchEvent==='function'&&typeof CustomEvent==='function')window.dispatchEvent(new CustomEvent('nara:agent-status',{detail:{state,message}}));};
   function render() {
     button.textContent = live ? reconnecting ? 'Reconectando con Codex' : 'Codex conectado' : 'Conectar con Codex';
     button.classList.toggle('codex-connected', Boolean(live) && !reconnecting);
@@ -35,6 +36,7 @@
     connect.hidden = Boolean(live);
     connect.disabled = pairing;
     disconnect.hidden = !live;
+    activity(live?reconnecting?'reconectando':'conectado':'desconectado');
   }
   async function send(session, path, data, limit = 22000) {
     const response = await fetch(`http://127.0.0.1:${session.port}${path}`, { method: 'POST', mode: 'cors', credentials: 'omit', cache: 'no-store', headers: { 'Content-Type': 'application/json', ...(session.token ? { Authorization: `Bearer ${session.token}` } : {}) }, body: JSON.stringify(data), signal: AbortSignal.any([session.controller.signal, AbortSignal.timeout(limit)]) });
@@ -55,8 +57,10 @@
         try {
           if (command.deadline <= Date.now()) throw Object.assign(new Error('El comando venció antes de ejecutarse.'), { code: 'EXPIRED' });
           if (!['read', 'edit', 'save', 'exportPng', 'validate', 'editBatch'].includes(command.action)) throw new Error('Comando no admitido.');
+          activity('trabajando',({read:'Leyendo la hoja activa',edit:'Actualizando la hoja activa',save:'Guardando el archivo',exportPng:'Preparando una imagen PNG',validate:'Revisando el modelo',editBatch:'Aplicando un bloque de cambios'})[command.action]);
           result = { commandId: command.id, result: await window.NaraBizaguiEditor[command.action](command.args) };
         } catch (error) { result = { commandId: command.id, error: { code: error.code || 'EDITOR_ERROR', message: error.message } }; }
+        activity('conectado',result.error?'La acción necesita revisión: '+result.error.message:'Acción terminada y confirmada por el editor.');
         // Retry only delivery of the result, never execution of an edit or save.
         for (let attempt = 0; attempt < 3; attempt++) {
           try { await send(session, `/sessions/${session.id}/result`, result); break; }
