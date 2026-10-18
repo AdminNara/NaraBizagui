@@ -31350,7 +31350,7 @@ var StdioServerTransport = class {
 // plugins/narabizagui/server/bridge.mjs
 import http from "node:http";
 import { randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
-var VERSION = "0.3.1";
+var VERSION = "0.3.2";
 var token = () => randomBytes(32).toString("base64url");
 var same = (a, b) => {
   if (typeof a !== "string" || typeof b !== "string") return false;
@@ -31549,7 +31549,7 @@ var text = external_exports.string().max(2e4);
 var finite = external_exports.number().finite().min(-1e5).max(1e5);
 var edit = external_exports.discriminatedUnion("type", [
   external_exports.object({ type: external_exports.literal("open_bpmn"), fileName: external_exports.string().min(1).max(200).regex(/^[^<>:"/\\|?*]+\.bpmn$/i), xml: external_exports.string().min(1).max(5e6) }),
-  external_exports.object({ type: external_exports.literal("label"), elementId, text }),
+  external_exports.object({ type: external_exports.literal("label"), elementId, text, bounds: external_exports.object({ x: finite, y: finite, width: external_exports.number().min(1).max(1e3), height: external_exports.number().min(1).max(1e3) }).optional() }),
   external_exports.object({ type: external_exports.literal("documentation"), elementId, text }),
   external_exports.object({ type: external_exports.literal("create"), bpmnType: external_exports.enum(["bpmn:Task", "bpmn:ManualTask", "bpmn:UserTask", "bpmn:ServiceTask", "bpmn:SubProcess", "bpmn:CallActivity", "bpmn:StartEvent", "bpmn:EndEvent", "bpmn:IntermediateCatchEvent", "bpmn:IntermediateThrowEvent", "bpmn:ExclusiveGateway", "bpmn:ParallelGateway", "bpmn:TextAnnotation", "bpmn:DataObjectReference", "bpmn:DataStoreReference", "bpmn:Participant"]), x: finite, y: finite, parentId: elementId.optional(), name: text.optional(), linkName: external_exports.string().min(1).max(100).optional() }),
   external_exports.object({ type: external_exports.literal("connect"), sourceId: elementId, targetId: elementId, bpmnType: external_exports.enum(["bpmn:SequenceFlow", "bpmn:MessageFlow", "bpmn:Association", "bpmn:DataInputAssociation", "bpmn:DataOutputAssociation"]).optional() }),
@@ -31557,6 +31557,7 @@ var edit = external_exports.discriminatedUnion("type", [
   external_exports.object({ type: external_exports.literal("move"), elementId, dx: finite, dy: finite, parentId: elementId.optional() }),
   external_exports.object({ type: external_exports.literal("resize"), elementId, x: finite, y: finite, width: external_exports.number().min(20).max(1e5), height: external_exports.number().min(20).max(1e5) }),
   external_exports.object({ type: external_exports.literal("delete"), elementId }),
+  external_exports.object({ type: external_exports.literal("route"), elementId, waypoints: external_exports.array(external_exports.object({ x: finite, y: finite })).min(2).max(100) }),
   external_exports.object({ type: external_exports.literal("stage") }),
   external_exports.object({ type: external_exports.literal("lane_add"), elementId, location: external_exports.enum(["top", "bottom", "left", "right"]) }),
   external_exports.object({ type: external_exports.literal("lane_split"), elementId, count: external_exports.number().int().min(2).max(10) }),
