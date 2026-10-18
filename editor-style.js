@@ -33,8 +33,9 @@
       };this.execute=context=>[context.element];this.revert=context=>[context.element];
     });
     function apply(elementId,style){M.visualStyle(style);if(window.NaraPropertyDraftPending?.())throw Error('Aplica o cancela la edición pendiente antes de cambiar el formato.');
-      if(window.NaraER?.active())return window.NaraER.edit({type:'style',elementId,style});
+      if(window.NaraER?.active()){const value=target();if(value?.id===elementId&&Object.entries(style).every(([key,v])=>read(value)[key]===v))return elementId;return window.NaraER.edit({type:'style',elementId,style});}
       const element=elementRegistry.get(elementId);if(!element?.businessObject||element.labelTarget)throw Error('Selecciona una figura o conexión.');
+      if(Object.entries(style).every(([key,value])=>read(element)[key]===value))return elementId;
       commandStack.execute('nara.style.update',{element,style});return elementId;
     }
     function decorate(element){if(!element)return;const base=element.labelTarget||element,s=read(base),gfx=elementRegistry.getGraphics(element);if(!gfx)return;
@@ -50,13 +51,14 @@
       const shape=Number.isFinite(element.x)&&!element.waypoints&&!element.sourceTableId;$('geometryForm').hidden=!shape;
       if(shape){for(const [key,value]of Object.entries({X:element.x,Y:element.y,Width:element.width,Height:er?M.height(element):element.height}))$('style'+key).value=String(Math.round(value*100)/100);const resizable=er||!!rules.allowed('shape.resize',{shape:element});$('styleWidth').disabled=!resizable;$('styleHeight').disabled=er||!resizable;$('styleWidth').min=er?'200':'20';$('styleWidth').max=er?'1000':'100000';sizeHint.hidden=!er&&resizable;sizeHint.textContent=er?'La altura de la tabla se ajusta a sus campos.':'Esta figura conserva su tamaño. Puedes cambiar su posición.';}
     }
-    for(const [key,name]of Object.entries({Fill:'fill',Stroke:'stroke',StrokeWidth:'strokeWidth',FontColor:'fontColor',FontSize:'fontSize',Bold:'bold',Align:'align'}))$('style'+key).onchange=()=>{const element=target();if(!element)return;const el=$('style'+key);try{apply(element.id,{[name]:key==='Bold'?el.checked:['StrokeWidth','FontSize'].includes(key)?Number(el.value):el.value});}catch(error){$('status').textContent=error.message;refresh();}};
+    for(const [key,name]of Object.entries({Fill:'fill',Stroke:'stroke',StrokeWidth:'strokeWidth',FontColor:'fontColor',FontSize:'fontSize',Bold:'bold',Align:'align'}))$('style'+key).onchange=()=>{const element=target();if(!element)return;const el=$('style'+key);try{apply(element.id,{[name]:key==='Bold'?el.checked:['StrokeWidth','FontSize'].includes(key)?Number(el.value):el.value});}catch(error){if(window.NaraInstantEdit?.applying)throw error;$('status').textContent=error.message;refresh();}};
     $('geometryForm').onsubmit=event=>{event.preventDefault();const element=target();if(!element)return;try{if(window.NaraPropertyDraftPending?.())throw Error('Aplica o cancela la edición pendiente.');const bounds={x:Number($('styleX').value),y:Number($('styleY').value),width:Number($('styleWidth').value),height:Number($('styleHeight').value)};if(!Object.values(bounds).every(Number.isFinite)||Math.abs(bounds.x)>100000||Math.abs(bounds.y)>100000||bounds.width<20||bounds.width>100000||bounds.height<20||bounds.height>100000)throw Error('Posición o tamaño no válido.');
+      if(bounds.x===element.x&&bounds.y===element.y&&bounds.width===element.width&&(window.NaraER?.active()||bounds.height===element.height))return;
       if(window.NaraER?.active())window.NaraER.edit({type:'erd_table_update',tableId:element.id,x:bounds.x,y:bounds.y,width:bounds.width});
       else if(rules.allowed('shape.resize',{shape:element}))modeling.resizeShape(element,bounds);
       else if(bounds.width===element.width&&bounds.height===element.height)modeling.moveShape(element,{x:bounds.x-element.x,y:bounds.y-element.y});
       else throw Error('Esta figura conserva su tamaño BPMN; puedes cambiar su posición.');
-    }catch(error){$('status').textContent=error.message;}refresh();};
+    }catch(error){if(window.NaraInstantEdit?.applying)throw error;$('status').textContent=error.message;}refresh();};
     eventBus.on(['shape.added','shape.changed','connection.changed'],500,event=>{decorate(event.element);});
     eventBus.on('commandStack.changed',500,()=>{for(const el of elementRegistry.getAll())decorate(el);refresh();});
     eventBus.on('import.done',500,()=>{for(const el of elementRegistry.getAll())decorate(el);refresh();});

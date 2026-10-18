@@ -197,7 +197,7 @@
       try { openSubprocess(event.element.id); } catch (error) { report(error.message); }
       return false;
     });
-    this.list = list; this.open = open; this.create = create; this.rename = rename; this.link = link; this.openSubprocess = openSubprocess; this.importAdditional = importAdditional;
+    this.list = list; this.open = open; this.create = create; this.rename = rename; this.link = link; this.openSubprocess = openSubprocess; this.importAdditional = importAdditional; this.nameDialog=nameDialog;
   }
   SheetManager.$inject = ['bpmnjs','canvas','commandStack','elementFactory','bpmnFactory','modeling','eventBus','elementRegistry','bpmnReplace','selection','naraER'];
   window.NaraSheetsModule = { __init__: ['naraSheets'], naraSheets: ['type', SheetManager] };

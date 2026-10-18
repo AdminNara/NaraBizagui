@@ -16,12 +16,20 @@ Abrir `http://127.0.0.1:8766/`. No hay servidor de documentos ni base de datos.
 
 ## Archivos
 
-- **Nuevo:** inicia un BPMN sin datos de cliente.
-- **Abrir BPMN:** elige un archivo del equipo. En Edge/Chrome de escritorio se conserva acceso al archivo autorizado.
-- **Guardado automático:** conserva los cambios aplicados tras una pausa de unos dos segundos, en el archivo Microsoft abierto o en el archivo local autorizado. Un documento nuevo necesita primero un destino mediante **Guardar como** o **Guardar en Microsoft como**. El indicador muestra cambios pendientes, guardando, guardado o conflicto; la casilla de Archivo permite pausarlo. Espera a **Guardado** antes de cerrar.
+- **Archivo → Nuevo archivo:** inicia un BPMN sin datos de cliente.
+- **Archivo → Abrir:** reúne Equipo, OneDrive/SharePoint y recientes de Microsoft. En Edge/Chrome de escritorio se conserva acceso al archivo local autorizado.
+- **Guardado automático:** conserva los cambios aplicados tras una pausa de unos dos segundos, en el archivo Microsoft abierto o en el archivo local autorizado. Un documento nuevo necesita primero un destino mediante **Guardar → Opciones**. El indicador permanece junto a Guardar y muestra cambios pendientes, guardando, guardado o conflicto; **Más → Preferencias** permite pausarlo. Espera a **Guardado** antes de cerrar.
 - **Guardar:** permite guardar inmediatamente; **Guardar como** elige otro destino. El guardado automático local requiere permiso de escritura y File System Access (Edge/Chrome de escritorio). En navegadores que solo descargan copias se conserva la exportación manual.
-- **Exportar:** descarga BPMN, SVG o PNG.
-- **Historial local:** permite descargar revisiones anteriores conservadas en este navegador. Borrar datos del navegador elimina este historial.
+- **Archivo → Exportar:** descarga una copia editable BPMN con todas las hojas o una imagen SVG/PNG de la hoja activa, conservando el destino del original.
+- **Información del archivo:** reúne ubicación, estado, revisiones locales y consulta de versiones Microsoft del archivo abierto. El historial local permite descargar revisiones conservadas en este navegador; borrar datos del navegador elimina ese historial. La consulta Microsoft es de lectura y no restaura versiones.
+
+## Espacio de trabajo
+
+La barra compacta reúne **Archivo, Editar, Vista y Ayuda**. **Guardar** permanece en el encabezado con su destino resumido y estado. **Conexiones** separa la cuenta Microsoft del vínculo del agente con esta pestaña. **Más** reúne Preferencias y Actividad; esta última conserva hasta 60 avisos de la sesión en memoria, sin sustituir el historial del archivo.
+
+**Todas las hojas** permite buscar, abrir y renombrar hojas por su nombre completo y tipo. **＋** elige entre proceso BPMN y modelo ER; las herramientas corresponden a la hoja activa. La paleta BPMN tiene categorías plegables y búsqueda. **Alt+T** enfoca la búsqueda de herramientas y **Alt+H** abre todas las hojas; los demás atajos se consultan en Ayuda.
+
+Preferencias conserva cuadrícula, ajuste BPMN al arrastrar, autoguardado y estilo inicial de figuras BPMN en este navegador. Restablecer espacio de trabajo recupera esos valores y los paneles. Los estilos iniciales no modifican figuras existentes. El explorador Microsoft incorpora búsqueda sobre la lista cargada y hasta 12 carpetas favoritas por cuenta/organización; desconectar elimina sus referencias locales.
 
 ## Editar y organizar procesos
 
@@ -29,20 +37,20 @@ Al acercar el mouse a una figura aparecen cuatro flechas. Las opciones rápidas 
 
 **Etapa** se coloca desde la paleta, como Participante, con forma de columna; se puede mover, redimensionar y renombrar. La navegación de etapas queda debajo del lienzo. Los símbolos Excel, Word, Manual y Datos identifican elementos del modelo, sin abrir archivos externos.
 
-Las pestañas inferiores representan hojas del mismo BPMN. **＋** crea un proceso independiente; doble clic en una pestaña cambia su nombre. Un subproceso contraído abre su detalle con doble clic. Para reutilizar otra hoja, selecciona un subproceso vacío y usa **Propiedades → Hoja de proceso reutilizable → Vincular con esta hoja**. El modelo utiliza una actividad de llamada BPMN (`CallActivity.calledElement`); no reemplaza el contenido de un subproceso que ya tiene elementos. La flecha inferior vuelve a la hoja anterior.
+Las pestañas inferiores representan hojas del mismo BPMN. **＋** crea una hoja del tipo elegido; doble clic en una pestaña cambia su nombre. Un subproceso contraído abre su detalle con doble clic. Para reutilizar otra hoja, selecciona un subproceso vacío y elige **Propiedades → Hoja de proceso reutilizable**; la selección se aplica inmediatamente. El modelo utiliza una actividad de llamada BPMN (`CallActivity.calledElement`); no reemplaza el contenido de un subproceso que ya tiene elementos. La flecha inferior vuelve a la hoja anterior.
 
 Guardar conserva todas las hojas en un solo archivo BPMN 2.0, con sus planos y referencias. SVG y PNG exportan la hoja activa. Otros modeladores pueden presentar estos planos de manera distinta; las pestañas son la navegación de NaraBizagui.
 
 ### Propiedades BPMN desde la interfaz
 
-Selecciona una figura o una conexión y abre **Propiedades**. **Cambiar tipo de elemento** abre las opciones nativas permitidas para esa figura. Los campos se adaptan al tipo; **Aplicar cambios** guarda nombre, descripción y configuración en una sola operación que se puede deshacer y rehacer.
+Selecciona una figura o una conexión y abre **Propiedades**. Nombre, descripción y opciones del elemento se aplican automáticamente tras una pausa breve al escribir, o al confirmar un selector. Estilo, Texto y Organizar siguen la misma lógica. Cada edición aplicada utiliza los comandos nativos y admite Deshacer/Rehacer. La descripción y las opciones del elemento se pueden desplegar dentro del panel. **Cambiar tipo de elemento** abre las opciones nativas permitidas para esa figura.
 
 - **Enlaces:** crea un evento **Intermedio**, elige **Enlace · salida (flecha rellena)** o **Enlace · entrada (flecha vacía)** y asigna el **Nombre interno del enlace**. La salida y la entrada usan el mismo nombre dentro del mismo proceso o subproceso. El nombre visible puede ser diferente. El panel indica si encuentra la contraparte y evita dos entradas con el mismo nombre en el mismo ámbito. Se pueden configurar los extremos por separado; el aviso permanece hasta completar el par. Conecta la actividad anterior a la salida y la entrada a la siguiente actividad.
 - **Decisiones:** permite elegir el tipo de compuerta, configurar las condiciones de sus salidas y seleccionar una salida predeterminada. La predeterminada se toma si ninguna condición se cumple y no lleva condición propia. Las compuertas paralelas y por eventos muestran su comportamiento, sin ofrecer condiciones que no les corresponden. Una conexión seleccionada permite configurar su condición, lenguaje opcional y marca de salida predeterminada cuando su origen lo admite.
 - **Eventos:** temporizadores por fecha, duración o repetición; condición y lenguaje para eventos condicionales; crear o reutilizar mensajes, señales, errores y escalaciones; código opcional al crear un error o escalación. Los eventos de borde permiten configurar si interrumpen la actividad.
 - **Actividades y documentos:** una ejecución, bucle con condición o instancias secuenciales/paralelas; cantidad de instancias opcional y marca de colección en objetos de datos. Las opciones existentes de documentos y hojas de subprocesos se conservan.
 
-Los campos se serializan como propiedades BPMN 2.0 y no requieren el MCP. Las condiciones y temporizadores deben utilizar las expresiones admitidas por el motor donde se ejecute el proceso; el editor conserva esas expresiones, no las ejecuta. No edites el tipo o guardes mientras tengas cambios pendientes en Propiedades: aplícalos primero.
+Los campos se serializan como propiedades BPMN 2.0 y no requieren el MCP. Las condiciones y temporizadores deben utilizar las expresiones admitidas por el motor donde se ejecute el proceso; el editor conserva esas expresiones, no las ejecuta. Un valor inválido permanece pendiente con un aviso y pospone el guardado; corrígelo o pulsa Escape para cancelar ese borrador. La edición de celdas ER directamente sobre el lienzo sigue confirmándose con Enter y cancelándose con Escape.
 
 También se pueden elegir archivos locales de carpetas sincronizadas por OneDrive. En ese caso, el cliente de sincronización gestiona su subida.
 

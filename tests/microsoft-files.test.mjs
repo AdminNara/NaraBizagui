@@ -33,6 +33,19 @@ test('Graph targets and user-provided site/file paths are constrained', () => {
   assert.throws(() => bpmnName('../Private'));
   assert.equal(bpmnName('Generic'), 'Generic.bpmn');
 });
+
+test('version history is read-only, scoped to the current file and rejects account changes', async () => {
+  const f=fixture(),responses=[{value:[{id:'2'}],'@odata.nextLink':'https://graph.microsoft.com/v1.0/drives/drive-1/items/item-1/versions?$skiptoken=next'},{value:[{id:'1'}]}];
+  f.store.fetcher=async(url,options)=>{f.calls.push({url,options});return Response.json(responses.shift());};
+  const first=await f.store.versions(f.handle);assert.equal(first.value[0].id,'2');
+  const second=await f.store.versions(f.handle,first['@odata.nextLink']);assert.equal(second.value[0].id,'1');
+  assert.ok(f.calls.every(call=>!call.options.method||call.options.method==='GET'));
+  const before=f.calls.length;
+  await assert.rejects(()=>f.store.versions(f.handle,'https://graph.microsoft.com/v1.0/drives/drive-1/items/other/versions?$skiptoken=next'),{code:'INVALID_TARGET'});
+  await assert.rejects(()=>f.store.versions(f.handle,'https://attacker.invalid/history'),{code:'INVALID_TARGET'});
+  f.auth.account.homeAccountId='different';await assert.rejects(()=>f.store.versions(f.handle),{code:'ACCOUNT_CHANGED'});
+  assert.equal(f.calls.length,before);
+});
 test('download URL never receives a bearer token and snapshots remain stable', async () => {
   const f = fixture(), file = await f.handle.getFile();
   assert.equal(await file.text(), '<definitions>generic-1</definitions>');
