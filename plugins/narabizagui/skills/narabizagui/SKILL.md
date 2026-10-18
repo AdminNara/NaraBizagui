@@ -32,9 +32,13 @@ Usar carriles nativos para responsables internos: `lane_split` divide un partici
 
 Para evitar líneas largas, `create` admite eventos `bpmn:IntermediateThrowEvent` y `bpmn:IntermediateCatchEvent` con `linkName`. Crear una salida y una entrada con el mismo nombre único, dentro del mismo proceso; conectar origen a salida y entrada a destino. Verificar ambos extremos y su XML. No usar enlaces para comunicación entre procesos independientes.
 
-`narabizagui_save` exige la revisión vigente y un archivo previamente elegido y autorizado en el visor. Si falta destino, indicar **Guardar como** en el navegador; si falta permiso, indicar **Guardar** para autorizarlo. No simular selectores ni elegir rutas del usuario por inferencia.
+`route` modifica puntos de una conexión mediante el modelador nativo, preservando ID, extremos y documentación. `label.bounds` permite colocar su etiqueta. Leer y verificar el resultado y no borrar/recrear conexiones solo para ajustar su recorrido.
 
-Solo informar guardado cuando el resultado confirme `saved: true`. Se conserva la revisión anterior en el historial del navegador y se comprueba el contenido escrito. `dirty: true` después de guardar indica que hubo cambios posteriores al contenido guardado. Una descarga, cambio aplicado o lectura correcta no prueban persistencia.
+`open_bpmn` abre XML en una pestaña nueva vacía, sin cambios ni archivo autorizado. Rechaza sustituir un documento existente. Conservar la copia anterior, verificar IDs, documentación y geometría tras abrir; el orden de las figuras en el XML puede normalizarse sin modificar su contenido. Abrir no guarda un archivo.
+
+`narabizagui_save` exige la revisión vigente y un archivo previamente elegido y autorizado en el visor. Si falta destino, indicar **Guardar como** para un archivo local o **Guardar en Microsoft como** tras conectar la cuenta; si falta permiso, indicar **Guardar** para autorizarlo. No simular selectores ni elegir rutas del usuario por inferencia.
+
+Solo informar guardado cuando el resultado confirme `saved: true`. Se comprueba el contenido escrito. Los archivos locales conservan su revisión anterior en el historial del navegador; los documentos Microsoft omiten ese historial persistente y usan la cuenta conectada en el visor. `storage: microsoft` identifica ese destino; no exponer ni solicitar sus tokens. `dirty: true` después de guardar indica que hubo cambios posteriores al contenido guardado. Una descarga, cambio aplicado o lectura correcta no prueban persistencia.
 
 Releer el diagrama y comprobar texto, conexiones, roles, etapas y disposición. No declarar aprobación funcional por la ausencia de advertencias. Informar qué se cambió, en cuál sesión/archivo y qué se verificó.
 

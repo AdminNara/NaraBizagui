@@ -34,7 +34,7 @@ Guardar conserva todas las hojas en un solo archivo BPMN 2.0, con sus planos y r
 
 También se pueden elegir archivos locales de carpetas sincronizadas por OneDrive. En ese caso, el cliente de sincronización gestiona su subida.
 
-### Conexión directa a Microsoft (rama de desarrollo)
+### Conexión directa a Microsoft
 
 **Conectar Microsoft** permite autorizar una cuenta corporativa o personal mediante Microsoft Identity Platform. La aplicación utiliza MSAL y código de autorización con PKCE, sin secreto de cliente. **Abrir desde Microsoft** navega OneDrive; para SharePoint se introduce la dirección del sitio y se elige una biblioteca. **Guardar una copia en Microsoft** crea un BPMN con otro nombre. Después, **Guardar** y el guardado por MCP actualizan ese mismo archivo.
 
@@ -42,11 +42,11 @@ El registro de aplicación pertenece a Nara y admite otras organizaciones. Cada 
 
 Los tokens y las copias de documentos de Microsoft se mantienen en memoria. Recargar exige conectar de nuevo. Los guardados en Microsoft omiten el Historial local persistente. **Desconectar Microsoft** conserva el diagrama abierto como copia sin guardar; exportarlo o guardarlo localmente permite conservarlo. Conectar con Codex sigue siendo una autorización separada y permite entregar el modelo al chat vinculado.
 
-El guardado envía la revisión `eTag` como `If-Match`, rechaza conflictos y relee el contenido. Un resultado incierto requiere recargar antes de guardar otra vez. No hay colaboración simultánea. Límite: 8 MB por BPMN. Se probaron OAuth, navegación, creación, reapertura y guardado por MCP contra OneDrive real con una cuenta de trabajo y un BPMN genérico, desde el origen local. También se verificaron autorización, bibliotecas y creación con relectura en SharePoint. Los conflictos y cambios de cuenta se cubren con un transporte simulado. **Falta probar cuenta personal, organización externa y carreras simultáneas reales.** Esta rama no demuestra que el sitio publicado contenga la función.
+El guardado envía la revisión `eTag` como `If-Match`, rechaza conflictos y relee el contenido. Un resultado incierto requiere recargar antes de guardar otra vez. No hay colaboración simultánea. Límite: 8 MB por BPMN. Se probaron OAuth, navegación, creación, reapertura y guardado por MCP contra OneDrive real con una cuenta de trabajo y un BPMN genérico, desde el origen local. También se verificaron autorización, bibliotecas y creación con relectura en SharePoint. Los conflictos y cambios de cuenta se cubren con un transporte simulado. **Falta probar cuenta personal, organización externa y carreras simultáneas reales.**
 
 La interfaz muestra primero el inicio de sesión. Después abre OneDrive y ofrece navegación de carpetas, selección de BPMN y acciones Abrir/Guardar. Cambiar cuenta y Desconectar están en el menú de la cuenta; los detalles de permisos están en un apartado desplegable. El [símbolo oficial de Microsoft](https://learn.microsoft.com/en-us/entra/identity-platform/howto-add-branding-in-apps) se conserva sin alteraciones; pertenece a Microsoft y se utiliza para identificar su inicio de sesión.
 
-El retorno de producción es `https://demo.naraconsultores.com/NaraBizagui/microsoft-auth.html`. Para desarrollo está registrado `http://localhost:8767/microsoft-auth.html`; se debe servir esta carpeta en ese origen. La página de retorno usa el puente de MSAL y no debe recibir una cabecera COOP que rompa la ventana de autenticación. La verificación de editor y los avisos legales públicos deben completarse antes de presentar la integración como disponible para terceros.
+El retorno de producción es `https://demo.naraconsultores.com/NaraBizagui/microsoft-auth.html`. Para desarrollo está registrado `http://localhost:8767/microsoft-auth.html`; se debe servir esta carpeta en ese origen. La página de retorno usa el puente de MSAL y no debe recibir una cabecera COOP que rompa la ventana de autenticación. La verificación de editor de Microsoft está pendiente; las políticas de otras organizaciones pueden impedir el consentimiento o exigir aprobación de su administrador. El diálogo de conexión describe los permisos y el tratamiento de los documentos.
 
 Los diagramas seleccionados no se suben a este sitio ni a este repositorio. Solo se publica el editor y sus recursos. Cada persona conserva sus archivos y permisos.
 
