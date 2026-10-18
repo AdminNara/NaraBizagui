@@ -138,7 +138,7 @@ test('a cross-tab disconnect preserves the in-memory diagram and detaches its cl
   const f = fixture(), auth = f.account(f.client()); await auth.initialized;
   const files = { handle: { storageKind: 'microsoft' }, hash: 'generic-base', name: 'Generic.bpmn' };
   const context = {
-    window: { NaraMicrosoft: { create: () => ({ auth, files: {} }) } },
+    window: { NaraMicrosoft: { create: () => ({ auth, files: {}, workspace: { read: () => ({ last: null }), stamp: () => ({}), resume: async () => false } }) } },
     byId: element, browserFiles: files, saving: false,
     browserFileContext: name => { context.fileName = name; }, setDirty: dirty => { context.dirty = dirty; }, status: message => { context.statusText = message; },
     modeler: { saveXML() { throw new Error('Disconnect must not serialize or replace the diagram'); } }

@@ -132,6 +132,7 @@ let loadingDiagram = false;
 let detached = false;
 let documentDefaultUse = 'Referencia';
 let editSequence = 0;
+let browserDocumentVersion = 0;
 let saving = false;
 let keepDocumentDraft = null;
 let documentSelectionId = null;
@@ -228,26 +229,34 @@ function browserFileContext(name) {
 async function startStandalone() {
   standalone=true;project={name:'',files:[],diagrams:[]};window.fileMode='browser';
   byId('fileModeLink').hidden=true;
-  await newBrowserDiagram(true);window.projectReady=true;setInterval(pollFile,3000);
+  window.NaraInitialDocumentVersion = await newBrowserDiagram(true);window.projectReady=true;setInterval(pollFile,3000);
   status('Abre un BPMN o crea un proceso. Los archivos se manejan en tu equipo.');
 }
 async function newBrowserDiagram(force=false) {
+  if (!force && (!ready || loadingDiagram)) return status('Espera a que termine la apertura del archivo.');
   if (!force && (dirty||window.NaraPropertyDraftPending?.()) && !confirm('Hay cambios sin guardar. ¿Crear otro diagrama y descartarlos?')) return;
+  const version = ++browserDocumentVersion;
   await modeler.createDiagram();modeler.get('modeling').removeElements(modeler.get('elementRegistry').getAll().filter(e=>e.type==='bpmn:StartEvent'));const {xml}=await modeler.saveXML({format:true});
   await browserFiles.attach({name:'Sin título.bpmn',xml,handle:null});
   browserFileContext(browserFiles.name);await openDiagram(xml);byId('externalChange').hidden=true;
+  return version;
 }
-async function acceptBrowserSource(source) {
+async function acceptBrowserSource(source, canApply = () => true) {
   browserFiles.validate(source.xml);
   const previousDirty=dirty;
   const previous=ready ? (await modeler.saveXML({format:true})).xml : null;
+  if (!canApply()) return false;
+  browserDocumentVersion++;
   await openDiagram(source.xml);
   if(window.diagramError){const reason=window.diagramError;if(previous){await openDiagram(previous);setDirty(previousDirty);}throw new Error(reason);}
   await browserFiles.attach(source);browserFileContext(source.name);
   byId('externalChange').hidden=true;
   status(browserFiles.handle ? 'Archivo abierto. Guardar actualiza este archivo; se detectan cambios externos.' : 'Archivo abierto. Usa Guardar como para elegir destino.');
+  return true;
 }
 async function openBrowserFile() {
+  if (!ready || loadingDiagram) return status('Espera a que termine la apertura del archivo.');
+  browserDocumentVersion++;
   if (!window.showOpenFilePicker) {byId('open').click();return;}
   if ((dirty||window.NaraPropertyDraftPending?.()) && !confirm('Hay cambios sin guardar. ¿Abrir otro archivo y descartarlos?')) return;
   try {await acceptBrowserSource(await browserFiles.pickOpen());}
@@ -634,6 +643,7 @@ byId('exportSvg').onclick = () => exportSvg().catch(error => status(error.messag
 byId('exportPng').onclick = () => exportPng().catch(error => status(error.message));
 byId('open').onchange = async event => {
   const file = event.target.files[0];
+  if (file) browserDocumentVersion++;
   if (file && (!(dirty||window.NaraPropertyDraftPending?.()) || confirm('Hay cambios sin guardar. ¿Abrir el archivo y descartar esos cambios?'))) {
     try{await acceptBrowserSource({name:file.name,xml:await file.text(),handle:null});}catch(error){status(error.message);}
   }
@@ -737,4 +747,4 @@ window.addEventListener('beforeunload', event => { if (dirty||window.NaraPropert
 window.addEventListener('resize', () => modeler.get('canvas').resized());
 window.addEventListener('focus', () => pollFile());
 document.addEventListener('visibilitychange', () => {if(document.visibilityState==='visible')pollFile();});
-bootstrap().catch(error => { window.diagramError = error.message; status(error.message); });
+window.NaraStartup = bootstrap().catch(error => { window.diagramError = error.message; status(error.message); });
