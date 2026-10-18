@@ -51,7 +51,9 @@
       if (!types.includes(op.bpmnType) || !Number.isFinite(op.x) || !Number.isFinite(op.y)) throw error('INVALID_OPERATION', 'Tipo o posición inválidos.');
       const props = op.bpmnType === 'bpmn:TextAnnotation' ? { text: op.name || '' } : { name: op.name || '' };
       const businessObject = modeler.get('bpmnFactory').create(op.bpmnType, props);
-      const shape = factory.createShape({ type: op.bpmnType, businessObject, ...(op.bpmnType === 'bpmn:Participant' ? { isExpanded: true } : {}) });
+      const shape = op.bpmnType === 'bpmn:Participant'
+        ? factory.createParticipantShape({ businessObject, isExpanded: true })
+        : factory.createShape({ type: op.bpmnType, businessObject });
       const parent = op.parentId ? element(op.parentId) : canvas.getRootElement();
       if (!rules.allowed('shape.create', { shape, target: parent, position: { x: op.x, y: op.y } })) throw error('BPMN_RULE', 'No se permite crear ese elemento en el contenedor elegido.');
       affected = modeling.createShape(shape, { x: op.x, y: op.y }, parent);
