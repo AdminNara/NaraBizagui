@@ -53,6 +53,8 @@ El plugin **NaraBizagui by NaraLab**, distribuido mediante **Nara IA Market**, i
 
 El código de vínculo es de un solo uso y vence en cinco minutos. Solo se conecta la pestaña vinculada a esa instancia del plugin. **Desconectar** revoca el vínculo y conserva el trabajo. El puente no ofrece acceso general al disco ni habilita por sí solo uso móvil, acceso entre equipos o Microsoft Graph. Los datos que se consultan mediante MCP se entregan a la conversación del asistente.
 
+La misma pestaña recuerda su vínculo durante la sesión del navegador y lo recupera al recargar o ante cortes temporales, mientras el MCP local siga activo. Desconectar elimina ese vínculo recordado; reiniciar el servidor requiere uno nuevo. Recuperar la conexión no guarda ni restaura por sí solo un BPMN con cambios pendientes.
+
 La herramienta `narabizagui_export_png` devuelve la hoja activa completa como imagen al chat y como archivo temporal local, listo para incorporarlo a Word/PDF. Fondo blanco y escala ajustable, con límites de tamaño. Exportar no guarda el BPMN. Consulta los requisitos y herramientas en [el plugin](plugins/narabizagui/README.md).
 
 ## Recursos
