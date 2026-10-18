@@ -186,7 +186,11 @@
       window.naraAutoSave?.reset();
       return { saved: true, storage: handle.storageKind === 'microsoft' ? 'microsoft' : 'local', savedRevision: expectedRevision, revision, sha256, fileName: browserFiles.name, dirty };
     } catch (cause) {
-      if (cause.code === 'EXTERNAL_CHANGE') showExternalChange(cause.message);
+      if(cause.code==='EXTERNAL_CHANGE'){
+        saving=false;filePolling=true;
+        try{if(await combineBrowserSource(await browserFiles.read()))throw error('REVISION_CONFLICT','Se combinaron cambios compartidos. Lee la nueva revisión antes de confirmar otro guardado mediante Codex.');}
+        finally{filePolling=false;}
+      }
       else window.naraAutoSave?.block(cause);
       throw cause;
     } finally { saving = false; window.naraAutoSave?.refresh(); }

@@ -138,6 +138,7 @@ let saving = false;
 let keepDocumentDraft = null;
 let documentSelectionId = null;
 let standalone = false;
+let syncNoticeHandle = null;
 const browserFiles = new BrowserBpmnFiles();
 window.browserBpmnFiles = browserFiles;
 function fileUrl(file) { return file.url; }
@@ -223,6 +224,7 @@ async function bootstrap() {
 function browserFileContext(name) {
   detached=true;activeDiagram=null;files=[];baseSha256=null;
   const microsoft = browserFiles.handle?.storageKind === 'microsoft';
+  if(syncNoticeHandle&&syncNoticeHandle!==browserFiles.handle){byId('syncNotice').hidden=true;syncNoticeHandle=null;}
   byId('projectName').textContent=microsoft ? 'Microsoft' : 'Archivo';byId('diagramTitle').textContent=name;byId('diagramTitle').title=name;
   document.title=name+' · NaraBizagui by NaraLab';
   byId('diagramSelect').hidden=true;byId('reloadDiagram').disabled=!browserFiles.handle;
@@ -244,7 +246,7 @@ async function newBrowserDiagram(force=false) {
   browserFileContext(browserFiles.name);await openDiagram(xml);byId('externalChange').hidden=true;
   return version;
 }
-async function acceptBrowserSource(source, canApply = () => true, preserveView = false) {
+async function acceptBrowserSource(source, canApply = () => true, preserveView = false, savedSource = source) {
   browserFiles.validate(source.xml);
   const previousDirty=dirty;
   const previous=ready ? (await modeler.saveXML({format:true})).xml : null;
@@ -254,7 +256,7 @@ async function acceptBrowserSource(source, canApply = () => true, preserveView =
   browserDocumentVersion++;
   await openDiagram(source.xml);
   if(window.diagramError){const reason=window.diagramError;if(previous){await openDiagram(previous);setDirty(previousDirty);}throw new Error(reason);}
-  await browserFiles.attach(source);browserFileContext(source.name);
+  await browserFiles.attach(savedSource);browserFileContext(source.name);
   if(view&&modeler.get('naraSheets').list().some(sheet=>sheet.id===view.sheet)){
     modeler.get('naraSheets').open(view.sheet);
     if(view.erd)window.NaraER.restoreView(view.box);else canvas.viewbox(view.box);
@@ -271,14 +273,15 @@ async function openBrowserFile() {
   try {await acceptBrowserSource(await browserFiles.pickOpen());}
   catch(error){if(error.name!=='AbortError')status(error.message);}
 }
-async function saveBrowserFile(saveAs=false,automatic=false) {
-  if(saving || window.NaraMicrosoftDialogOpen)return;
+async function saveBrowserFile(saveAs=false,automatic=false,attempt=0) {
+  if(saving || loadingDiagram || filePolling || window.NaraMicrosoftDialogOpen)return false;
   if(window.NaraPropertyDraftPending?.()){if(automatic)throw Object.assign(new Error('Termina la edición pendiente para guardar.'),{code:'AUTO_DEFERRED'});status('Aplica o cierra la edición pendiente antes de guardar.');return;}
   const originalHandle=browserFiles.handle,version=browserDocumentVersion;
   if(automatic&&!originalHandle)return false;
   const microsoft=browserFiles.handle?.storageKind==='microsoft';
   if (microsoft && saveAs) {window.NaraMicrosoftUI.saveAs();return;}
   if(!automatic&&!microsoft&&!window.showSaveFilePicker&&(saveAs||!originalHandle)){await exportBpmn();status('Este navegador descarga una copia. El guardado automático local requiere autorizar un archivo en un navegador compatible.');return false;}
+  let retry=false;
   try {
     saving=true;window.naraAutoSave?.refresh();
     // El selector debe abrirse desde el clic, antes de preparar el XML.
@@ -296,14 +299,67 @@ async function saveBrowserFile(saveAs=false,automatic=false) {
     browserFileContext(browserFiles.name);byId('externalChange').hidden=true;
     status((automatic?'Guardado automático':'Archivo guardado')+(microsoft?' en Microsoft · Contenido comprobado.':' en archivo local · Contenido comprobado.'));
     window.naraAutoSave?.reset();return true;
-  } catch(error){if(error.code==='EXTERNAL_CHANGE')showExternalChange(error.message);if(error.name!=='AbortError'&&error.code!=='AUTO_DEFERRED')status(error.message);if(automatic)throw error;if(error.name!=='AbortError')window.naraAutoSave?.block(error);return false;}
+  } catch(error){
+    let combined=false;
+    if(error.code==='EXTERNAL_CHANGE'&&!saveAs&&originalHandle){
+      saving=false;filePolling=true;
+      try{
+        const source=await browserFiles.read();
+        if(version!==browserDocumentVersion||browserFiles.handle!==originalHandle)throw Object.assign(new Error('El archivo cambió durante la sincronización.'),{code:'FILE_CHANGED'});
+        combined=await combineBrowserSource(source);
+        if(!combined)error=Object.assign(new Error('La sincronización continuará al terminar la edición pendiente.'),{code:'AUTO_DEFERRED'});
+      }catch(cause){error=cause;}finally{filePolling=false;}
+    }
+    if(combined){retry=!automatic&&attempt<2;window.naraAutoSave?.reset();}
+    else{
+      if(error.code==='EXTERNAL_CHANGE')showExternalChange(error.message);
+      if(error.name!=='AbortError'&&error.code!=='AUTO_DEFERRED')status(error.message);
+      if(automatic)throw error;
+      if(error.name!=='AbortError'&&error.code!=='AUTO_DEFERRED')window.naraAutoSave?.block(error);
+    }
+  }
   finally{saving=false;window.naraAutoSave?.refresh();}
+  if(retry)return saveBrowserFile(false,false,attempt+1);
+  return false;
 }
 async function reloadBrowserFile() {
   if(!browserFiles.handle){status('Abre el archivo de nuevo para leer su última versión.');return;}
   if((dirty||window.NaraPropertyDraftPending?.()) && !confirm('Hay cambios sin guardar. ¿Cargar el archivo y descartarlos?'))return;
   loadingDiagram=true;
   try{await acceptBrowserSource(await browserFiles.read());if(browserFiles.handle?.storageKind==='microsoft')browserFiles.handle.uncertain=false;}catch(error){status(error.message);}finally{loadingDiagram=false;}
+}
+function browserEditPending(){return Boolean(window.NaraPropertyDraftPending?.()||autoSavePointer||modeler.get('directEditing').isActive()||byId('sheetDialog').open);}
+async function combineBrowserSource(source,canApply=()=>true){
+  const handle=browserFiles.handle,version=browserDocumentVersion,sequence=editSequence;
+  const current=()=>handle&&browserFiles.handle===handle&&browserDocumentVersion===version&&sequence===editSequence&&!saving&&ready&&!browserEditPending()&&canApply();
+  if(!current())return false;
+  const {xml:local}=await modeler.saveXML({format:true});
+  if(!current())return false;
+  let result;
+  try{result=window.NaraBpmnMerge.merge(browserFiles.baseXml,local,source.xml);}
+  catch(error){if(error.code!=='MERGE_INVALID')throw error;result={xml:source.xml,conflicts:[{path:'document'}],hasLocalChanges:false};}
+  if(result.hasLocalChanges){
+    try{const parsed=await modeler.get('moddle').fromXML(result.xml);if(parsed.warnings.length)throw new Error('Referencias pendientes.');}
+    catch{result={xml:source.xml,conflicts:[{path:'references'}],hasLocalChanges:false};}
+  }
+  if(!current())return false;
+  const recovery=result.conflicts.length?await browserFiles.preserveRecovery(local,handle):null;
+  if(!current())return false;
+  loadingDiagram=true;
+  try{
+    if(!await acceptBrowserSource({...source,xml:result.xml},current,true,source))return false;
+    if(handle.storageKind==='microsoft'){
+      try{handle.store.assertAccount(handle.accountId);}
+      catch(error){if(browserFiles.handle===handle){browserFiles.handle=null;browserFiles.hash=null;browserFileContext(browserFiles.name);setDirty(true);}throw error;}
+    }
+    setDirty(result.hasLocalChanges);window.naraAutoSave?.reset();
+    if(recovery){
+      syncNoticeHandle=handle;byId('syncNotice').hidden=false;
+      byId('syncNoticeText').textContent='Cambios sincronizados. Para los cambios incompatibles se mantuvo el valor compartido. Tu versión completa está en '+(recovery.storage==='microsoft'?'la misma carpeta de Microsoft: ':'Historial local: ')+recovery.name;
+    }
+    status(result.hasLocalChanges?'Cambios combinados automáticamente. Guardado pendiente.':'Cambios sincronizados automáticamente.');
+    return true;
+  }finally{loadingDiagram=false;window.naraAutoSave?.refresh();}
 }
 async function pollBrowserFile() {
   if(!browserFiles.handle || filePolling || loadingDiagram || saving || !ready || autoSavePointer || modeler.get('directEditing').isActive())return;
@@ -319,11 +375,12 @@ async function pollBrowserFile() {
     const same=()=>browserFiles.handle===handle&&browserDocumentVersion===version;
     if(!same() || saving || loadingDiagram)return;
     handle.pollDelay=15000;
-    if(!source || source.hash===browserFiles.hash)return;
-    const canUpdate=()=>same()&&!saving&&!dirty&&editSequence===sequence&&!window.NaraPropertyDraftPending?.()&&!autoSavePointer&&!modeler.get('directEditing').isActive();
-    if(!canUpdate())showExternalChange();
+    if(!source)return;
+    if(source.hash===browserFiles.hash){if(microsoft)browserFiles.version=handle.etag;return;}
+    const canUpdate=()=>same()&&!saving&&editSequence===sequence&&!browserEditPending();
+    if(!canUpdate())status('Hay cambios compartidos pendientes. Se combinarán al terminar tu edición.');
+    else if(dirty)await combineBrowserSource(source,canUpdate);
     else if(await acceptBrowserSource(source,canUpdate,true))status(microsoft?'Cambios de Microsoft actualizados automáticamente.':'Cambios del archivo actualizados automáticamente.');
-    else if(same())showExternalChange();
   }catch(error){
     if(browserFiles.handle!==handle||browserDocumentVersion!==version)return;
     if(microsoft)handle.pollDelay=error.code==='THROTTLED'?Math.max(error.retryAfterMs||60000,15000):Math.min((handle.pollDelay||15000)*2,120000);
@@ -673,6 +730,7 @@ byId('diagramSelect').onchange = event => loadProjectDiagram(event.target.value)
 byId('reloadDiagram').onclick = () => (detached ? reloadBrowserFile() : loadProjectDiagram(activeDiagram?.id || project.defaultDiagram)).catch(error => status(error.message));
 byId('exportLocalChanges').onclick = () => exportBpmn().catch(error => status(error.message));
 byId('loadDiskChanges').onclick = () => (detached ? reloadBrowserFile() : loadProjectDiagram(activeDiagram?.id || project.defaultDiagram)).catch(error => status(error.message));
+byId('closeSyncNotice').onclick=()=>{byId('syncNotice').hidden=true;syncNoticeHandle=null;};
 byId('exportSvg').onclick = () => exportSvg().catch(error => status(error.message));
 byId('exportPng').onclick = () => exportPng().catch(error => status(error.message));
 byId('open').onchange = async event => {

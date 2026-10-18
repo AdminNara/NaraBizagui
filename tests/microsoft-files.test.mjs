@@ -55,6 +55,14 @@ test('Microsoft throttling exposes Retry-After for the polling backoff',async()=
   const files=new MicrosoftFiles(auth,async()=>new Response('',{status:429,headers:{'Retry-After':'90'}}));
   await assert.rejects(()=>files.request('me/drive'),{code:'THROTTLED',retryAfterMs:90000});
 });
+test('recovery copies use the original folder, a unique bounded name and the original account',async()=>{
+  const f=fixture();f.handle.parent={id:'generic-folder'};f.handle.name='A'.repeat(190)+'.bpmn';const calls=[];
+  f.store.create=async(folder,name,xml)=>{calls.push({folder,name,xml});return{name};};
+  await f.handle.recoveryCopy('<definitions/>');await f.handle.recoveryCopy('<definitions/>');
+  assert.equal(calls[0].folder.id,'generic-folder');assert.equal(calls[0].folder.driveId,'drive-1');assert.ok(calls[0].name.length<=200);assert.notEqual(calls[0].name,calls[1].name);
+  f.handle.parent=null;f.handle.getFile=async()=>{f.handle.parent={id:'generic-folder'};f.auth.account={homeAccountId:'other'};};
+  await assert.rejects(()=>f.handle.recoveryCopy('<definitions/>'),{code:'ACCOUNT_CHANGED'});assert.equal(calls.length,2);
+});
 test('a changed account cannot read or save another account file', async () => {
   const f = fixture(); await f.handle.getFile(); f.auth.account.homeAccountId = 'other-user';
   await assert.rejects(() => f.handle.getFile(), { code: 'ACCOUNT_CHANGED' });

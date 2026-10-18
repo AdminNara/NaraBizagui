@@ -1,10 +1,10 @@
 {
-  "index.html": "d9fdb47782708f370920439d684a1fd0ee747b89565b42fa11fb3fffb6de85d2",
-  "modelador.js": "5de0dc6776e28954dea4e2c9b767beafc40763727a3ce996f5d01493682fba65",
+  "index.html": "f0e31ff9b52f7a55cc8361cc46c26dfe717bd01022a1b20ee7024bdb036d6ba0",
+  "modelador.js": "cd6b53a2f5b2fd49129f3512a92da52a5927864963c58923776437e092397442",
   "modelador.css": "eded976f317bf3278e5add31b0dbada618bee8775190fbb6e142c1cc6a791b12",
-  "archivos.js": "5ce61a71b178451f014d6cd63e117b9716f0a59e6515e8858565e9cc45d86da2",
+  "archivos.js": "283c1b72bfdaa48e849f2910eb35471c4550df0873d090fc477f4874c4edc3f6",
   "autoguardado.js": "487f033c16da66ee92038ad202265f547ba40b615b446caa169be9e5d3d5e88b",
-  "mcp-editor.js": "c47994864eb4cd21290744d46ccd23116968c904ab7296c3ffe2784a1e2ebf0a",
+  "mcp-editor.js": "0a7c51489c9d5c20432b161de316bee18f9da45902675e73381eca5bca058b12",
   "mcp-bridge.js": "80dc1ddad7ae993fcd951d7f934718566b1f4b7a29ec6433af1e3a10101706f5",
   "editor-tools.js": "83825ac60d4d10407c73dea2c015582cac2b19536d13cfd77b924ac46c6adfee",
   "sheets.js": "976ea816940c20769d749fa23cf87ed2dba67411b940bfec02daf11540ddb8dc",
@@ -20,11 +20,12 @@
   "vendor/sheets-import.js": "c0b00ddb98c9b5c3b0131f369a604a3b8c16ac969cb8fbe30fd05b3178f55361",
   "vendor/bpmn-js.css": "b09861c8e703076475cb6d406dc396c7c8bf3046512cdf07231bf418ec3be30d",
   "vendor/SHEETS_LICENSES.txt": "0834b4df15a8b2056988e10f6864b8ace7475cec3ab2c4285ad0ca61c7c05a35",
+  "bpmn-merge.js": "1a79451bae0e236f9a3d553e277d21af8f37924aeabb0b4a0c1c6f63d09fed31",
   "editor-properties.js": "345133142175ca4cc7d56cb0acf7cfe2a34711461b0728200ffa39ee96f8a8aa",
   "microsoft-ui.js": "05235e1073abb1757abc8477c4d0ca4a639bfe1438f589e117b661679600ee7a",
   "microsoft-auth.html": "23c74851714b3143fd6f3ff1a4f67d8f6a2176f123fcc6e7ea74896bea0fbb87",
   "assets/microsoft-symbol.svg": "929f48f88c8ca7f3f5d294be47ec4caf51acc28ac25340c19a903125d7ecd84a",
-  "vendor/microsoft-client.js": "635acf4e431d6502e4cdfc0376fbe2c92727774d9f7215356a45e957a2d9d402",
+  "vendor/microsoft-client.js": "23361f8ab4afb47a8072a607589854796dc256bf00934f745a3e0f11edd28ef9",
   "vendor/microsoft-auth.js": "f84cbab0d36dd18624baaa3629922b81b5e42a6f977bfaca6e5d70e4dda4a511",
   "vendor/MICROSOFT_LICENSES.txt": "482d6621b7ef61c7f575247df6316c2c28f735b2477bd575f6391dbefb257d73"
 }

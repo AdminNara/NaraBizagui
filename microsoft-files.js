@@ -101,6 +101,14 @@ export class MicrosoftFileHandle {
   endpoint() { return `drives/${id(this.driveId)}/items/${id(this.itemId)}`; }
   async queryPermission() { return this.store.auth.account?.homeAccountId === this.accountId ? 'granted' : 'prompt'; }
   async requestPermission() { return this.queryPermission(); }
+  async recoveryCopy(xml) {
+    this.store.assertAccount(this.accountId);
+    if(!this.parent?.id)await this.getFile();
+    if(!this.parent?.id)throw problem('INVALID_TARGET','No se pudo localizar la carpeta para conservar la copia de recuperación.');
+    const suffix=' - recuperado '+new Date().toISOString().replace(/[:.]/g,'-')+' '+crypto.randomUUID().slice(0,8)+'.bpmn';
+    this.store.assertAccount(this.accountId);
+    return this.store.create({driveId:this.driveId,id:this.parent.id},this.name.replace(/\.bpmn$/i,'').slice(0,200-suffix.length)+suffix,xml);
+  }
   async isSameEntry(other) { return other?.storageKind === 'microsoft' && this.accountId === other.accountId && this.driveId === other.driveId && this.itemId === other.itemId; }
   async getFile({ifChangedSince=null}={}) {
     this.store.assertAccount(this.accountId);

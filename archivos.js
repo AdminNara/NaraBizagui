@@ -1,7 +1,7 @@
 'use strict';
 // Solo maneja archivos elegidos por el usuario. No sube BPMN a la web.
 class BrowserBpmnFiles {
-  constructor() { this.handle=null; this.hash=null; this.version=null; this.name='Sin título.bpmn'; this.busy=false; this.uncertain=null; }
+  constructor() { this.handle=null; this.hash=null; this.version=null; this.baseXml=null; this.recoveries=new Map(); this.name='Sin título.bpmn'; this.busy=false; this.uncertain=null; }
   async digest(xml) {
     const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(xml));
     return Array.from(new Uint8Array(bytes),b=>b.toString(16).padStart(2,'0')).join('');
@@ -16,7 +16,7 @@ class BrowserBpmnFiles {
     const file=await handle.getFile(),xml=await file.text(); this.validate(xml);
     return {handle,name:file.name,xml,hash:await this.digest(xml)};
   }
-  async attach(source) { this.handle=source.handle||null;this.name=source.name;this.hash=source.hash||await this.digest(source.xml);this.version=this.handle?.etag||null;this.uncertain=null; }
+  async attach(source) { this.handle=source.handle||null;this.name=source.name;this.hash=source.hash||await this.digest(source.xml);this.baseXml=source.xml;this.version=this.handle?.etag||null;this.uncertain=null; }
   async read({onlyChanged=false}={}) {
     if (!this.handle) return null;
     const file=await this.handle.getFile(onlyChanged&&this.handle.storageKind==='microsoft'?{ifChangedSince:this.version}:undefined);
@@ -50,6 +50,18 @@ class BrowserBpmnFiles {
       request.onsuccess=()=>resolve(request.result.sort((a,b)=>b.date.localeCompare(a.date)));request.onerror=()=>reject(request.error);
     });}finally{db.close();}
   }
+  async preserveRecovery(xml,handle=this.handle) {
+    this.validate(xml);const hash=await this.digest(xml),key=(handle?.storageKind==='microsoft'?handle.accountId+'|'+handle.driveId+'|'+handle.itemId:this.name)+'|'+hash;
+    if(this.recoveries.has(key)){const previous=this.recoveries.get(key);if(previous.error)throw previous.error;return previous;}
+    let result;
+    if(handle?.storageKind==='microsoft'){
+      try{result={storage:'microsoft',name:(await handle.recoveryCopy(xml)).name};}
+      catch(error){if(error.code==='SAVE_UNCERTAIN'){if(this.recoveries.size>=20)this.recoveries.delete(this.recoveries.keys().next().value);this.recoveries.set(key,{error});}throw error;}
+    }
+    else{const name=this.name.replace(/\.bpmn$/i,'')+' - copia recuperada.bpmn';await this.backup({name,xml,hash});result={storage:'history',name};}
+    if(this.recoveries.size>=20)this.recoveries.delete(this.recoveries.keys().next().value);
+    this.recoveries.set(key,result);return result;
+  }
   async save(xml,handle=this.handle,{canCommit=()=>true}={}) {
     this.validate(xml);
     if (this.busy) throw new Error('Ya hay un guardado en curso.');
@@ -71,7 +83,7 @@ class BrowserBpmnFiles {
       guard();await writable.write(xml);guard();closing=true;await writable.close();writable=null;
       const persisted=await handle.getFile(),savedHash=await this.digest(await persisted.text());
       if(savedHash!==await this.digest(xml))throw Object.assign(new Error('No se pudo comprobar el contenido guardado. Recarga antes de volver a guardar.'),{code:'SAVE_NOT_VERIFIED'});
-      guard();this.handle=handle;this.name=handle.name;this.hash=savedHash;this.version=handle.etag||null;this.uncertain=null;
+      guard();this.handle=handle;this.name=handle.name;this.hash=savedHash;this.baseXml=xml;this.version=handle.etag||null;this.uncertain=null;
     };
     try{
       const locks=typeof navigator!=='undefined'&&navigator.locks;
