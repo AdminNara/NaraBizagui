@@ -59,7 +59,23 @@
       if (!visual) return hide();
       const box = visual.getBoundingClientRect(), container = host.getBoundingClientRect();
       Object.assign(layer.style, { left: box.left - container.left + 'px', top: box.top - container.top + 'px', width: box.width + 'px', height: box.height + 'px' });
-      const stageActions=layer.querySelector('.nara-stage-actions');if(stageActions)stageActions.style.top=box.top-container.top>44?'-40px':'36px';
+      const stageOptions=layer.querySelector('.nara-stage-options');
+      if(stageOptions){
+        const inset=6,clamp=(value,size,max)=>Math.max(inset,Math.min(value,max-size-inset));
+        const width=stageOptions.offsetWidth,height=stageOptions.offsetHeight;
+        let left=box.right-container.left+7;
+        if(left+width>container.width-inset)left=box.left-container.left-width-7;
+        left=clamp(left,width,container.width);let top=clamp(box.top-container.top+6,height,container.height);
+        if(left<box.right-container.left&&left+width>box.left-container.left){const below=box.top-container.top+36;top=clamp(below+height<=container.height-inset?below:box.top-container.top-height-6,height,container.height);}
+        Object.assign(stageOptions.style,{left:left-(box.left-container.left)+'px',top:top-(box.top-container.top)+'px'});
+        const more=layer.querySelector('.nara-tools-more'),moreTop=box.top-container.top-29;
+        Object.assign(more.style,{left:clamp(box.right-container.left+7,25,container.width)-(box.left-container.left)+'px',top:(moreTop>=inset?moreTop:clamp(top+height+6,24,container.height))-(box.top-container.top)+'px',bottom:'auto'});
+        for(const add of layer.querySelectorAll('[data-add-direction]')){
+          const x=add.dataset.addDirection==='left'?box.left-container.left-37:box.right-container.left+7;
+          const middle=(Math.max(box.top,container.top)+Math.min(box.bottom,container.bottom))/2;
+          Object.assign(add.style,{left:clamp(x,30,container.width)-(box.left-container.left)+'px',right:'auto',top:clamp(middle-container.top-15,30,container.height)-(box.top-container.top)+'px'});
+        }
+      }
     }
     function chooseSide(event) {
       if (!current || current.waypoints || !event) return;
@@ -126,9 +142,9 @@
       if (name === 'bpmn-replace' && window.NaraPropertyDraftPending?.()) return report('Aplica los cambios de Propiedades antes de cambiar el tipo.');
       selection.select(element);
       const box = anchor?.getBoundingClientRect();
-      const width=name==='nara-stage-split'?280:230;
+      const width=230;
       if (box?.width) lastMenuPoint = { x: Math.max(8,Math.min(box.right + 6, innerWidth - width - 8)), y: Math.max(8,Math.min(box.top, innerHeight - 280)) };
-      popupMenu.open(element, name, lastMenuPoint || { x: 250, y: 250 }, { title: name === 'bpmn-replace' ? 'Tipo de elemento' : name==='nara-stage-split'?'Dividir etapa':'Más acciones', width, search: false });
+      popupMenu.open(element, name, lastMenuPoint || { x: 250, y: 250 }, { title: name === 'bpmn-replace' ? 'Tipo de elemento' : 'Más acciones', width, search: false });
     }
     function show(element, original) {
       if(element.labelTarget?.type==='bpmn:Group'&&element.labelTarget.id.startsWith(window.NaraStagePrefix?.()||'Stage_'))element=element.labelTarget;
@@ -168,12 +184,13 @@
             add.onclick = event => { event.stopPropagation(); safe(() => { if (window.NaraPropertyDraftPending?.()) throw Error('Aplica o descarta el texto pendiente en Propiedades.'); action(); hide(); }); };
             layer.appendChild(add);
           }
-          if(stage){const panel=document.createElement('div');panel.className='nara-quick-options nara-stage-actions';const split=button('Dividir etapa','nara-stage-split-button','Dividir etapa ▾');split.onclick=()=>safe(()=>{if(window.NaraPropertyDraftPending?.())throw Error('Aplica la edición pendiente.');menu(element,'nara-stage-split',split);});panel.appendChild(split);layer.appendChild(panel);}
-          const split = ['lane-divide-two','lane-divide-three'].filter(id => entries[id]);
+          const split = (stage?['stage-divide-two','stage-divide-three']:['lane-divide-two','lane-divide-three']).filter(id => entries[id]);
           if (split.length) {
-            const panel = document.createElement('div'); panel.className = 'nara-quick-options nara-lane-options';
+            const panel = document.createElement('div'); panel.className = 'nara-quick-options '+(stage?'nara-stage-options':'nara-lane-options');panel.setAttribute('aria-label',stage?'Dividir etapa en columnas':'Dividir participante en carriles');
             for (const id of split) {
-              const option = button(entries[id].title,entries[id].className); option.dataset.laneAction = id;
+              const entry=entries[id],option = button(entry.title,stage?'nara-stage-split-option':entry.className);
+              if(stage){const icon=document.createElement('span');icon.className=entry.className+' nara-column-split-icon';icon.setAttribute('aria-hidden','true');option.appendChild(icon);option.dataset.stageSplit=id==='stage-divide-two'?'2':'3';option.disabled=entry.disabled;if(entry.disabled)option.title=entry.title+'. Amplía la etapa a '+Number(option.dataset.stageSplit)*80+' px de ancho.';}
+              else option.dataset.laneAction = id;
               option.onclick = event => safe(() => { if (window.NaraPropertyDraftPending?.()) throw Error('Aplica o descarta el texto pendiente en Propiedades.'); entries[id].action.click(event,element); hide(); });
               panel.appendChild(option);
             }
@@ -206,6 +223,10 @@
     }
     this.getContextPadEntries = element => entries => {
       const result = Object.fromEntries(Object.entries(entries).map(([id,entry]) => [id,{ ...entry, title: labels[id] || entry.title }]));
+      if(element.type==='bpmn:Group'&&element.id.startsWith(window.NaraStagePrefix?.()||'Stage_'))for(const [count,name]of [[2,'two'],[3,'three']])result['stage-divide-'+name]={
+        className:'bpmn-icon-lane-divide-'+name,title:'Dividir en '+count+' columnas iguales',disabled:element.width/count<80,
+        action:{click:()=>{if(window.NaraPropertyDraftPending?.())throw Error('Aplica la edición pendiente.');eventBus.fire('nara.stage.split',{element,count});}}
+      };
       result.properties = { className: 'bpmn-icon-screw-wrench', title: 'Propiedades', action: { click: () => { selection.select(element); eventBus.fire('nara.properties', { element }); } } };
       if (result.replace) result.replace.action = { click: () => menu(element,'bpmn-replace',layer.querySelector('.nara-tools-more')) };
       if (['bpmn:SubProcess','bpmn:CallActivity'].includes(element.type)) result['nara.openSubprocess'] = { className: 'bpmn-icon-subprocess-collapsed', title: 'Abrir hoja del subproceso', action: { click: () => eventBus.fire('nara.openSubprocess', { element }) } };
@@ -214,7 +235,7 @@
     this.getPopupMenuEntries = element => {
       const entries = actions.get(element) || {};
       return Object.fromEntries(Object.entries(entries).filter(([id]) => !shapes[id]).map(([id, entry]) => [id, {
-        label: entry.title, className: entry.className,
+        label: entry.title, className: entry.className, disabled:entry.disabled,
         action: event => { popupMenu.close(); entry.action?.click?.(event, element); }
       }]));
     };
@@ -233,10 +254,6 @@
     eventBus.on('diagram.destroy', () => { clearTimeout(hideTimer); clearTimeout(clickTimer); layer.remove(); });
     contextPad.registerProvider(500, this);
     popupMenu.registerProvider('nara-actions', this);
-    popupMenu.registerProvider('nara-stage-split',{getPopupMenuEntries:element=>Object.fromEntries([2,3].map(count=>['split-stage-'+count,{
-      label:'Dividir en '+count+' columnas iguales',description:element.width/count<80?'Amplía la etapa a '+count*80+' px de ancho para dividirla.':'Conserva el ancho total de la etapa.',
-      disabled:element.width/count<80,action:()=>safe(()=>{if(window.NaraPropertyDraftPending?.())throw Error('Aplica la edición pendiente.');popupMenu.close();eventBus.fire('nara.stage.split',{element,count});hide();})
-    }]))});
   }
   DirectionTools.$inject = ['contextPad','popupMenu','eventBus','canvas','elementRegistry','elementFactory','modeling','rules','connect','create','dragging','selection'];
   window.NaraEditorTools = { __init__: ['naraDocumentSymbols','naraDirectionTools'], naraDocumentSymbols: ['type',DocumentSymbols], naraDirectionTools: ['type', DirectionTools] };
