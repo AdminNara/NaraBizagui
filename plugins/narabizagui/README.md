@@ -18,17 +18,19 @@ En un chat con el plugin activo pide conectar NaraBizagui. En la pestaña del BP
 | --- | --- |
 | `narabizagui_connect` | Código y enlace de vinculación. |
 | `narabizagui_sessions` | Pestañas vinculadas a esta instancia. |
-| `narabizagui_read` | Revisión, elementos, selección, guardado y XML opcional. |
-| `narabizagui_edit` | Una operación nativa con revisión obligatoria y deshacer. |
+| `narabizagui_read` | Revisión, hojas, elementos de la hoja activa, selección, guardado y XML completo opcional. |
+| `narabizagui_edit` | Una operación nativa con revisión obligatoria y deshacer; incluye crear, renombrar, abrir y vincular hojas. |
 | `narabizagui_save` | Guardado en el archivo autorizado, historial y comprobación. |
-| `narabizagui_export_png` | Imagen completa para el chat y archivo PNG temporal para Word/PDF. |
+| `narabizagui_export_png` | Hoja activa completa para el chat y archivo PNG temporal para Word/PDF. |
 | `narabizagui_disconnect` | Revocar una pestaña sin perder su trabajo. |
 
 El puente escucha únicamente en `127.0.0.1`, en un puerto asignado al arrancar. Solo acepta el origen de la web publicada, exige un código aleatorio de un solo uso y autentica cada sesión. No permite ejecución de JavaScript arbitrario ni acceso general al disco. Los comandos que no reciben confirmación no se repiten automáticamente.
 
 El puente es local; los datos consultados mediante MCP se entregan a la conversación del asistente. La web no publica los BPMN en GitHub. El historial está en el navegador, no en el market. El uso desde móviles, el control de otros equipos y Microsoft Graph requieren integraciones distintas.
 
-El PNG tiene fondo blanco y escala ajustable (2 por defecto); se limita a 8192 píxeles por lado, 16 megapíxeles y 8 MB. Incluye todo el diagrama, sin barras ni paneles del editor. El MCP devuelve un bloque de imagen para que el asistente pueda verlo y un `filePath` con hash y revisión. Ese archivo se crea en la carpeta temporal del sistema bajo `NaraBizagui/exports`, con nombre único; el chat puede copiarlo a la ubicación del informe. Exportar PNG no guarda el BPMN ni acredita validación del proceso.
+Un archivo puede tener procesos independientes y detalles de subprocesos en planos BPMN nativos. `sheet_link` usa una actividad de llamada para reutilizar otra hoja y protege subprocesos que ya tienen contenido. La navegación cambia la revisión; guardar conserva todas las hojas.
+
+El PNG tiene fondo blanco y escala ajustable (2 por defecto); se limita a 8192 píxeles por lado, 16 megapíxeles y 8 MB. Incluye toda la hoja activa, sin barras ni paneles del editor. El MCP devuelve un bloque de imagen para que el asistente pueda verlo y un `filePath` con hash, revisión, `sheetId` y `sheetName`. Ese archivo se crea en la carpeta temporal del sistema bajo `NaraBizagui/exports`, con nombre único; el chat puede copiarlo a la ubicación del informe. Exportar PNG no guarda el BPMN ni acredita validación del proceso.
 
 ## Construcción
 

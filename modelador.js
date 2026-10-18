@@ -12,7 +12,7 @@ function DocumentPalette(palette) {
     function addStage() {
       next['create.project-stage'] = {
         group: 'swimlanes', className: 'project-stage-tool', title: 'Etapa',
-        action: {click: () => appendStage()}
+        action: {click: event => beginStage(event), dragstart: event => beginStage(event)}
       };
     }
     let added = false;
@@ -20,6 +20,7 @@ function DocumentPalette(palette) {
       if (id === 'create.data-object') { addDocuments(); added = true; continue; }
       if (id !== 'create.data-store') {
         next[id] = {...entry};
+        if (id === 'create.subprocess-expanded') { next[id].className = 'bpmn-icon-subprocess-collapsed'; next[id].action = {click: event => beginSubprocess(event), dragstart: event => beginSubprocess(event)}; }
         if (/^create\.(start-event|intermediate-event|end-event|exclusive-gateway|task|subprocess-expanded)$/.test(id)) next[id].group='flow';
         if (id==='create.participant-expanded') { next[id].group='swimlanes';addStage(); }
       }
@@ -34,7 +35,7 @@ function DocumentPalette(palette) {
 DocumentPalette.$inject = ['palette'];
 const documentPaletteModule = {__init__: ['projectDocumentPalette'], projectDocumentPalette: ['type', DocumentPalette]};
 const modeler = new BpmnJS({
-  additionalModules: [documentPaletteModule],
+  additionalModules: [documentPaletteModule, window.NaraEditorTools, window.NaraSheetsModule],
   container: '#canvas',
   textRenderer: {
     defaultStyle: {fontFamily: 'Arial', fontSize: 16},
@@ -47,8 +48,9 @@ window.diagramError = null;
 // Agrupa los cambios nativos para poder deshacer toda la columna en un paso.
 function AddStageHandler(modeling, elementFactory, bpmnFactory, canvas, elementRegistry) {
   this.preExecute = context => {
-    const stages = elementRegistry.getAll().filter(isStage).sort((a,b) => a.x-b.x);
-    const pools = elementRegistry.getAll().filter(e => e.type === 'bpmn:Participant');
+    const current = canvas.getRootElement();
+    const stages = elementRegistry.getAll().filter(e => isStage(e) && canvas.findRoot(e) === current).sort((a,b) => a.x-b.x);
+    const pools = elementRegistry.getAll().filter(e => e.type === 'bpmn:Participant' && canvas.findRoot(e) === current);
     const first = stages[0], last = stages.at(-1);
     const x = last ? Math.max(...stages.map(e => e.x+e.width)) : pools.length ? Math.min(...pools.map(e => e.x))+60 : 140;
     const y = first ? Math.min(...stages.map(e => e.y)) : pools.length ? Math.min(...pools.map(e => e.y))-64 : 75;
@@ -64,7 +66,7 @@ function AddStageHandler(modeling, elementFactory, bpmnFactory, canvas, elementR
     for (const pool of pools) {
       if (pool.x+pool.width < x+width) modeling.resizeShape(pool,{x:pool.x,y:pool.y,width:x+width-pool.x,height:pool.height});
     }
-    for (const lane of elementRegistry.getAll().filter(e => e.type === 'bpmn:Lane')) {
+    for (const lane of elementRegistry.getAll().filter(e => e.type === 'bpmn:Lane' && canvas.findRoot(e) === current)) {
       if (lane.x+lane.width < x+width) modeling.resizeShape(lane,{x:lane.x,y:lane.y,width:x+width-lane.x,height:lane.height});
     }
   };
@@ -74,6 +76,20 @@ function AddStageHandler(modeling, elementFactory, bpmnFactory, canvas, elementR
 AddStageHandler.$inject = ['modeling','elementFactory','bpmnFactory','canvas','elementRegistry'];
 modeler.get('commandStack').registerHandler('project.stage.add',AddStageHandler);
 function isStage(element) { return element.type === 'bpmn:Group' && element.id.startsWith(activeDiagram?.stagePrefix || 'Stage_'); }
+function beginStage(event) {
+  if (!ready) return;
+  const registry = modeler.get('elementRegistry');
+  const prefix = activeDiagram?.stagePrefix || 'Stage_';
+  let number = 1;
+  while (registry.get(prefix + 'Etapa_' + number)) number++;
+  const root = modeler.get('canvas').getRootElement();
+  const pools = (root.children || []).filter(e => e.type === 'bpmn:Participant');
+  const height = pools.length ? Math.max(...pools.map(e => e.y + e.height)) - Math.min(...pools.map(e => e.y)) + 48 : 540;
+  const businessObject = modeler.get('bpmnFactory').create('bpmn:Group', { id: prefix + 'Etapa_' + number });
+  const shape = modeler.get('elementFactory').createShape({ type: 'bpmn:Group', businessObject, width: 260, height });
+  modeler.get('create').start(event, shape);
+  status('Coloca la columna. Arrastra sus bordes para ajustar el tamaño y haz doble clic para cambiar el nombre.');
+}
 function appendStage() {
   if (!ready) return;
   try {
@@ -121,7 +137,9 @@ function showExternalChange(message) {
 function renderStageNavigation() {
   const nav = byId('stageNavigation'); nav.replaceChildren();
   const all = document.createElement('button'); all.textContent = 'Vista general'; all.dataset.stage = 'all'; all.className = 'active'; all.onclick = fit; nav.appendChild(all);
-  const stages = modeler.get('elementRegistry').getAll().filter(e => e.type === 'bpmn:Group' && e.id.startsWith(activeDiagram?.stagePrefix || 'Stage_')).sort((a,b) => a.x-b.x);
+  const canvas = modeler.get('canvas');
+  const stages = modeler.get('elementRegistry').getAll().filter(e => isStage(e) && canvas.findRoot(e) === canvas.getRootElement()).sort((a,b) => a.x-b.x);
+  nav.hidden = !stages.length;
   stages.forEach(stage => {
     const button = document.createElement('button'); button.textContent = stageName(stage); button.dataset.stage = stage.id; button.onclick = () => focusStage(stage.id); nav.appendChild(button);
   });
@@ -132,12 +150,6 @@ function updateProjectContext() {
   byId('diagramTitle').title = 'Proceso: ' + activeDiagram.title;
   document.title = activeDiagram.title + ' · NaraBizagui by NaraLab';
   byId('diagramSelect').value = activeDiagram.id;
-  files = project.files.filter(file => (activeDiagram.files || []).includes(file.id));
-  renderFiles();
-  byId('pendingList').replaceChildren();
-  (activeDiagram.pending || []).forEach(text => { const li = document.createElement('li'); li.textContent = text; byId('pendingList').appendChild(li); });
-  byId('processNote').textContent = activeDiagram.note || '';
-  byId('sourceNote').textContent = project.sourcesNote || '';
 }
 async function loadProjectDiagram(id, allowDiscard = false) {
   if (loadingDiagram) return;
@@ -187,12 +199,11 @@ async function bootstrap() {
   setInterval(pollFile, 3000);
 }
 function browserFileContext(name) {
-  detached=true;activeDiagram=null;files=[];renderFiles();baseSha256=null;
+  detached=true;activeDiagram=null;files=[];baseSha256=null;
   byId('projectName').textContent='Archivo';byId('diagramTitle').textContent=name;byId('diagramTitle').title=name;
   document.title=name+' · NaraBizagui by NaraLab';
   byId('diagramSelect').hidden=true;byId('reloadDiagram').disabled=!browserFiles.handle;
-  byId('pendingList').replaceChildren();byId('processNote').textContent='';byId('sourceNote').textContent='';
-  byId('fileModeHint').textContent='Abre archivos del equipo o de carpetas sincronizadas con OneDrive/SharePoint. Guardar actualiza el archivo elegido; Guardar como permite elegir otra ubicación.';
+  byId('fileModeHint').textContent='Guardar actualiza el archivo. Guardar como elige otro destino.';
 }
 async function startStandalone() {
   standalone=true;project={name:'',files:[],diagrams:[]};window.fileMode='browser';
@@ -284,17 +295,12 @@ function setRibbonCollapsed(collapsed) {
   byId('toggleRibbon').setAttribute('aria-label', label); byId('toggleRibbon').title = label;
   requestAnimationFrame(() => modeler.get('canvas').resized());
 }
-function showDetail(name) {
+function showDetail() {
   byId('workspace').classList.remove('right-hidden');
   byId('rightPanel').hidden = false;
   byId('showRight').hidden = true;
   if (innerWidth <= 850) byId('workspace').classList.add('mobile-detail');
-  byId('propertiesPanel').hidden = name !== 'properties';
-  byId('filesPanel').hidden = name !== 'files';
-  for (const [id, tab] of [['tabProperties', 'properties'], ['tabFiles', 'files']]) {
-    byId(id).classList.toggle('active', name === tab);
-    byId(id).setAttribute('aria-selected', String(name === tab));
-  }
+  byId('propertiesPanel').hidden = false;
   requestAnimationFrame(() => modeler.get('canvas').resized());
 }
 function togglePanel(side, explicit) {
@@ -322,7 +328,7 @@ function focusStage(id) {
   const zoom = Math.min(0.95, (size.width - 70) / (stage.width + 40));
   canvas.zoom(zoom);
   const view = canvas.viewbox();
-  canvas.viewbox({x: stage.x - (view.width - stage.width) / 2, y: 55, width: view.width, height: view.height});
+  canvas.viewbox({x: stage.x - (view.width - stage.width) / 2, y: stage.y - 40, width: view.width, height: view.height});
   markStage(id);
 }
 function zoom(value) {
@@ -342,8 +348,11 @@ function mountPalette() {
   document.querySelectorAll('#paletteHost .entry').forEach(entry => {
     const label = labels[entry.dataset.action] || entry.title;
     entry.dataset.label = label;
-    entry.title = entry.dataset.action === 'create.project-stage' ? 'Etapa · agregar columna al final' : label;
+    entry.title = entry.dataset.action === 'create.project-stage' ? 'Etapa · arrastrar una columna al diagrama' : label;
     entry.setAttribute('aria-label', label);
+    if (window.NaraPaletteIcons[label] && !entry.querySelector('.palette-line-icon')) {
+      const icon = document.createElement('span'); icon.className = 'palette-line-icon'; icon.innerHTML = window.NaraPaletteIcons[label]; entry.prepend(icon);
+    }
   });
   const attribution = document.querySelector('#canvas .bjs-powered-by') || document.querySelector('#attributionHost .bjs-powered-by');
   if (attribution) byId('attributionHost').appendChild(attribution);
@@ -373,6 +382,12 @@ function beginComment(event) {
   shape.businessObject.text='Comentario';modeler.get('create').start(event,shape);
   status('Coloca el comentario. Puedes editarlo en Propiedades y conectarlo con una asociación.');
 }
+function beginSubprocess(event) {
+  const shape = modeler.get('elementFactory').createShape({type: 'bpmn:SubProcess', isExpanded: false});
+  shape.businessObject.name = 'Subproceso';
+  modeler.get('create').start(event, shape);
+  status('Coloca el subproceso. Haz doble clic para abrir su hoja de detalle.');
+}
 function decorateDocuments() {
   const registry = modeler.get('elementRegistry');
   const svgNS = 'http://www.w3.org/2000/svg';
@@ -396,7 +411,8 @@ function decorateDocuments() {
 }
 function populateDocumentActivities() {
   const target = byId('documentActivity'); target.replaceChildren(new Option('Seleccionar actividad', ''));
-  for (const el of modeler.get('elementRegistry').getAll().filter(e => /Task$/.test(e.type))) target.appendChild(new Option((el.businessObject.name || el.id).replaceAll('\n', ' '), el.id));
+  const canvas = modeler.get('canvas');
+  for (const el of modeler.get('elementRegistry').getAll().filter(e => /Task$/.test(e.type) && canvas.findRoot(e) === canvas.getRootElement())) target.appendChild(new Option((el.businessObject.name || el.id).replaceAll('\n', ' '), el.id));
 }
 function linkDocument() {
   if (!isDocument(selected)) return;
@@ -450,8 +466,10 @@ function decorateStages() {
       outline.setAttribute('fill', 'none');
       outline.setAttribute('stroke', '#c6d5e1');
       outline.setAttribute('stroke-width', '1.4');
-      outline.setAttribute('stroke-dasharray', '6,5');
+      outline.setAttribute('stroke-dasharray', 'none');
       outline.setAttribute('rx', '0');
+      outline.setAttribute('ry', '0');
+      Object.assign(outline.style, { fill: 'none', stroke: '#8fa9bd', strokeWidth: '1.4px', strokeDasharray: 'none' });
     }
     let header = visual.querySelector('.stage-header-fill');
     if (!header) {
@@ -459,12 +477,12 @@ function decorateStages() {
       header.classList.add('stage-header-fill');
       visual.insertBefore(header, visual.firstChild);
     }
-    for (const [key, value] of Object.entries({x: 0, y: 0, width: el.width, height: 64, fill: '#e9f2f9', stroke: 'none'})) header.setAttribute(key, value);
+    for (const [key, value] of Object.entries({x: 0, y: 0, width: el.width, height: 48, fill: '#e9f2f9', stroke: 'none'})) header.setAttribute(key, value);
     const label = registry.get(el.id + '_label');
     const labelGfx = label ? registry.getGraphics(label) : null;
     labelGfx?.querySelectorAll('text').forEach(t => {
-      t.setAttribute('font-size', '18px'); t.setAttribute('font-weight', '600'); t.setAttribute('fill', '#214b6a');
-      t.style.fontSize = '18px'; t.style.fontWeight = '600';
+      t.setAttribute('font-size', '14px'); t.setAttribute('font-weight', '600'); t.setAttribute('fill', '#214b6a');
+      t.style.fontSize = '14px'; t.style.fontWeight = '600';
     });
   }
 }
@@ -476,7 +494,8 @@ function roleFor(el) {
 }
 function phaseFor(el) {
   const x = el.x + (el.width || 0) / 2;
-  const phase = modeler.get('elementRegistry').getAll().find(e => e.type === 'bpmn:Group' && e.id.startsWith(activeDiagram?.stagePrefix || 'Stage_') && x >= e.x && x < e.x + e.width);
+  const canvas = modeler.get('canvas');
+  const phase = modeler.get('elementRegistry').getAll().find(e => e.type === 'bpmn:Group' && canvas.findRoot(e) === canvas.findRoot(el) && e.id.startsWith(activeDiagram?.stagePrefix || 'Stage_') && x >= e.x && x < e.x + e.width);
   return phase ? stageName(phase) : '—';
 }
 function updateProperties(el) {
@@ -495,6 +514,16 @@ function updateProperties(el) {
   byId('elementRole').textContent = roleFor(selected);
   byId('elementStage').textContent = phaseFor(selected);
   byId('documentFields').hidden = !isDocument(selected);
+  const subprocess = ['bpmn:SubProcess','bpmn:CallActivity'].includes(selected.type);
+  byId('subprocessFields').hidden = !subprocess;
+  if (subprocess) {
+    const target = byId('subprocessTarget'), sheets = modeler.get('naraSheets').list();
+    const previous = target.value;
+    target.replaceChildren(new Option('Seleccionar hoja de proceso', ''));
+    sheets.filter(sheet => sheet.processId).forEach(sheet => target.appendChild(new Option(sheet.name, sheet.id)));
+    target.value = sheets.find(sheet => sheet.processId === bo.calledElement)?.id || previous;
+    byId('linkSubprocess').disabled = !sheets.some(sheet => sheet.processId);
+  }
   if (isDocument(selected)) {
     const info = documentInfo(selected);
     byId('documentFormat').value = info.format; byId('documentUse').value = info.use;
@@ -506,25 +535,6 @@ function updateProperties(el) {
     documentSelectionId = selected.id;
   } else {
     documentSelectionId = null;
-  }
-  const targets = byId('selectedFiles');
-  targets.replaceChildren();
-  for (const file of files.filter(f => f.nodes.includes(selected.id))) {
-    const link = document.createElement('a'); link.href = fileUrl(file); link.textContent = '▤ ' + file.title; link.title = file.filename;
-    targets.appendChild(link);
-  }
-}
-function renderFiles() {
-  byId('fileCards').replaceChildren();
-  for (const file of files) {
-    const card = document.createElement('article'); card.className = 'file-card';
-    for (const [tag, cls, value] of [['div', 'file-stage', file.stage], ['h3', '', file.title], ['p', '', file.use], ['p', 'file-details', file.sheets]]) {
-      const el = document.createElement(tag); el.className = cls; el.textContent = value; card.appendChild(el);
-    }
-    const actions = document.createElement('div'); actions.className = 'file-actions';
-    const open = document.createElement('a'); open.href = fileUrl(file); open.textContent = 'Abrir archivo'; open.title = file.filename;
-    const locate = document.createElement('button'); locate.textContent = 'Ver etapa'; locate.onclick = () => focusStage(file.phase);
-    actions.append(open, locate); card.appendChild(actions); byId('fileCards').appendChild(card);
   }
 }
 function download(content, type, filename) {
@@ -568,7 +578,8 @@ async function openDiagram(xml) {
   ready = false; window.diagramReady = false; window.diagramError = null;
   try {
     const result = await modeler.importXML(xml);
-    window.importWarnings = result.warnings || [];
+    const additionalWarnings = await modeler.get('naraSheets').importAdditional();
+    window.importWarnings = [...(result.warnings || []), ...additionalWarnings];
     mountPalette(); decorateStages(); decorateDocuments(); renderStageNavigation(); fit(); updateProperties(null); setDirty(false);
     ready = true; window.diagramReady = true;
     status('Modelo editable · ' + window.importWarnings.length + ' advertencias de importación · Revisión del proceso pendiente');
@@ -588,11 +599,8 @@ byId('documentFormat').onchange = applyDocumentControls;
 byId('connectDocument').onclick = linkDocument;
 document.querySelectorAll('[data-fit]').forEach(button => button.onclick = fit);
 document.querySelectorAll('[data-stage]').forEach(button => button.onclick = () => focusStage(button.dataset.stage));
-document.querySelectorAll('[data-files]').forEach(button => button.onclick = () => showDetail('files'));
-byId('tabProperties').onclick = () => showDetail('properties');
-byId('tabFiles').onclick = () => showDetail('files');
+byId('tabProperties').onclick = () => showDetail();
 byId('properties').onclick = () => showDetail('properties');
-byId('showPending').onclick = () => { showDetail('properties'); byId('pendingBox').open = true; byId('pendingBox').scrollIntoView({block: 'nearest'}); };
 byId('toggleLeft').onclick = () => togglePanel('left'); byId('hideLeft').onclick = () => togglePanel('left', true); byId('showLeft').onclick = () => togglePanel('left', false);
 byId('toggleRight').onclick = () => togglePanel('right'); byId('hideRight').onclick = () => togglePanel('right', true); byId('showRight').onclick = () => { togglePanel('right', false); showDetail('properties'); };
 byId('undo').onclick = () => modeler.get('commandStack').undo(); byId('redo').onclick = () => modeler.get('commandStack').redo();
@@ -640,8 +648,24 @@ byId('propertyForm').onsubmit = event => {
 const eventBus = modeler.get('eventBus');
 eventBus.on('selection.changed', event => {
   if (event.newSelection[0]?.id !== selected?.id) keepDocumentDraft = null;
-  updateProperties(event.newSelection[0] || null); if (event.newSelection.length) showDetail('properties');
+  updateProperties(event.newSelection[0] || null);
 });
+eventBus.on('nara.properties', () => showDetail());
+eventBus.on('nara.openSubprocess', event => {
+  try { modeler.get('naraSheets').openSubprocess(event.element.id); } catch (error) { status(error.message); }
+});
+eventBus.on('nara.sheet.changed', () => { renderStageNavigation(); updateProperties(null); });
+eventBus.on('commandStack.shape.create.postExecuted', event => {
+  const shape = event.context.shape;
+  if (isStage(shape) && !stageName(shape)) modeler.get('modeling').updateLabel(shape, 'Nueva etapa', {x: shape.x + 10, y: shape.y + 8, width: shape.width - 20, height: 32});
+});
+
+window.NaraPropertyDraftPending = () => {
+  if (!selected || byId('propertyForm').hidden) return false;
+  const bo = selected.businessObject;
+  const name = selected.type === 'bpmn:Group' ? stageName(selected) : selected.type === 'bpmn:TextAnnotation' ? bo.text || '' : bo.name || '';
+  return byId('elementName').value !== name || byId('elementDocumentation').value !== (bo.documentation || []).map(d => d.text || '').join('\n\n');
+};
 eventBus.on('commandStack.changed', () => {
   if (ready) { setDirty(true); editSequence += 1; }
   refreshActions(); decorateStages(); decorateDocuments(); renderStageNavigation();

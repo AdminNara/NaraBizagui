@@ -2,16 +2,13 @@
 // Adapter for the existing editor. All changes use native commandStack operations.
 (() => {
   let revision = crypto.randomUUID();
-  for (const event of ['commandStack.changed', 'import.done']) modeler.get('eventBus').on(event, () => { revision = crypto.randomUUID(); });
+  for (const event of ['commandStack.changed', 'import.done', 'root.set']) modeler.get('eventBus').on(event, () => { revision = crypto.randomUUID(); });
   const error = (code, message) => Object.assign(new Error(message), { code });
   function available() {
     if (!ready || loadingDiagram || saving || filePolling) throw error('EDITOR_BUSY', 'El visor está cargando, comprobando o guardando un archivo. Intenta leer de nuevo.');
   }
   function formPending() {
-    if (!selected || byId('propertyForm').hidden) return false;
-    const bo = selected.businessObject;
-    const name = selected.type === 'bpmn:Group' ? stageName(selected) : selected.type === 'bpmn:TextAnnotation' ? bo.text || '' : bo.name || '';
-    return byId('elementName').value !== name || byId('elementDocumentation').value !== (bo.documentation || []).map(d => d.text || '').join('\n\n');
+    return window.NaraPropertyDraftPending();
   }
   function guard(expected) {
     available();
@@ -21,11 +18,12 @@
   const element = id => {
     const result = modeler.get('elementRegistry').get(id);
     if (!result || result.labelTarget) throw error('ELEMENT_NOT_FOUND', 'No existe ese elemento editable. Consulta los IDs con read.');
+    if (modeler.get('canvas').findRoot(result) !== modeler.get('canvas').getRootElement()) throw error('WRONG_SHEET', 'Abre la hoja del elemento antes de modificarlo.');
     return result;
   };
   function describe(el) {
     const bo = el.businessObject;
-    return { id: el.id, type: el.type, name: el.type === 'bpmn:Group' ? stageName(el) : el.type === 'bpmn:TextAnnotation' ? bo.text || '' : bo.name || '', parentId: el.parent?.id, x: el.x, y: el.y, width: el.width, height: el.height, sourceId: el.source?.id, targetId: el.target?.id, waypoints: el.waypoints?.map(p => ({ x: p.x, y: p.y })), documentation: (bo.documentation || []).map(d => d.text || '').join('\n\n'), dataState: bo.dataState?.name, role: roleFor(el), stage: phaseFor(el) };
+    return { id: el.id, type: el.type, name: el.type === 'bpmn:Group' ? stageName(el) : el.type === 'bpmn:TextAnnotation' ? bo.text || '' : bo.name || '', parentId: el.parent?.id, calledElement: bo.calledElement, x: el.x, y: el.y, width: el.width, height: el.height, sourceId: el.source?.id, targetId: el.target?.id, waypoints: el.waypoints?.map(p => ({ x: p.x, y: p.y })), documentation: (bo.documentation || []).map(d => d.text || '').join('\n\n'), dataState: bo.dataState?.name, role: roleFor(el), stage: phaseFor(el) };
   }
   async function read({ includeXml = false } = {}) {
     available();
@@ -33,8 +31,9 @@
     const { xml } = await modeler.saveXML({ format: true });
     const sha256 = await browserFiles.digest(xml);
     if (base !== revision) throw error('REVISION_CONFLICT', 'El diagrama cambió durante la lectura. Lee nuevamente.');
-    const elements = modeler.get('elementRegistry').getAll().filter(e => e.businessObject && !e.labelTarget);
-    return { revision, sha256, fileName: browserFiles.name, dirty, unappliedProperties: formPending(), canSaveToFile: Boolean(browserFiles.handle), selectedIds: modeler.get('selection').get().map(e => e.id), warnings: (window.importWarnings || []).map(w => w.message || String(w)), canUndo: modeler.get('commandStack').canUndo(), canRedo: modeler.get('commandStack').canRedo(), totalElements: elements.length, elementsTruncated: elements.length > 2000, elements: elements.slice(0, 2000).map(describe), ...(includeXml ? { xml } : {}) };
+    const canvas = modeler.get('canvas'), activeSheetId = canvas.getRootElement().id;
+    const elements = modeler.get('elementRegistry').getAll().filter(e => e.businessObject && !e.labelTarget && canvas.findRoot(e)?.id === activeSheetId);
+    return { revision, sha256, fileName: browserFiles.name, activeSheetId, sheets: modeler.get('naraSheets').list(), dirty, unappliedProperties: formPending(), canSaveToFile: Boolean(browserFiles.handle), selectedIds: modeler.get('selection').get().map(e => e.id), warnings: (window.importWarnings || []).map(w => w.message || String(w)), canUndo: modeler.get('commandStack').canUndo(), canRedo: modeler.get('commandStack').canRedo(), totalElements: elements.length, elementsTruncated: elements.length > 2000, elements: elements.slice(0, 2000).map(describe), ...(includeXml ? { xml } : {}) };
   }
   async function edit({ expectedRevision, operation: op }) {
     guard(expectedRevision);
@@ -48,7 +47,7 @@
       affected = element(op.elementId);
       modeling.updateProperties(affected, { documentation: op.text ? [modeler.get('moddle').create('bpmn:Documentation', { text: op.text })] : [] });
     } else if (op.type === 'create') {
-      const types = ['bpmn:Task','bpmn:ManualTask','bpmn:UserTask','bpmn:ServiceTask','bpmn:SubProcess','bpmn:StartEvent','bpmn:EndEvent','bpmn:IntermediateCatchEvent','bpmn:ExclusiveGateway','bpmn:ParallelGateway','bpmn:TextAnnotation','bpmn:DataObjectReference','bpmn:DataStoreReference','bpmn:Participant'];
+      const types = ['bpmn:Task','bpmn:ManualTask','bpmn:UserTask','bpmn:ServiceTask','bpmn:SubProcess','bpmn:CallActivity','bpmn:StartEvent','bpmn:EndEvent','bpmn:IntermediateCatchEvent','bpmn:ExclusiveGateway','bpmn:ParallelGateway','bpmn:TextAnnotation','bpmn:DataObjectReference','bpmn:DataStoreReference','bpmn:Participant'];
       if (!types.includes(op.bpmnType) || !Number.isFinite(op.x) || !Number.isFinite(op.y)) throw error('INVALID_OPERATION', 'Tipo o posición inválidos.');
       const props = op.bpmnType === 'bpmn:TextAnnotation' ? { text: op.name || '' } : { name: op.name || '' };
       const businessObject = modeler.get('bpmnFactory').create(op.bpmnType, props);
@@ -81,14 +80,25 @@
       const context = {};
       modeler.get('commandStack').execute('project.stage.add', context);
       affected = context.stage;
+    } else if (op.type === 'sheet_create') {
+      affected = modeler.get('naraSheets').create(op.name);
+    } else if (op.type === 'sheet_open') {
+      modeler.get('naraSheets').open(op.sheetId);
+    } else if (op.type === 'sheet_rename') {
+      modeler.get('naraSheets').rename(op.sheetId, op.name);
+    } else if (op.type === 'subprocess_open') {
+      modeler.get('naraSheets').openSubprocess(op.elementId);
+    } else if (op.type === 'sheet_link') {
+      element(op.elementId);
+      affected = modeler.get('naraSheets').link(op.elementId, op.sheetId);
     } else if (op.type === 'undo' || op.type === 'redo') {
       const stack = modeler.get('commandStack');
       if (!(op.type === 'undo' ? stack.canUndo() : stack.canRedo())) throw error('NO_HISTORY', 'No hay una operación que deshacer o rehacer.');
       stack[op.type]();
     } else throw error('INVALID_OPERATION', 'Operación no admitida.');
     keepDocumentDraft = null;
-    if (affected && op.type !== 'delete') modeler.get('selection').select(affected);
-    status('Cambio de Codex aplicado · Guarda el archivo para conservarlo.');
+    if (affected?.parent && op.type !== 'delete') modeler.get('selection').select(affected);
+    status(['sheet_open','subprocess_open'].includes(op.type) ? 'Hoja abierta por Codex.' : 'Cambio de Codex aplicado · Guarda el archivo para conservarlo.');
     return { applied: true, affectedId: affected?.id, ...(await read()) };
   }
   async function save({ expectedRevision }) {
@@ -135,7 +145,8 @@
       const dataUrl = canvas.toDataURL('image/png');
       if (revision !== expectedRevision) throw error('REVISION_CONFLICT', 'El diagrama cambió durante la exportación. Lee y exporta nuevamente.');
       if (dataUrl.length > 8 * 1024 * 1024 * 4 / 3 + 40) throw error('PNG_TOO_LARGE', 'El PNG supera 8 MB. Exporta con una escala menor.');
-      return { pngBase64: dataUrl.slice(dataUrl.indexOf(',') + 1), width: canvas.width, height: canvas.height, revision, fileName: browserFiles.name, effectiveScale };
+      const sheetId = modeler.get('canvas').getRootElement().id;
+      return { pngBase64: dataUrl.slice(dataUrl.indexOf(',') + 1), width: canvas.width, height: canvas.height, revision, fileName: browserFiles.name, sheetId, sheetName: modeler.get('naraSheets').list().find(s => s.id === sheetId)?.name, effectiveScale };
     } finally { URL.revokeObjectURL(url); }
   }
   window.NaraBizaguiEditor = Object.freeze({ read, edit, save, exportPng });

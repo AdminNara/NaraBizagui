@@ -6,6 +6,7 @@
   <title>NaraBizagui by NaraLab</title>
   <link rel="stylesheet" href="vendor/diagram-js.css">
   <link rel="stylesheet" href="vendor/bpmn.css">
+  <link rel="stylesheet" href="vendor/bpmn-js.css">
   <link rel="stylesheet" href="modelador.css">
 </head>
 <body>
@@ -19,46 +20,42 @@
     <button class="ribbon-tab active" data-ribbon="inicio" aria-selected="true">Inicio</button>
     <button class="ribbon-tab" data-ribbon="archivo" aria-selected="false">Archivo</button>
     <button class="ribbon-tab" data-ribbon="vista" aria-selected="false">Vista</button>
-    <button class="ribbon-tab" data-ribbon="documentacion" aria-selected="false">Documentación</button>
     <button id="toggleRibbon" class="ribbon-collapse" aria-label="Minimizar barra superior" aria-expanded="true" title="Minimizar barra superior">⌃</button>
   </nav>
   <div class="ribbon" id="ribbon">
     <div class="ribbon-content" data-content="inicio">
       <div class="ribbon-group"><button id="undo" title="Deshacer (Ctrl+Z)"><span class="button-symbol">↶</span>Deshacer</button><button id="redo" title="Rehacer (Ctrl+Y)"><span class="button-symbol">↷</span>Rehacer</button><span class="group-caption">Edición</span></div>
       <div class="ribbon-group"><button id="delete" disabled><span class="button-symbol">⌫</span>Eliminar selección</button><button id="properties"><span class="button-symbol">≡</span>Propiedades</button><span class="group-caption">Elemento</span></div>
-      <div class="ribbon-group"><button data-fit><span class="button-symbol">⊞</span>Encajar diagrama</button><button data-files><span class="button-symbol">▤</span>Archivos del proceso</button><span class="group-caption">Consulta</span></div>
+      <div class="ribbon-group"><button data-fit><span class="button-symbol">⊞</span>Encajar diagrama</button><span class="group-caption">Vista</span></div>
     </div>
     <div class="ribbon-content" data-content="archivo" hidden>
       <div class="ribbon-group"><button id="newFile"><span class="button-symbol">＋</span>Nuevo</button><button id="openFile"><span class="button-symbol">▱</span>Abrir BPMN</button><button id="save"><span class="button-symbol">⇩</span>Guardar</button><button id="saveAs"><span class="button-symbol">▱</span>Guardar como</button><button id="exportBpmn"><span class="button-symbol">▱</span>Exportar BPMN</button><button id="fileHistory"><span class="button-symbol">↶</span>Historial local</button><span class="group-caption">Modelo editable</span></div>
       <div class="ribbon-group"><button id="exportSvg"><span class="button-symbol">▧</span>Exportar SVG</button><button id="exportPng"><span class="button-symbol">▧</span>Exportar PNG</button><span class="group-caption">Imagen del proceso</span></div>
-      <div class="ribbon-hint" id="fileModeHint">Guardar actualiza el diagrama del proyecto y conserva historial.<br>Exportar BPMN descarga una copia independiente.</div>
+      <div class="ribbon-hint" id="fileModeHint">Guardar actualiza el archivo. Guardar como elige otro destino.</div>
     </div>
     <div class="ribbon-content" data-content="vista" hidden>
       <div class="ribbon-group"><button data-fit><span class="button-symbol">⊞</span>Encajar todo</button><button id="actualSize"><span class="button-symbol">1:1</span>Tamaño real</button><span class="group-caption">Zoom</span></div>
       <div class="ribbon-group"><button id="toggleLeft"><span class="button-symbol">▥</span>Panel de herramientas</button><button id="toggleRight"><span class="button-symbol">▥</span>Panel de detalle</button><span class="group-caption">Paneles</span></div>
       <div class="ribbon-hint">Selecciona una etapa en la barra del diagrama para enfocarla.<br>Usa la mano para desplazar el lienzo.</div>
     </div>
-    <div class="ribbon-content" data-content="documentacion" hidden>
-      <div class="ribbon-group"><button data-files><span class="button-symbol">▤</span>Archivos por etapa</button><button id="showPending"><span class="button-symbol">?</span>Puntos por completar</button><span class="group-caption">Evidencia</span></div>
-      <div class="ribbon-hint">Selecciona una actividad para consultar su descripción y evidencia.<br>Roles en filas · Etapas en columnas.</div>
-    </div>
   </div>
-  <main class="workspace" id="workspace">
+  <main class="workspace right-hidden" id="workspace">
     <aside class="left-panel" id="leftPanel" aria-label="Herramientas BPMN">
       <div class="panel-heading"><h2>Herramientas</h2><button id="hideLeft" class="icon-button" aria-label="Ocultar herramientas">‹</button></div>
       <p class="panel-subtitle">Elementos BPMN</p>
       <div id="paletteHost"></div>
     </aside>
     <section class="diagram-area" aria-label="Diagrama editable">
-      <div class="diagram-strip"><select id="diagramSelect" class="diagram-select" aria-label="Diagrama del proyecto"></select><button id="reloadDiagram" class="text-button" title="Volver a cargar el archivo del proyecto">Recargar diagrama</button><a id="fileModeLink" class="text-button" href="?modo=archivos">Abrir modo archivos</a><button id="showLeft" class="text-button" hidden>Mostrar herramientas</button><button id="showRight" class="text-button" hidden>Mostrar detalle</button><span class="strip-note">Roles × etapas</span></div>
-      <nav class="stage-navigation" id="stageNavigation" aria-label="Enfocar etapa"><button data-stage="all" class="active">Vista general</button></nav>
+      <div class="diagram-strip"><select id="diagramSelect" class="diagram-select" aria-label="Diagrama del proyecto"></select><button id="reloadDiagram" class="text-button" title="Volver a cargar el archivo del proyecto">Recargar diagrama</button><a id="fileModeLink" class="text-button" href="?modo=archivos">Abrir modo archivos</a><button id="showLeft" class="text-button" hidden>Mostrar herramientas</button><button id="showRight" class="text-button">Propiedades</button><span class="strip-note">Roles × etapas</span></div>
       <div id="externalChange" class="change-notice" hidden><span id="externalChangeText"></span><button id="exportLocalChanges">Exportar mis cambios</button><button id="loadDiskChanges">Cargar archivo actualizado</button></div>
       <div id="canvas"></div>
+      <nav class="stage-navigation" id="stageNavigation" aria-label="Enfocar etapa" hidden><button data-stage="all" class="active">Vista general</button></nav>
+      <div class="sheet-bar"><button id="sheetBack" class="sheet-back" title="Volver a la hoja anterior" aria-label="Volver a la hoja anterior" disabled>←</button><nav id="sheetNavigation" class="sheet-navigation" role="tablist" aria-label="Hojas del archivo BPMN"></nav><button id="newSheet" class="new-sheet" aria-label="Nueva hoja de proceso" title="Nueva hoja de proceso">＋</button></div>
     </section>
-    <aside class="right-panel" id="rightPanel" aria-label="Detalle del proceso">
-      <div class="detail-tabs" role="tablist"><button id="tabProperties" class="active" role="tab" aria-selected="true">Propiedades</button><button id="tabFiles" role="tab" aria-selected="false">Archivos</button><button id="hideRight" class="icon-button" aria-label="Ocultar detalle">›</button></div>
+    <aside class="right-panel" id="rightPanel" aria-label="Detalle del proceso" hidden>
+      <div class="detail-tabs"><button id="tabProperties" class="active">Propiedades</button><button id="hideRight" class="icon-button" aria-label="Ocultar detalle">›</button></div>
       <div class="detail-body" id="propertiesPanel">
-        <div id="emptySelection" class="empty-selection"><span class="empty-icon">▱</span><h2>Detalle de la actividad</h2><p>Selecciona una tarea, decisión o documento para consultar y editar su información.</p><button class="secondary-button" data-files>Ver archivos por etapa</button></div>
+        <div id="emptySelection" class="empty-selection"><span class="empty-icon">▱</span><h2>Propiedades del elemento</h2><p>Selecciona una figura para editar su nombre y descripción.</p></div>
         <form id="propertyForm" hidden>
           <span class="eyebrow" id="elementType"></span><h2 id="propertyHeading">Elemento</h2>
           <label for="elementName">Nombre</label><textarea id="elementName" rows="3"></textarea>
@@ -68,16 +65,10 @@
             <button type="button" id="connectDocument" class="secondary-button">Conectar con la actividad</button>
           </div>
           <dl class="element-meta"><div><dt>Responsable</dt><dd id="elementRole">—</dd></div><div><dt>Etapa</dt><dd id="elementStage">—</dd></div></dl>
-          <label for="elementDocumentation">Descripción y evidencia</label><textarea id="elementDocumentation" rows="10"></textarea>
-          <div id="selectedFiles" class="selected-files"></div>
+          <div id="subprocessFields" hidden><button type="button" id="openSubprocess" class="secondary-button">Abrir detalle del subproceso</button><label for="subprocessTarget">Hoja de proceso reutilizable</label><select id="subprocessTarget"></select><button type="button" id="linkSubprocess" class="secondary-button">Vincular con esta hoja</button></div>
+          <label for="elementDocumentation">Descripción</label><textarea id="elementDocumentation" rows="5"></textarea>
           <button type="submit" class="primary-button">Aplicar cambios</button>
         </form>
-        <details class="pending-box" id="pendingBox"><summary>Puntos por completar</summary><ul id="pendingList"></ul><p id="processNote"></p></details>
-      </div>
-      <div class="detail-body" id="filesPanel" hidden>
-        <h2>Archivos por etapa</h2><p class="detail-intro">Documentos de referencia asociados al diagrama abierto.</p>
-        <div id="fileCards"></div>
-        <div class="source-note" id="sourceNote"></div>
       </div>
     </aside>
   </main>
@@ -93,6 +84,10 @@
     <button id="codexDisconnect" type="button" hidden>Desconectar esta pestaña</button>
   </dialog>
   <script src="archivos.js"></script>
+  <dialog id="sheetDialog" class="codex-dialog" aria-labelledby="sheetDialogHeading"><form id="sheetForm"><div class="history-heading"><h2 id="sheetDialogHeading">Nueva hoja de proceso</h2><button type="button" id="closeSheetDialog" aria-label="Cerrar hoja">×</button></div><p><label for="sheetName">Nombre de la hoja</label><input id="sheetName" maxlength="120" required autocomplete="off"></p><button type="submit" id="saveSheetName">Crear hoja</button></form></dialog>
+  <script src="vendor/sheets-import.js"></script>
+  <script src="editor-tools.js"></script>
+  <script src="sheets.js"></script>
   <script src="modelador.js"></script>
   <script src="mcp-editor.js"></script>
   <script src="mcp-bridge.js"></script>

@@ -13,6 +13,6 @@ export async function pngArtifact(result) {
   const name = path.basename(String(result.fileName || 'diagrama.bpmn')).replace(/\.bpmn$/i, '').replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').slice(0, 80);
   const filePath = path.join(dir, `narabizagui-${name}-${randomUUID()}.png`);
   await writeFile(filePath, bytes, { flag: 'wx' });
-  const metadata = { filePath, mimeType: 'image/png', width, height, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex'), revision: result.revision, sourceFileName: result.fileName, effectiveScale: result.effectiveScale, temporary: true };
+  const metadata = { filePath, mimeType: 'image/png', width, height, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex'), revision: result.revision, sourceFileName: result.fileName, sheetId: result.sheetId, sheetName: result.sheetName, effectiveScale: result.effectiveScale, temporary: true };
   return { content: [{ type: 'image', mimeType: 'image/png', data: bytes.toString('base64') }, { type: 'text', text: JSON.stringify(metadata) }], structuredContent: metadata };
 }

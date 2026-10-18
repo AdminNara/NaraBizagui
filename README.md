@@ -22,6 +22,16 @@ Abrir `http://127.0.0.1:8766/`. No hay servidor de documentos ni base de datos.
 - **Exportar:** descarga BPMN, SVG o PNG.
 - **Historial local:** permite descargar revisiones anteriores conservadas en este navegador. Borrar datos del navegador elimina este historial.
 
+## Editar y organizar procesos
+
+Al acercar el mouse a una figura aparecen cuatro flechas. Las opciones rápidas siguen el lado más cercano: pulsa para añadir un elemento, arrástralo para colocarlo libremente o haz doble clic para conectar con un elemento cercano de ese lado. Si no hay un destino BPMN permitido, se añade el elemento elegido. Las flechas permiten arrastrar una conexión a una figura existente. Al pasar sobre una línea aparecen opciones de trazado directo, en ángulo y de tipo BPMN. Las acciones adicionales están en **⋯**; las propiedades se abren cuando las solicitas.
+
+**Etapa** se coloca desde la paleta, como Participante, con forma de columna; se puede mover, redimensionar y renombrar. La navegación de etapas queda debajo del lienzo. Los símbolos Excel, Word, Manual y Datos identifican elementos del modelo, sin abrir archivos externos.
+
+Las pestañas inferiores representan hojas del mismo BPMN. **＋** crea un proceso independiente; doble clic en una pestaña cambia su nombre. Un subproceso contraído abre su detalle con doble clic. Para reutilizar otra hoja, selecciona un subproceso vacío y usa **Propiedades → Hoja de proceso reutilizable → Vincular con esta hoja**. El modelo utiliza una actividad de llamada BPMN (`CallActivity.calledElement`); no reemplaza el contenido de un subproceso que ya tiene elementos. La flecha inferior vuelve a la hoja anterior.
+
+Guardar conserva todas las hojas en un solo archivo BPMN 2.0, con sus planos y referencias. SVG y PNG exportan la hoja activa. Otros modeladores pueden presentar estos planos de manera distinta; las pestañas son la navegación de NaraBizagui.
+
 Se pueden elegir archivos de carpetas de OneDrive/SharePoint sincronizadas. El cliente de sincronización gestiona su subida a Microsoft. No está implementada una conexión directa a Microsoft Graph.
 
 Los diagramas seleccionados no se suben a este sitio ni a este repositorio. Solo se publica el editor y sus recursos. Cada persona conserva sus archivos y permisos.
@@ -43,15 +53,15 @@ El plugin **NaraBizagui by NaraLab**, distribuido mediante **Nara IA Market**, i
 
 El código de vínculo es de un solo uso y vence en cinco minutos. Solo se conecta la pestaña vinculada a esa instancia del plugin. **Desconectar** revoca el vínculo y conserva el trabajo. El puente no ofrece acceso general al disco ni habilita por sí solo uso móvil, acceso entre equipos o Microsoft Graph. Los datos que se consultan mediante MCP se entregan a la conversación del asistente.
 
-La herramienta `narabizagui_export_png` devuelve el diagrama completo como imagen al chat y como archivo temporal local, listo para incorporarlo a Word/PDF. Fondo blanco y escala ajustable, con límites de tamaño. Exportar no guarda el BPMN. Consulta los requisitos y herramientas en [el plugin](plugins/narabizagui/README.md).
+La herramienta `narabizagui_export_png` devuelve la hoja activa completa como imagen al chat y como archivo temporal local, listo para incorporarlo a Word/PDF. Fondo blanco y escala ajustable, con límites de tamaño. Exportar no guarda el BPMN. Consulta los requisitos y herramientas en [el plugin](plugins/narabizagui/README.md).
 
 ## Recursos
 
-`index.html`, `modelador.js`, `archivos.js`, `mcp-editor.js`, `mcp-bridge.js`, `modelador.css` y `assets/` forman la aplicación. `manifest.json` registra sus hashes al empaquetar. Las dependencias y su licencia se conservan en `vendor/`. El servidor MCP y la skill viven en `plugins/narabizagui/`; la web estática no ejecuta el servidor.
+`index.html`, `modelador.js`, `editor-tools.js`, `sheets.js`, `archivos.js`, `mcp-editor.js`, `mcp-bridge.js`, `modelador.css` y `assets/` forman la aplicación. `manifest.json` registra sus hashes al empaquetar. Las dependencias y su licencia se conservan en `vendor/`. El servidor MCP y la skill viven en `plugins/narabizagui/`; la web estática no ejecuta el servidor.
 
 Para desarrollar el plugin: `npm ci`, `npm run build`, `npm test`. El build incluye sus dependencias y licencias en el paquete y actualiza el manifiesto web.
 
-Después de publicar la web, `node scripts/verify-public.mjs` compara los doce recursos distribuidos con el manifiesto y conserva el resultado privado bajo `local/`.
+Después de publicar la web, `node scripts/verify-public.mjs` compara los diecisiete recursos distribuidos con el manifiesto y conserva el resultado privado bajo `local/`.
 
 La licencia de bpmn-js exige conservar visible el distintivo bpmn.io; se muestra fuera del lienzo. Ver [licencia incluida](vendor/LICENSE.txt).
 

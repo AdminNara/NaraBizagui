@@ -1,0 +1,184 @@
+'use strict';
+(() => {
+  const svg = content => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${content}</svg>`;
+  window.NaraPaletteIcons = Object.freeze({
+    Excel: svg('<path d="M9 3h12l6 6v20H9zM21 3v7h6"/><rect x="3" y="11" width="13" height="14" rx="1"/><path d="m6 15 7 7m0-7-7 7M19 15h5m-5 5h5m-5 5h5"/>'),
+    Word: svg('<path d="M9 3h12l6 6v20H9zM21 3v7h6"/><rect x="3" y="11" width="13" height="14" rx="1"/><path d="m5 15 2 7 2-5 2 5 2-7m6 0h5m-5 5h5m-5 5h5"/>'),
+    Manual: svg('<path d="M16 8C12 5 7 4 3 5v22c4-1 9 0 13 3 4-3 9-4 13-3V5c-4-1-9 0-13 3Zm0 0v22M7 10l5 1m-5 4 5 1m8-5 5-1m-5 6 5-1"/>'),
+    Datos: svg('<ellipse cx="16" cy="7" rx="11" ry="4"/><path d="M5 7v18c0 5 22 5 22 0V7M5 13c0 5 22 5 22 0M5 19c0 5 22 5 22 0"/>'),
+    Etapa: svg('<rect x="5" y="3" width="22" height="26" rx="1"/><path d="M5 9h22M12 9v20M20 9v20"/>')
+  });
+
+  function DirectionTools(contextPad, popupMenu, eventBus, canvas, elementRegistry, elementFactory, modeling, rules, connect, create, dragging, selection) {
+    const actions = new WeakMap(), host = document.getElementById('canvas');
+    const layer = document.createElement('div');
+    layer.className = 'nara-direction-tools'; layer.hidden = true; host.appendChild(layer);
+    let current, side = 'right', hideTimer, clickTimer, suppressClickUntil = 0, lastMenuPoint;
+    const vectors = { top: [0,-1], right: [1,0], bottom: [0,1], left: [-1,0] };
+    const names = { top: 'arriba', right: 'derecha', bottom: 'abajo', left: 'izquierda' };
+    const shapes = {
+      'append.append-task': ['bpmn:Task', 'Tarea'], 'append.gateway': ['bpmn:ExclusiveGateway', 'Decisión'],
+      'append.intermediate-event': ['bpmn:IntermediateThrowEvent', 'Evento intermedio'], 'append.end-event': ['bpmn:EndEvent', 'Fin']
+    };
+    const labels = {
+      'append.append-task': 'Añadir tarea', 'append.end-event': 'Añadir fin', 'append.gateway': 'Añadir decisión',
+      'append.intermediate-event': 'Añadir evento intermedio', 'append.text-annotation': 'Añadir comentario',
+      replace: 'Cambiar tipo', delete: 'Eliminar', connect: 'Conectar',
+      'lane-insert-above': 'Añadir carril arriba', 'lane-insert-below': 'Añadir carril abajo',
+      'lane-divide-two': 'Dividir en dos carriles', 'lane-divide-three': 'Dividir en tres carriles'
+    };
+    const report = error => { document.getElementById('status').textContent = error.message || error; };
+    const safe = fn => { try { fn(); } catch (error) { report(error); } };
+    const midpoint = el => ({ x: el.x + el.width / 2, y: el.y + el.height / 2 });
+    function hide() { clearTimeout(hideTimer); layer.hidden = true; current = undefined; }
+    function deferHide() { clearTimeout(hideTimer); hideTimer = setTimeout(() => { if (!layer.matches(':hover,:focus-within')) hide(); }, 180); }
+    function position() {
+      if (!current || !elementRegistry.get(current.id)) return hide();
+      const graphics = elementRegistry.getGraphics(current), visual = graphics?.querySelector('.djs-visual');
+      if (!visual) return hide();
+      const box = visual.getBoundingClientRect(), container = host.getBoundingClientRect();
+      Object.assign(layer.style, { left: box.left - container.left + 'px', top: box.top - container.top + 'px', width: box.width + 'px', height: box.height + 'px' });
+    }
+    function chooseSide(event) {
+      if (!current || current.waypoints || !event) return;
+      const rect = layer.getBoundingClientRect();
+      const x = (event.clientX - rect.left - rect.width / 2) / Math.max(rect.width, 1);
+      const y = (event.clientY - rect.top - rect.height / 2) / Math.max(rect.height, 1);
+      setSide(Math.abs(x) >= Math.abs(y) ? x >= 0 ? 'right' : 'left' : y >= 0 ? 'bottom' : 'top');
+    }
+    function setSide(value) { side = value; layer.dataset.side = value; }
+    function docking(source, direction) {
+      const v = vectors[direction], middle = midpoint(source);
+      return { x: middle.x + v[0] * source.width / 2, y: middle.y + v[1] * source.height / 2 };
+    }
+    function nearest(source, direction) {
+      const origin = midpoint(source), v = vectors[direction];
+      return elementRegistry.getAll().filter(target => {
+        if (target === source || target.waypoints || target.type === 'label' || canvas.findRoot(target) !== canvas.getRootElement()) return false;
+        if (source.outgoing?.some(flow => flow.target === target)) return false;
+        const p = midpoint(target), dx = p.x - origin.x, dy = p.y - origin.y;
+        return dx * v[0] + dy * v[1] > 0 && Math.hypot(dx, dy) < 360 && Math.abs(dx * v[1] - dy * v[0]) < 150 && rules.allowed('connection.create', { source, target });
+      }).sort((a,b) => Math.hypot(midpoint(a).x-origin.x,midpoint(a).y-origin.y) - Math.hypot(midpoint(b).x-origin.x,midpoint(b).y-origin.y))[0];
+    }
+    function append(source, id, direction, preferExisting) {
+      if (window.NaraPropertyDraftPending?.()) return report('Aplica o descarta el texto pendiente en Propiedades.');
+      const target = preferExisting && nearest(source, direction);
+      if (target) {
+        modeling.connect(source, target, undefined, { connectionStart: docking(source, direction) });
+        selection.select(target); hide(); return;
+      }
+      const shape = elementFactory.createShape({ type: shapes[id][0] }), v = vectors[direction], center = midpoint(source);
+      const distance = (v[0] ? (source.width + shape.width) / 2 : (source.height + shape.height) / 2) + 65;
+      const point = { x: center.x + v[0] * distance, y: center.y + v[1] * distance };
+      const allowed = rules.allowed('shape.append', { source, shape, target: source.parent, position: point });
+      if (allowed === false) return report('No se puede añadir ese elemento en esta posición.');
+      const added = modeling.appendShape(source, shape, point, source.parent);
+      selection.select(added); hide();
+    }
+    // Wait for a small movement before starting a native drag. A double click can
+    // then reuse a nearby BPMN node without creating two accidental shapes.
+    function gesture(button, start, click, doubleClick) {
+      button.addEventListener('mousedown', down => {
+        if (down.button !== 0) return;
+        down.preventDefault(); down.stopPropagation();
+        const move = event => {
+          if (Math.hypot(event.clientX-down.clientX,event.clientY-down.clientY) < 5) return;
+          cleanup(); clearTimeout(clickTimer); suppressClickUntil = Date.now() + 500;
+          safe(() => start(down)); hide();
+        };
+        const cleanup = () => { document.removeEventListener('mousemove', move, true); document.removeEventListener('mouseup', cleanup, true); };
+        document.addEventListener('mousemove', move, true); document.addEventListener('mouseup', cleanup, true);
+      });
+      button.onclick = event => {
+        event.stopPropagation(); if (Date.now() < suppressClickUntil) return;
+        clearTimeout(clickTimer); clickTimer = setTimeout(() => safe(() => click(event)), 260);
+      };
+      button.ondblclick = event => { event.preventDefault(); event.stopPropagation(); clearTimeout(clickTimer); safe(() => doubleClick(event)); };
+    }
+    function button(label, className, content) {
+      const el = document.createElement('button'); el.type = 'button'; el.title = label; el.setAttribute('aria-label', label); el.className = className;
+      if (content) el.textContent = content;
+      return el;
+    }
+    function menu(element, name, anchor) {
+      selection.select(element);
+      const box = anchor?.getBoundingClientRect();
+      if (box?.width) lastMenuPoint = { x: Math.max(8,Math.min(box.right + 6, innerWidth - 250)), y: Math.max(8,Math.min(box.top, innerHeight - 280)) };
+      popupMenu.open(element, name, lastMenuPoint || { x: 250, y: 250 }, { title: name === 'bpmn-replace' ? 'Tipo de elemento' : 'Más acciones', width: 230, search: false });
+    }
+    function show(element, original) {
+      if (dragging.context() || element.type === 'label' || !element.parent) return;
+      clearTimeout(hideTimer);
+      if (current === element && !layer.hidden) { chooseSide(original); return; }
+      contextPad.getEntries(element); // Native provider determines the legal actions.
+      const entries = actions.get(element) || {};
+      if (!Object.keys(entries).length) return hide();
+      current = element; layer.replaceChildren(); layer.dataset.element = element.id;
+      layer.classList.toggle('connection-tools', !!element.waypoints);
+      if (element.waypoints) {
+        const panel = document.createElement('div'); panel.className = 'nara-quick-options';
+        const straight = button('Línea directa', 'nara-line-direct', '╱');
+        straight.onclick = () => safe(() => { modeling.updateWaypoints(element, [element.waypoints[0], element.waypoints.at(-1)]); hide(); });
+        const elbow = button('Línea en ángulo', 'nara-line-elbow', '┐');
+        elbow.onclick = () => safe(() => { modeling.layoutConnection(element); hide(); });
+        const type = button('Cambiar tipo de conexión', 'bpmn-icon-connection-multi');
+        type.onclick = () => safe(() => menu(element,'bpmn-replace',type));
+        panel.append(straight, elbow, type); layer.appendChild(panel);
+      } else {
+        const available = Object.keys(shapes).filter(id => entries[id]);
+        if (available.length) {
+          for (const direction of Object.keys(vectors)) {
+            const arrow = button('Conectar hacia ' + names[direction] + ' · arrastra o haz doble clic', 'nara-direction-arrow nara-arrow-' + direction, '➜');
+            arrow.dataset.direction = direction;
+            arrow.onmouseenter = () => setSide(direction); arrow.onfocus = () => setSide(direction);
+            gesture(arrow, event => connect.start(event, element, docking(element,direction), true), event => { connect.start(event,element,docking(element,direction),true); hide(); }, () => append(element,available[0],direction,true));
+            layer.appendChild(arrow);
+          }
+          const panel = document.createElement('div'); panel.className = 'nara-quick-options'; panel.setAttribute('aria-label','Añadir y conectar');
+          for (const id of available) {
+            const quick = button(shapes[id][1] + ' · arrastra para colocar; doble clic para conectar cerca', 'nara-quick-shape ' + entries[id].className);
+            quick.dataset.append = id;
+            const preview = document.createElement('span'); preview.className = 'nara-shape-preview ' + entries[id].className; preview.setAttribute('aria-hidden','true'); quick.appendChild(preview);
+            gesture(quick, event => create.start(event, elementFactory.createShape({ type: shapes[id][0] }), { source: element }), () => append(element,id,side,false), () => append(element,id,side,true));
+            panel.appendChild(quick);
+          }
+          layer.appendChild(panel);
+        }
+      }
+      const more = button('Más acciones del elemento', 'nara-tools-more', '⋯');
+      more.onclick = () => safe(() => menu(element,'nara-actions',more)); layer.appendChild(more);
+      layer.hidden = false; position(); chooseSide(original);
+    }
+    this.getContextPadEntries = element => entries => {
+      const result = Object.fromEntries(Object.entries(entries).map(([id,entry]) => [id,{ ...entry, title: labels[id] || entry.title }]));
+      result.properties = { className: 'bpmn-icon-screw-wrench', title: 'Propiedades', action: { click: () => { selection.select(element); eventBus.fire('nara.properties', { element }); } } };
+      if (result.replace) result.replace.action = { click: () => menu(element,'bpmn-replace',layer.querySelector('.nara-tools-more')) };
+      if (['bpmn:SubProcess','bpmn:CallActivity'].includes(element.type)) result['nara.openSubprocess'] = { className: 'bpmn-icon-subprocess-collapsed', title: 'Abrir hoja del subproceso', action: { click: () => eventBus.fire('nara.openSubprocess', { element }) } };
+      actions.set(element, result); return {};
+    };
+    this.getPopupMenuEntries = element => {
+      const entries = actions.get(element) || {};
+      return Object.fromEntries(Object.entries(entries).filter(([id]) => !shapes[id]).map(([id, entry]) => [id, {
+        label: entry.title, className: entry.className,
+        action: event => { popupMenu.close(); entry.action?.click?.(event, element); }
+      }]));
+    };
+    layer.addEventListener('mouseenter', () => clearTimeout(hideTimer));
+    layer.addEventListener('mouseleave', deferHide);
+    eventBus.on('element.hover', event => show(event.element,event.originalEvent));
+    eventBus.on('element.out', deferHide);
+    host.addEventListener('mousemove', event => {
+      if (event.target.closest('.nara-direction-tools')) return;
+      const graphic = event.target.closest('.djs-element');
+      if (current && graphic?.dataset.elementId === current.id) chooseSide(event);
+    });
+    eventBus.on('canvas.viewbox.changed', position);
+    eventBus.on(['root.set','drag.init','create.init','connect.init','diagram.clear'], hide);
+    eventBus.on('commandStack.changed', hide);
+    eventBus.on('diagram.destroy', () => { clearTimeout(hideTimer); clearTimeout(clickTimer); layer.remove(); });
+    contextPad.registerProvider(500, this);
+    popupMenu.registerProvider('nara-actions', this);
+  }
+  DirectionTools.$inject = ['contextPad','popupMenu','eventBus','canvas','elementRegistry','elementFactory','modeling','rules','connect','create','dragging','selection'];
+  window.NaraEditorTools = { __init__: ['naraDirectionTools'], naraDirectionTools: ['type', DirectionTools] };
+})();

@@ -31350,7 +31350,7 @@ var StdioServerTransport = class {
 // plugins/narabizagui/server/bridge.mjs
 import http from "node:http";
 import { randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
-var VERSION = "0.2.0";
+var VERSION = "0.3.0";
 var token = () => randomBytes(32).toString("base64url");
 var same = (a, b) => {
   if (typeof a !== "string" || typeof b !== "string") return false;
@@ -31532,7 +31532,7 @@ async function pngArtifact(result) {
   const name = path.basename(String(result.fileName || "diagrama.bpmn")).replace(/\.bpmn$/i, "").replace(/[<>:"/\\|?*\x00-\x1f]/g, "_").slice(0, 80);
   const filePath = path.join(dir, `narabizagui-${name}-${randomUUID2()}.png`);
   await writeFile(filePath, bytes, { flag: "wx" });
-  const metadata = { filePath, mimeType: "image/png", width, height, bytes: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex"), revision: result.revision, sourceFileName: result.fileName, effectiveScale: result.effectiveScale, temporary: true };
+  const metadata = { filePath, mimeType: "image/png", width, height, bytes: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex"), revision: result.revision, sourceFileName: result.fileName, sheetId: result.sheetId, sheetName: result.sheetName, effectiveScale: result.effectiveScale, temporary: true };
   return { content: [{ type: "image", mimeType: "image/png", data: bytes.toString("base64") }, { type: "text", text: JSON.stringify(metadata) }], structuredContent: metadata };
 }
 
@@ -31550,12 +31550,17 @@ var finite = external_exports.number().finite().min(-1e5).max(1e5);
 var edit = external_exports.discriminatedUnion("type", [
   external_exports.object({ type: external_exports.literal("label"), elementId, text }),
   external_exports.object({ type: external_exports.literal("documentation"), elementId, text }),
-  external_exports.object({ type: external_exports.literal("create"), bpmnType: external_exports.enum(["bpmn:Task", "bpmn:ManualTask", "bpmn:UserTask", "bpmn:ServiceTask", "bpmn:SubProcess", "bpmn:StartEvent", "bpmn:EndEvent", "bpmn:IntermediateCatchEvent", "bpmn:ExclusiveGateway", "bpmn:ParallelGateway", "bpmn:TextAnnotation", "bpmn:DataObjectReference", "bpmn:DataStoreReference", "bpmn:Participant"]), x: finite, y: finite, parentId: elementId.optional(), name: text.optional() }),
+  external_exports.object({ type: external_exports.literal("create"), bpmnType: external_exports.enum(["bpmn:Task", "bpmn:ManualTask", "bpmn:UserTask", "bpmn:ServiceTask", "bpmn:SubProcess", "bpmn:CallActivity", "bpmn:StartEvent", "bpmn:EndEvent", "bpmn:IntermediateCatchEvent", "bpmn:ExclusiveGateway", "bpmn:ParallelGateway", "bpmn:TextAnnotation", "bpmn:DataObjectReference", "bpmn:DataStoreReference", "bpmn:Participant"]), x: finite, y: finite, parentId: elementId.optional(), name: text.optional() }),
   external_exports.object({ type: external_exports.literal("connect"), sourceId: elementId, targetId: elementId, bpmnType: external_exports.enum(["bpmn:SequenceFlow", "bpmn:MessageFlow", "bpmn:Association", "bpmn:DataInputAssociation", "bpmn:DataOutputAssociation"]).optional() }),
   external_exports.object({ type: external_exports.literal("move"), elementId, dx: finite, dy: finite, parentId: elementId.optional() }),
   external_exports.object({ type: external_exports.literal("resize"), elementId, x: finite, y: finite, width: external_exports.number().min(20).max(1e5), height: external_exports.number().min(20).max(1e5) }),
   external_exports.object({ type: external_exports.literal("delete"), elementId }),
   external_exports.object({ type: external_exports.literal("stage") }),
+  external_exports.object({ type: external_exports.literal("sheet_create"), name: external_exports.string().min(1).max(120) }),
+  external_exports.object({ type: external_exports.literal("sheet_open"), sheetId: elementId }),
+  external_exports.object({ type: external_exports.literal("sheet_rename"), sheetId: elementId, name: external_exports.string().min(1).max(120) }),
+  external_exports.object({ type: external_exports.literal("subprocess_open"), elementId }),
+  external_exports.object({ type: external_exports.literal("sheet_link"), elementId, sheetId: elementId }),
   external_exports.object({ type: external_exports.literal("undo") }),
   external_exports.object({ type: external_exports.literal("redo") })
 ]);
@@ -31571,11 +31576,11 @@ function register(name, description, schema, readOnly, callback) {
 }
 register("narabizagui_connect", "Crea un c\xF3digo temporal para vincular una pesta\xF1a elegida. Requiere que el usuario pulse Vincular en el visor.", {}, false, async () => bridge.pair());
 register("narabizagui_sessions", "Lista solo las pesta\xF1as vinculadas a esta instancia local del plugin.", {}, true, async () => ({ sessions: bridge.list() }));
-register("narabizagui_read", "Lee revisi\xF3n, elementos, selecci\xF3n, advertencias y estado de guardado del visor. includeXml devuelve tambi\xE9n el BPMN completo.", { sessionId: id, includeXml: external_exports.boolean().default(false) }, true, (args) => bridge.request(args.sessionId, "read", { includeXml: args.includeXml }));
-register("narabizagui_edit", "Aplica una operaci\xF3n nativa bpmn-js, con revisi\xF3n base obligatoria y deshacer. Usa read para conocer IDs. x/y son el centro al crear; move usa desplazamiento. stage a\xF1ade una etapa al final.", { sessionId: id, expectedRevision: revision, operation: edit }, false, (args) => bridge.request(args.sessionId, "edit", { expectedRevision: args.expectedRevision, operation: args.operation }));
+register("narabizagui_read", "Lee revisi\xF3n, activeSheetId, sheets, elementos de la hoja activa, selecci\xF3n, advertencias y guardado. includeXml devuelve el BPMN completo de todas las hojas.", { sessionId: id, includeXml: external_exports.boolean().default(false) }, true, (args) => bridge.request(args.sessionId, "read", { includeXml: args.includeXml }));
+register("narabizagui_edit", "Aplica una operaci\xF3n nativa bpmn-js, con revisi\xF3n base obligatoria y deshacer. Usa read para conocer IDs. x/y son el centro al crear; move usa desplazamiento. stage a\xF1ade una etapa al final. sheet_create crea otra hoja, sheet_open navega, sheet_rename renombra, subprocess_open abre el detalle y sheet_link vincula con otro proceso mediante CallActivity; no reemplaza subprocesos con contenido.", { sessionId: id, expectedRevision: revision, operation: edit }, false, (args) => bridge.request(args.sessionId, "edit", { expectedRevision: args.expectedRevision, operation: args.operation }));
 register("narabizagui_save", "Guarda en el archivo ya elegido y autorizado en el visor, conservando historial y comprobando conflictos. Si falta acceso, el usuario debe usar Guardar como en el navegador. No elige destinos ni descarga copias silenciosamente.", { sessionId: id, expectedRevision: revision }, false, (args) => bridge.request(args.sessionId, "save", { expectedRevision: args.expectedRevision }));
 server.registerTool("narabizagui_export_png", {
-  description: "Renderiza el diagrama completo como PNG con fondo blanco, sin paneles. Devuelve la imagen al chat para inspecci\xF3n visual y un archivo temporal local para insertarlo en Word/PDF. Lee antes para indicar expectedRevision. No modifica ni guarda el BPMN. scale=2 por defecto; se reduce si es necesario para respetar 8192 px por lado y 16 megap\xEDxeles.",
+  description: "Renderiza la hoja activa completa como PNG con fondo blanco, sin paneles; devuelve sheetId y sheetName. Devuelve la imagen al chat para inspecci\xF3n visual y un archivo temporal local para insertarlo en Word/PDF. Lee antes para indicar expectedRevision. No modifica ni guarda el BPMN. scale=2 por defecto; se reduce si es necesario para respetar 8192 px por lado y 16 megap\xEDxeles.",
   inputSchema: { sessionId: id, expectedRevision: revision, scale: external_exports.number().min(0.5).max(3).default(2) },
   annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false }
 }, async (args) => {
