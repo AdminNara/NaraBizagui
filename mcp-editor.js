@@ -1,6 +1,16 @@
 'use strict';
 // Adapter for the existing editor. All changes use native commandStack operations.
 (() => {
+  // bpmn-js creates an empty DI label for an internal name, including on revert.
+  // Restore the original object after its updater so Undo also preserves XML/style.
+  const labelEvents=modeler.get('eventBus');
+  labelEvents.on('commandStack.element.updateLabel.preExecute',1500,event=>{
+    const e=event.context.element;
+    if(e.businessObject?.$instanceOf?.('bpmn:Activity')||['bpmn:Participant','bpmn:Lane'].includes(e.type))event.context.naraOriginalDiLabel=e.di?.label;
+  });
+  labelEvents.on('commandStack.element.updateLabel.reverted',500,event=>{
+    const c=event.context;if(Object.hasOwn(c,'naraOriginalDiLabel'))c.element.di?.set('label',c.naraOriginalDiLabel);
+  });
   function PositionedLabelHandler(modeling) {
     this.preExecute = context => {
       modeling.updateLabel(context.element, context.text, context.bounds);
