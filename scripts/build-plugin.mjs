@@ -41,5 +41,12 @@ const distributed = ['index.html', 'modelador.js', 'modelador.css', 'archivos.js
 const manifest = {};
 distributed.push('microsoft-ui.js', 'microsoft-auth.html', 'assets/microsoft-symbol.svg', 'vendor/microsoft-client.js', 'vendor/microsoft-auth.js', 'vendor/MICROSOFT_LICENSES.txt');
 for (const file of distributed) manifest[file] = createHash('sha256').update(await readFile(path.join(root, file))).digest('hex');
+// Use content versions so an existing browser cache cannot mix old and new code.
+for (const page of ['index.html', 'microsoft-auth.html']) {
+  const html = (await readFile(path.join(root, page), 'utf8')).replace(/((?:src|href)=["'])([^"'?#]+)(?:\?[^"'#]*)?(["'])/g, (match, prefix, file, quote) =>
+    manifest[file] && /\.(?:js|css)$/.test(file) ? `${prefix}${file}?v=${manifest[file].slice(0, 16)}${quote}` : match);
+  await writeFile(path.join(root, page), html);
+  manifest[page] = createHash('sha256').update(html).digest('hex');
+}
 await writeFile(path.join(root, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
 console.log(`Built plugin (${serverNotices.count} attributed dependencies) and native sheet importer (${sheetNotices.count}); updated ${distributed.length} web hashes.`);
