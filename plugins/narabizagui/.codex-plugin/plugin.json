@@ -1,7 +1,7 @@
 {
   "name": "narabizagui",
-  "version": "0.4.0",
-  "description": "Skill y MCP local para editar procesos BPMN y modelos de datos ER, guardar con revisión y exportar PNG al chat.",
+  "version": "0.5.0",
+  "description": "Cuatro skills y MCP local para modelar, validar y entregar BPMN/ER con propiedades semánticas, bloques seguros y PNG.",
   "author": {
     "name": "Nara Consultores"
   },
@@ -11,7 +11,7 @@
   "interface": {
     "displayName": "NaraBizagui by NaraLab",
     "shortDescription": "Procesos y modelos de datos",
-    "longDescription": "Skill y MCP local en una instalación. Vincula una pestaña elegida, edita procesos y modelos ER con revisión y deshacer, amplía el lienzo y exporta PNG. Requiere Node.js 22+ y acceso local del navegador.",
+    "longDescription": "Una instalación con cuatro skills: coordinar, modelar, validar y entregar. MCP local con propiedades semánticas, validación por IDs, bloques prevalidados con deshacer y PNG. Requiere Node.js 22+ y navegador de escritorio con acceso local.",
     "developerName": "Nara Consultores",
     "category": "Productivity",
     "capabilities": [

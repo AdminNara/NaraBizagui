@@ -54,7 +54,7 @@
         let result;
         try {
           if (command.deadline <= Date.now()) throw Object.assign(new Error('El comando venció antes de ejecutarse.'), { code: 'EXPIRED' });
-          if (!['read', 'edit', 'save', 'exportPng'].includes(command.action)) throw new Error('Comando no admitido.');
+          if (!['read', 'edit', 'save', 'exportPng', 'validate', 'editBatch'].includes(command.action)) throw new Error('Comando no admitido.');
           result = { commandId: command.id, result: await window.NaraBizaguiEditor[command.action](command.args) };
         } catch (error) { result = { commandId: command.id, error: { code: error.code || 'EDITOR_ERROR', message: error.message } }; }
         // Retry only delivery of the result, never execution of an edit or save.

@@ -1,7 +1,7 @@
 import http from 'node:http';
 import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 
-export const VERSION = '0.4.0';
+export const VERSION = '0.5.0';
 const token = () => randomBytes(32).toString('base64url');
 const same = (a, b) => {
   if (typeof a !== 'string' || typeof b !== 'string') return false;
