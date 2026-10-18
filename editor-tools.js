@@ -65,7 +65,8 @@
         const width=stageOptions.offsetWidth,height=stageOptions.offsetHeight;
         let left=box.right-container.left+7;
         if(left+width>container.width-inset)left=box.left-container.left-width-7;
-        left=clamp(left,width,container.width);const top=clamp(box.top-container.top+6,height,container.height);
+        left=clamp(left,width,container.width);let top=clamp(box.top-container.top+6,height,container.height);
+        if(left<box.right-container.left&&left+width>box.left-container.left){const below=box.top-container.top+36;top=clamp(below+height<=container.height-inset?below:box.top-container.top-height-6,height,container.height);}
         Object.assign(stageOptions.style,{left:left-(box.left-container.left)+'px',top:top-(box.top-container.top)+'px'});
         const more=layer.querySelector('.nara-tools-more'),moreTop=box.top-container.top-29;
         Object.assign(more.style,{left:clamp(box.right-container.left+7,25,container.width)-(box.left-container.left)+'px',top:(moreTop>=inset?moreTop:clamp(top+height+6,24,container.height))-(box.top-container.top)+'px',bottom:'auto'});
