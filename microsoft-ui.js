@@ -225,10 +225,16 @@
   Promise.all([auth.initialized, window.NaraStartup]).then(async () => {
     const canApply = () => !resumeCancelled && auth.account && window.projectReady && standalone && ready && !dirty && !saving && !loadingDiagram && !filePolling && !browserFiles.handle && browserDocumentVersion === window.NaraInitialDocumentVersion && !window.NaraPropertyDraftPending();
     const last = workspace.read().last, stamp = workspace.stamp();
+    let recoveredHandle = null;
     try {
-      if (await workspace.resume(canApply, acceptBrowserSource)) status('Último BPMN recuperado desde Microsoft. Guardar actualiza ese archivo.');
+      const recovered = await workspace.resume(canApply, async (source, guard) => {
+        const applied = await acceptBrowserSource(source, guard);
+        if (applied !== false) recoveredHandle = source.handle;
+        return applied;
+      });
+      if (recovered) status('Último BPMN recuperado desde Microsoft. Guardar actualiza ese archivo.');
     } catch (error) {
-      if (error.code === 'ACCOUNT_CHANGED') return;
+      if (error.code === 'ACCOUNT_CHANGED') { if (recoveredHandle && browserFiles.handle === recoveredHandle) detachCloud(); return; }
       if (last && ['FILE_NOT_FOUND','MICROSOFT_PERMISSION','INVALID_TARGET'].includes(error.code)) workspace.removeFile(last, stamp);
       status('No se pudo retomar el último BPMN. Puedes abrir otro desde Microsoft. ' + error.message);
     }

@@ -119,6 +119,14 @@ test('disconnect or a tenant change invalidates a pending resume without writing
   }
 });
 
+test('clearing recent references in another tab cancels an already pending resume', async () => {
+  const f = fixture(); f.workspace.rememberFile(f.handle, ref);
+  const pending = defer(); f.files.handle = () => ({ getFile: () => pending.promise });
+  const task = f.workspace.resume(() => true, async () => assert.fail('A cleared last file cannot reopen'));
+  f.workspace.clearRecent(); pending.resolve({ name: 'Generic.bpmn', text: async () => '<definitions/>' });
+  assert.equal(await task, false);
+});
+
 test('unavailable recent cleanup cannot clear another account after switching identity', () => {
   const f = fixture(); f.workspace.rememberFile(f.handle, ref); const stamp = f.workspace.stamp();
   f.auth.account = { ...account, tenantId: 'other-tenant' }; f.auth.generation++;
@@ -158,4 +166,25 @@ test('the real import guard preserves user work changed during asynchronous seri
   assert.equal(imports, 0);
   assert.equal(context.dirty, true);
   assert.equal(context.browserDocumentVersion, 1);
+});
+
+test('the UI preserves a recovered diagram as an unsaved copy if its account changes during import', async () => {
+  const f = fixture(); f.workspace.rememberFile(f.handle, ref);
+  f.auth.initialized = Promise.resolve(); f.auth.onChange = () => {};
+  const elements = new Map();
+  const byId = id => {
+    if (!elements.has(id)) elements.set(id, { open: false, value: '', classList: { toggle() {} }, setAttribute() {}, querySelectorAll: () => [], replaceChildren() {}, addEventListener() {} });
+    return elements.get(id);
+  };
+  const files = { handle: null, hash: null, name: 'Generic.bpmn' };
+  const context = { byId, browserFiles: files, standalone: true, ready: true, dirty: false, saving: false, loadingDiagram: false, filePolling: false, browserDocumentVersion: 1,
+    window: { projectReady: true, NaraInitialDocumentVersion: 1, NaraStartup: Promise.resolve(), NaraPropertyDraftPending: () => false, NaraMicrosoft: { create: () => ({ auth: f.auth, files: f.files, workspace: f.workspace }) } },
+    acceptBrowserSource: async source => { files.handle = source.handle; f.auth.account = null; f.auth.generation++; return true; },
+    browserFileContext() {}, setDirty(value) { context.dirty = value; }, status(message) { context.statusMessage = message; }
+  };
+  vm.runInNewContext(await readFile(new URL('../microsoft-ui.js', import.meta.url), 'utf8'), context);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(files.handle, null);
+  assert.equal(context.dirty, true);
+  assert.match(context.statusMessage, /diagrama sigue abierto/);
 });

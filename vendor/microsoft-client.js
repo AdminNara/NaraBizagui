@@ -15797,13 +15797,14 @@
     }
     async resume(canApply, accept) {
       const file = this.read().last;
-      if (!file || !canApply()) return false;
+      const current = () => sameFile(file, this.read().last) && canApply();
+      if (!file || !current()) return false;
       const { source, stamp } = await this.source(file);
-      if (!canApply()) return false;
+      if (!current()) return false;
       this.assert(stamp);
       const applied = await accept(source, () => {
         this.assert(stamp);
-        return canApply();
+        return current();
       });
       this.assert(stamp);
       if (applied === false) return false;
