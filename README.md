@@ -27,6 +27,8 @@ Abrir `http://127.0.0.1:8766/`. No hay servidor de documentos ni base de datos.
 
 La barra compacta reúne **Archivo, Editar, Vista y Ayuda**. **Guardar** permanece en el encabezado con su destino resumido y estado. **Conexiones** separa la cuenta Microsoft del vínculo del agente con esta pestaña. **Más** reúne Preferencias y Actividad; esta última conserva hasta 60 avisos de la sesión en memoria, sin sustituir el historial del archivo.
 
+Al ocultar la paleta aparece **Herramientas** al inicio de la barra para volver a abrirla; **Alt+T** también la recupera. El icono situado después del porcentaje de zoom amplía el lienzo. En la vista ampliada permanece abajo a la derecha junto al distintivo bpmn.io; púlsalo de nuevo o usa Escape para salir.
+
 **Todas las hojas** permite buscar, abrir y renombrar hojas por su nombre completo y tipo. **＋** elige entre proceso BPMN y modelo ER; las herramientas corresponden a la hoja activa. La paleta BPMN tiene categorías plegables y búsqueda. **Alt+T** enfoca la búsqueda de herramientas y **Alt+H** abre todas las hojas; los demás atajos se consultan en Ayuda.
 
 Preferencias conserva cuadrícula, ajuste BPMN al arrastrar, autoguardado y estilo inicial de figuras BPMN en este navegador. Restablecer espacio de trabajo recupera esos valores y los paneles. Los estilos iniciales no modifican figuras existentes. El explorador Microsoft incorpora búsqueda sobre la lista cargada y hasta 12 carpetas favoritas por cuenta/organización; desconectar elimina sus referencias locales.

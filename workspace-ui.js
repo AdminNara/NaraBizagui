@@ -12,9 +12,10 @@
   try{const saved=JSON.parse(localStorage.getItem(preferencesKey)||'null');if(saved&&typeof saved==='object'){for(const key of ['grid','snap','autoSave','customStyle'])if(typeof saved[key]==='boolean')preferences[key]=saved[key];if(Number.isInteger(saved.fontSize)&&saved.fontSize>=9&&saved.fontSize<=32)preferences.fontSize=saved.fontSize;for(const key of ['fill','stroke'])if(/^#[0-9a-f]{6}$/i.test(saved[key]||''))preferences[key]=saved[key];}}catch{/* Defaults remain usable without storage. */}
   const savePreferences=()=>{try{localStorage.setItem(preferencesKey,JSON.stringify(preferences));}catch{/* Preferences are still active for this session. */}};
   const header=document.querySelector('.titlebar');header.classList.add('app-header');
+  $('diagramTitle').after($('focusSheet'));
   const saveCluster=node('div','save-cluster');header.appendChild(saveCluster);move('save',saveCluster,'Guardar');const saveMenu=menu('Opciones',saveCluster);saveMenu.details.classList.add('save-menu');saveMenu.details.querySelector('summary').setAttribute('aria-label','Opciones de guardado');const saveCaption=node('p','menu-caption','Guardar como');saveMenu.body.appendChild(saveCaption);move('saveAs',saveMenu.body,'En este equipo…');move('saveMicrosoftAs',saveMenu.body,'En OneDrive o SharePoint…');
   const saveStatus=node('div','header-save-status'),autoSaveSummary=node('small','autosave-summary');autoSaveSummary.id='autoSaveSummary';saveStatus.append($('dirtyState'),autoSaveSummary);header.appendChild(saveStatus);
-  const utilities=node('div','header-utilities');header.appendChild(utilities);move('focusCanvas',utilities);const connections=menu('Conexiones',utilities);move('connectMicrosoft',connections.body);move('connectCodex',connections.body);const moreMenu=menu('Más',utilities);
+  const utilities=node('div','header-utilities');header.appendChild(utilities);document.querySelector('.statusbar').appendChild($('focusCanvas'));const connections=menu('Conexiones',utilities);move('connectMicrosoft',connections.body);move('connectCodex',connections.body);const moreMenu=menu('Más',utilities);
   const toolbar=node('nav','workspace-toolbar');toolbar.id='workspaceToolbar';toolbar.setAttribute('aria-label','Menús y acciones del editor');header.after(toolbar);
   const fileMenu=menu('Archivo',toolbar),editMenu=menu('Editar',toolbar),viewMenu=menu('Vista',toolbar),helpMenu=menu('Ayuda',toolbar);
   move('newFile',fileMenu.body,'Nuevo archivo');
@@ -45,7 +46,8 @@
   move('actualSize',viewMenu.body,'Zoom al 100 %');move('focusCanvasRibbon',viewMenu.body,'Ampliar lienzo');move('toggleLeft',viewMenu.body,'Mostrar u ocultar herramientas');move('toggleRight',viewMenu.body,'Mostrar u ocultar propiedades');
   const originalRibbon=$('ribbon');originalRibbon.hidden=true;originalRibbon.classList.add('legacy-commands');document.querySelector('.ribbon-tabs').hidden=true;
   // Keep compatibility command IDs outside the visible navigation.
-  for(const id of ['showLeft','showRight','diagramSelect','fileModeLink'])originalRibbon.appendChild($(id));
+  for(const id of ['showRight','diagramSelect','fileModeLink'])originalRibbon.appendChild($(id));
+  const showTools=$('showLeft');showTools.replaceChildren(document.createTextNode('Herramientas'));showTools.className='show-tools-button';showTools.setAttribute('aria-label','Mostrar herramientas');showTools.setAttribute('aria-controls','leftPanel');showTools.title='Mostrar herramientas (Alt+T)';toolbar.prepend(showTools);
   for(const el of [...document.querySelectorAll('.diagram-strip')])el.hidden=true;
   const sheetsDialog=dialog('workspaceSheets','Todas las hojas','<label for="sheetSearch">Buscar una hoja</label><input id="sheetSearch" type="search" placeholder="Nombre o tipo de hoja" autocomplete="off"><div id="workspaceSheetList" class="sheet-list"></div>');
   const allSheets=action('Todas las hojas',()=>{renderSheets();show(sheetsDialog.el);$('sheetSearch').focus();});allSheets.id='allSheets';document.querySelector('.sheet-bar').prepend(allSheets);$('newSheet').setAttribute('aria-label','Nueva hoja BPMN o modelo de datos');$('newSheet').title='Nueva hoja BPMN o modelo de datos';

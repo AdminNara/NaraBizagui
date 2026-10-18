@@ -45,7 +45,7 @@ const modeler = new BpmnJS({
 });
 window.bpmnModeler = modeler;
 const semanticProperties = window.NaraBpmnProperties.mount(modeler, byId('semanticFields'), () => basePropertyDraftPending());
-window.NaraAppVersion = '0.6.0';
+window.NaraAppVersion = '0.6.1';
 window.NaraAppBuild = document.querySelector('meta[name=narabizagui-build]')?.content || 'unknown';
 window.diagramReady = false;
 window.diagramError = null;
@@ -445,6 +445,7 @@ function togglePanel(side, explicit) {
   workspace.classList.toggle(side + '-hidden', hidden);
   byId(side + 'Panel').hidden = hidden;
   byId(side === 'left' ? 'showLeft' : 'showRight').hidden = !hidden;
+  if(side==='left'&&!hidden&&innerWidth<=850&&workspace.classList.contains('mobile-detail')){workspace.classList.remove('mobile-detail');workspace.classList.add('right-hidden');byId('rightPanel').hidden=true;byId('showRight').hidden=false;}
   if (side === 'right' && hidden) workspace.classList.remove('mobile-detail');
   requestAnimationFrame(() => {modeler.get('canvas').resized();if(window.NaraER?.active())window.NaraER.resize();});
 }
@@ -707,15 +708,20 @@ function refreshActions() {
 }
 let focusState=null;
 function updateFocusSheet(){const id=window.NaraER?.active()||modeler.get('canvas').getRootElement()?.id;byId('focusSheet').textContent=modeler.get('naraSheets').list().find(s=>s.id===id)?.name||'';}
+function renderFocusControl(enabled){
+  const button=byId('focusCanvas'),label=enabled?'Salir de vista ampliada':'Ampliar lienzo';
+  const corners=enabled?'M3 8h5V3M16 3v5h5M21 16h-5v5M8 21v-5H3':'M8 3H3v5M16 3h5v5M21 16v5h-5M8 21H3v-5';
+  button.innerHTML='<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="'+corners+'"/></svg>';
+  button.title=label;button.setAttribute('aria-label',label);button.setAttribute('aria-pressed',String(enabled));
+}
 function focusCanvas(enabled=!document.body.classList.contains('focus-mode')){
   if(enabled===document.body.classList.contains('focus-mode'))return;
-  const host=byId('attributionHost');
-  if(enabled){focusState={parent:host.parentNode,next:host.nextSibling,sheet:window.NaraER?.active()||modeler.get('canvas').getRootElement()?.id,erView:window.NaraER?.view(),bpmnView:modeler.get('canvas').viewbox()};byId('focusCanvas').before(host);}
-  else if(focusState)focusState.parent.insertBefore(host,focusState.next?.parentNode===focusState.parent?focusState.next:null);
-  document.body.classList.toggle('focus-mode',enabled);byId('focusCanvas').textContent=enabled?'Salir de vista ampliada':'Ampliar lienzo';byId('focusCanvas').setAttribute('aria-pressed',String(enabled));byId('focusSheet').hidden=!enabled;updateFocusSheet();
+  if(enabled)focusState={sheet:window.NaraER?.active()||modeler.get('canvas').getRootElement()?.id,erView:window.NaraER?.view(),bpmnView:modeler.get('canvas').viewbox()};
+  document.body.classList.toggle('focus-mode',enabled);renderFocusControl(enabled);byId('focusSheet').hidden=!enabled;updateFocusSheet();
   requestAnimationFrame(()=>{modeler.get('canvas').resized();if(window.NaraER?.active())window.NaraER.resize();if(!enabled&&focusState){const id=window.NaraER?.active()||modeler.get('canvas').getRootElement()?.id;if(id===focusState.sheet){if(window.NaraER?.active())window.NaraER.restoreView(focusState.erView);else modeler.get('canvas').viewbox(focusState.bpmnView);}focusState=null;}});
 }
 byId('focusCanvas').onclick=()=>focusCanvas();byId('focusCanvasRibbon').onclick=()=>focusCanvas(true);
+renderFocusControl(false);
 window.NaraSetFocus=focusCanvas;window.NaraExpandedCanvas=()=>document.body.classList.contains('focus-mode');
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&document.body.classList.contains('focus-mode')&&!document.querySelector('dialog[open],.djs-popup'))focusCanvas(false);});
 document.querySelectorAll('[data-ribbon]').forEach(button => button.onclick = () => showRibbon(button.dataset.ribbon));
