@@ -12,6 +12,18 @@
   try{const saved=JSON.parse(localStorage.getItem(preferencesKey)||'null');if(saved&&typeof saved==='object'){for(const key of ['grid','snap','autoSave','customStyle'])if(typeof saved[key]==='boolean')preferences[key]=saved[key];if(Number.isInteger(saved.fontSize)&&saved.fontSize>=9&&saved.fontSize<=32)preferences.fontSize=saved.fontSize;for(const key of ['fill','stroke'])if(/^#[0-9a-f]{6}$/i.test(saved[key]||''))preferences[key]=saved[key];}}catch{/* Defaults remain usable without storage. */}
   const savePreferences=()=>{try{localStorage.setItem(preferencesKey,JSON.stringify(preferences));}catch{/* Preferences are still active for this session. */}};
   const header=document.querySelector('.titlebar');header.classList.add('app-header');
+  const brand=header.querySelector('.brand'),brandLabel=brand.getAttribute('aria-label');let focusHeaderMode=null,headerKeyboard=false;
+  function revealHeader(open){header.classList.toggle('focus-header-open',open&&document.body.classList.contains('focus-mode'));if(document.body.classList.contains('focus-mode'))brand.setAttribute('aria-expanded',String(open));if(!open)for(const details of header.querySelectorAll('.app-menu[open]'))details.open=false;}
+  function syncFocusHeader(){const expanded=document.body.classList.contains('focus-mode');if(expanded===focusHeaderMode)return;focusHeaderMode=expanded;headerKeyboard=false;revealHeader(false);if(expanded){brand.tabIndex=0;brand.setAttribute('role','button');brand.setAttribute('aria-label','Mostrar encabezado de NaraBizagui');brand.title='Mostrar encabezado';}else{for(const attr of ['tabindex','role','aria-expanded','title'])brand.removeAttribute(attr);brand.setAttribute('aria-label',brandLabel);}}
+  brand.addEventListener('pointerenter',event=>{if(event.pointerType!=='touch'&&focusHeaderMode){headerKeyboard=false;revealHeader(true);}});
+  header.addEventListener('pointerleave',event=>{if(event.pointerType!=='touch'&&!headerKeyboard)revealHeader(false);});
+  header.addEventListener('pointerdown',()=>{headerKeyboard=false;});
+  header.addEventListener('focusin',event=>{if(focusHeaderMode&&event.target.matches(':focus-visible')){headerKeyboard=true;revealHeader(true);}});
+  header.addEventListener('focusout',event=>{if(headerKeyboard&&!header.contains(event.relatedTarget)){headerKeyboard=false;revealHeader(false);}});
+  brand.addEventListener('keydown',event=>{if(focusHeaderMode&&['Enter',' '].includes(event.key)){event.preventDefault();headerKeyboard=true;revealHeader(true);}});
+  brand.addEventListener('click',event=>{if(focusHeaderMode&&(event.pointerType==='touch'||matchMedia('(hover: none)').matches))revealHeader(!header.classList.contains('focus-header-open'));});
+  document.addEventListener('pointerdown',event=>{if(focusHeaderMode&&!header.contains(event.target)){headerKeyboard=false;revealHeader(false);}},true);
+  new MutationObserver(syncFocusHeader).observe(document.body,{attributes:true,attributeFilter:['class']});syncFocusHeader();
   $('diagramTitle').after($('focusSheet'));
   const saveCluster=node('div','save-cluster');header.appendChild(saveCluster);move('save',saveCluster,'Guardar');const saveMenu=menu('Opciones',saveCluster);saveMenu.details.classList.add('save-menu');saveMenu.details.querySelector('summary').setAttribute('aria-label','Opciones de guardado');const saveCaption=node('p','menu-caption','Guardar como');saveMenu.body.appendChild(saveCaption);move('saveAs',saveMenu.body,'En este equipo…');move('saveMicrosoftAs',saveMenu.body,'En OneDrive o SharePoint…');
   const saveStatus=node('div','header-save-status'),autoSaveSummary=node('small','autosave-summary');autoSaveSummary.id='autoSaveSummary';saveStatus.append($('dirtyState'),autoSaveSummary);header.appendChild(saveStatus);

@@ -57,3 +57,15 @@ body :is(button,summary,input,select,textarea,[tabindex]):focus-visible{outline:
 .focus-mode .statusbar>:not(#attributionHost):not(#focusCanvas){display:none!important}.focus-mode .statusbar #attributionHost{margin:0;padding:0 5px;border:0}
 @media(max-width:850px){.app-header{padding:4px 12px;gap:3px 10px}.app-header .brand-logo{width:150px!important;height:42px!important}.workspace-toolbar{padding:2px 7px}.workspace-toolbar>.app-menu>summary{padding:3px 7px}.command-actions>button{padding:3px 5px}}
 @media(max-width:560px){.app-header .brand-logo{width:116px!important;height:34px!important}.app-header .header-save-status .save-state{font-size:10px}.workspace-toolbar{position:relative;flex-wrap:nowrap}.workspace-toolbar>.app-menu>summary{padding:3px 6px}.show-tools-button{position:absolute;left:8px;top:calc(100% + 6px);font-size:11px;padding:5px 8px;background:#fff;box-shadow:0 2px 8px #163f5820}.statusbar{padding:0 6px;gap:3px}.statusbar #zoomRange{width:48px}.statusbar #zoomValue{min-width:38px}.statusbar #attributionHost{margin:0;padding:0 4px}.statusbar #status{min-width:0}.focus-mode .statusbar{right:6px;bottom:6px}}
+
+/* The expanded canvas uses the whole window; the header reveals over it. */
+.focus-mode .app-header{position:fixed;inset:0 0 auto;z-index:50;background:transparent;pointer-events:none}
+.focus-mode .app-header>:not(.brand){visibility:hidden;pointer-events:none}
+.focus-mode .app-header .brand{position:relative;pointer-events:auto;cursor:pointer}
+.focus-mode .app-header .brand-logo{opacity:0}
+.focus-mode .app-header .brand::before{content:'';position:absolute;inset:0;pointer-events:none;background:var(--navy);opacity:.2;-webkit-mask:url('assets/narabizagui_blanco.png') center/cover no-repeat;mask:url('assets/narabizagui_blanco.png') center/cover no-repeat}
+.focus-mode .app-header.focus-header-open{background:var(--navy);pointer-events:auto}
+.focus-mode .app-header.focus-header-open>:not(.brand){visibility:visible;pointer-events:auto}
+.focus-mode .app-header.focus-header-open .brand-logo{opacity:1}
+.focus-mode .app-header.focus-header-open .brand::before{opacity:0}
+.focus-mode .app-header .app-menu-body{position:absolute;top:100%}
