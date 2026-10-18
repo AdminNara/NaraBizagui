@@ -45,7 +45,7 @@ const modeler = new BpmnJS({
 });
 window.bpmnModeler = modeler;
 const semanticProperties = window.NaraBpmnProperties.mount(modeler, byId('semanticFields'), () => basePropertyDraftPending());
-window.NaraAppVersion = '0.7.0';
+window.NaraAppVersion = '0.8.0';
 window.NaraAppBuild = document.querySelector('meta[name=narabizagui-build]')?.content || 'unknown';
 window.diagramReady = false;
 window.diagramError = null;
@@ -123,6 +123,7 @@ function appendStage() {
 }
 let selected = null;
 let ready = false;
+window.NaraStartupPending=true;
 let dirty = false;
 let project = null;
 let activeDiagram = null;
@@ -259,8 +260,7 @@ async function acceptBrowserSource(source, canApply = () => true, preserveView =
   const canvas=modeler.get('canvas'),er=window.NaraER?.active();
   const view=preserveView?{sheet:er||canvas.getRootElement()?.id,erd:Boolean(er),box:er?window.NaraER.view():canvas.viewbox()}:null;
   browserDocumentVersion++;
-  await openDiagram(source.xml);
-  if(window.diagramError){const reason=window.diagramError;if(previous){await openDiagram(previous);setDirty(previousDirty);}throw new Error(reason);}
+  try{await openDiagram(source.xml);}catch(cause){if(previous){await openDiagram(previous);setDirty(previousDirty);}throw cause;}
   await browserFiles.attach(savedSource);browserFileContext(source.name);
   if(view&&modeler.get('naraSheets').list().some(sheet=>sheet.id===view.sheet)){
     modeler.get('naraSheets').open(view.sheet);
@@ -698,7 +698,7 @@ async function openDiagram(xml) {
     ready = true; window.diagramReady = true;
     status('Modelo editable · ' + window.importWarnings.length + ' advertencias de importación · Revisión del proceso pendiente');
     refreshActions();
-  } catch (error) { window.diagramError = error.message; status('No se pudo abrir: ' + error.message); }
+  } catch (error) { window.diagramError = error.message; status('No se pudo abrir: ' + error.message); throw error; }
 }
 window.openDiagram = openDiagram;
 window.decorateStages = decorateStages;
@@ -884,4 +884,6 @@ window.addEventListener('online',()=>window.naraAutoSave.retrySafe());
 for(const event of ['input','change','focusout'])document.addEventListener(event,()=>window.naraAutoSave.refresh(),true);
 window.addEventListener('pointerdown',()=>{autoSavePointer=true;},true);
 for(const event of ['pointerup','pointercancel','blur'])window.addEventListener(event,()=>{autoSavePointer=false;window.naraAutoSave.refresh();},true);
-window.NaraStartup = bootstrap().catch(error => { window.diagramError = error.message; status(error.message); }).finally(()=>window.naraAutoSave.refresh());
+window.NaraStartup = bootstrap().catch(error => { window.diagramError = error.message; status('No se pudo preparar el editor: '+error.message);throw error; }).finally(()=>{window.NaraStartupPending=false;window.naraAutoSave.refresh();});
+// Microsoft observes this same promise; retain its rejected state without an unhandled rejection.
+window.NaraStartup.catch(()=>{});

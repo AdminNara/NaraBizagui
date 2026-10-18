@@ -58,6 +58,7 @@ test('MCP creates several expanded pools that each accept activities and retain 
     naraSheets: { list: () => [{ id: root.id, name: 'Generic test' }] }
   };
   context.modeler = { get: service => services[service], saveXML: options => moddle.toXML(definitions, options) };
+  vm.runInNewContext(await readFile(new URL('../editor-readiness.js', import.meta.url), 'utf8'), context);
   vm.runInNewContext(await readFile(new URL('../mcp-editor.js', import.meta.url), 'utf8'), context);
   const editor = context.window.NaraBizaguiEditor, pools = [];
   for (const [index, name] of ['Area A', 'Area B', 'Area C', 'Area D', 'Area E'].entries()) {

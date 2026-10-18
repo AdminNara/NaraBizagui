@@ -1,6 +1,14 @@
 # NaraBizagui by NaraLab — plugin local
 
-La versión 0.6.0 incluye cuatro skills, scripts compartidos, nueve herramientas MCP y su puente al editor en una instalación. Adapta el ritmo a voz o texto, detecta contratos anteriores y permite construir procesos completos en un solo bloque reversible: matrices, actividades, decisiones, condiciones, eventos y subprocesos con sus conexiones.
+La versión 0.7.0 incluye cuatro skills, scripts compartidos, nueve herramientas MCP y el contrato `coordination-v1`. El recorrido habitual es una consulta de preparación, un bloque de edición/presentación y una confirmación visual cuando corresponde. Conserva procesos completos, revisión obligatoria, prevalidación, idempotencia y Deshacer/Rehacer.
+
+## Preparación y presentación en una petición
+
+`read` devuelve resumen por defecto y espera una sola vez, hasta cinco segundos, a la inicialización y recuperación de Microsoft. Si hay una única pestaña vinculada puede identificarla sin `sessions`; varias requieren `sessionId`. Un diagnóstico con `documentReady:false` no autoriza editar. Los fallos de carga son distintos de los estados temporales y conservan motivo, posibilidad de reintento y recuperación de extremo a extremo. No se sobrescribe un fallo de apertura con un mensaje de inicio normal.
+
+`edit_batch` combina las operaciones con `presentation:{expandedCanvas:true}` y `fit:true`. Su respuesta resumida conserva alias, revisión/hash, validación y autoguardado; `response:"full"` incluye figuras. Las skills reutilizan instrucciones/capacidades vigentes, evitan reintentos idénticos y eligen una sola comprobación visual. No generan capturas, exportaciones o guardados duplicados por rutina.
+
+Las métricas `timings` describen fases del editor y transporte. `firstVisibleMs` solo se devuelve tras un cuadro visible confirmado; no mide la espera completa del usuario ni la latencia del modelo/voz. Una pestaña en segundo plano no acredita un primer cuadro visible. La presentación tiene una espera acotada y no invalida una edición confirmada.
 
 ## Procesos completos y respuesta ágil
 

@@ -217,7 +217,7 @@
       byId('externalChange').hidden = true; dialog.close(); status('BPMN guardado en Microsoft · Contenido comprobado.');
     } finally { saving = false; window.naraAutoSave?.refresh(); }
   }, 'Guardando y comprobando…');
-  window.NaraMicrosoftUI = { saveAs: () => open('save'), open, recents:()=>{open();if(dialog.open&&auth.account)recentFiles();},
+  window.NaraMicrosoftUI = { restoring:()=>restoring,saveAs: () => open('save'), open, recents:()=>{open();if(dialog.open&&auth.account)recentFiles();},
     navigation:()=>({connected:Boolean(auth.account),busy,favorites:workspace.favorites(),canFavorite:!busy&&Boolean(folder)&&!recentView,isFavorite:Boolean(folder&&workspace.favorites().some(value=>value.id===folder.id&&value.driveId===folder.driveId))}),
     toggleFavorite:()=>{if(!busy&&folder)workspace.toggleFavorite({...folder,...context()});window.NaraWorkspaceUI?.refreshMicrosoft();},
     openFavorite:index=>{const value=workspace.favorites()[index];if(!value||busy)return;provider=value.provider;byId('msSiteUrl').value=value.siteUrl||'';recentView=false;run(()=>showFolder(value,{trail:[]}));},

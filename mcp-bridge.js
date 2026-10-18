@@ -29,7 +29,7 @@
     } catch { remember(null); }
   }
   const say = text => { message.textContent = text; };
-  window.NaraMcpConnectionInfo=()=>live?{serverVersion:live.serverVersion||'unknown',toolContract:live.toolContract||'legacy',compatible:live.toolContract===(window.NaraModelAudit?.TOOL_CONTRACT||'structure-v1'),recovery:'Una conversación nueva debe cargar el plugin actualizado; instalarlo no recarga las herramientas de un chat abierto.'}:null;
+  window.NaraMcpConnectionInfo=()=>live?{serverVersion:live.serverVersion||'unknown',toolContract:live.toolContract||'legacy',compatible:live.toolContract===(window.NaraModelAudit?.TOOL_CONTRACT||'coordination-v1'),recovery:'Comprueba las herramientas cargadas; si conservan el contrato anterior, una conversación nueva carga el plugin actualizado.'}:null;
   function updateContract(session,result){
     session.serverVersion=result.serverVersion||result.version||session.serverVersion;session.toolContract=result.toolContract||session.toolContract;remember(session);
     const key=(session.serverVersion||'unknown')+':'+(session.toolContract||'legacy');
@@ -68,7 +68,7 @@
           if (!['read', 'edit', 'save', 'exportPng', 'validate', 'editBatch'].includes(command.action)) throw new Error('Comando no admitido.');
           activity('trabajando',({read:'Leyendo la hoja activa',edit:'Actualizando la hoja activa',save:'Guardando el archivo',exportPng:'Preparando una imagen PNG',validate:'Revisando el modelo',editBatch:'Aplicando un bloque de cambios'})[command.action]);
           result = { commandId: command.id, result: await window.NaraBizaguiEditor[command.action](command.args) };
-        } catch (error) { result = { commandId: command.id, error: { code: error.code || 'EDITOR_ERROR', message: error.message } }; }
+        } catch (error) { result = { commandId: command.id, error: { code: error.code || 'EDITOR_ERROR', message: error.message,...Object.fromEntries(['busyReason','retryable','retryAfterMs','recovery'].filter(key=>error[key]!==undefined).map(key=>[key,error[key]])) } }; }
         activity('conectado',result.error?'La acción necesita revisión: '+result.error.message:'Acción terminada y confirmada por el editor.');
         // Retry only delivery of the result, never execution of an edit or save.
         for (let attempt = 0; attempt < 3; attempt++) {

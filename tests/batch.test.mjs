@@ -17,10 +17,10 @@ const bundle=await build({stdin:{contents:`
 `,resolveDir:fileURLToPath(new URL('../',import.meta.url))},bundle:true,platform:'node',format:'cjs',write:false});
 const module={exports:{}};new Function('require','module','exports',bundle.outputFiles[0].text)(createRequire(import.meta.url),module,module.exports);
 const {BpmnModdle,Ids,BpmnFactory,UpdateProperties,UpdateModdle,EventBus,CommandStack}=module.exports;
-const sources=await Promise.all(['editor-properties.js','editor-operations.js','editor-blocks.js'].map(name=>readFile(new URL('../'+name,import.meta.url),'utf8')));
+const sources=await Promise.all(['editor-readiness.js','editor-properties.js','editor-operations.js','editor-blocks.js'].map(name=>readFile(new URL('../'+name,import.meta.url),'utf8')));
 const xml=`<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="Defs" targetNamespace="https://example.test"><bpmn:process id="Process"><bpmn:task id="Task" name="Original"/></bpmn:process></bpmn:definitions>`;
 
-async function fixture(sourceXml=xml){
+async function fixture(sourceXml=xml,options={}){
  let counter=0;
  class Headless {
   async importXML(source){
@@ -43,10 +43,29 @@ async function fixture(sourceXml=xml){
  const describe=(e,target=modeler)=>({id:e.id,type:e.type,name:e.businessObject.name||'',eventDefinitions:(e.businessObject.eventDefinitions||[]).map(d=>({type:d.$type})),documentation:(e.businessObject.documentation||[]).map(d=>d.text).join('\n\n'),semanticProperties:Object.fromEntries(context.window.NaraBpmnProperties.create(target).describe(e).fields.map(f=>[f.key,f.value]))});
  const read=async()=>{const {xml}=await modeler.saveXML();return{revision:modeler.revision,sha256:createHash('sha256').update(xml).digest('hex'),xml,diagramType:'bpmn',elements:modeler.get('elementRegistry').getAll().map(e=>describe(e)),warnings:[]};};
  const guard=expected=>{if(expected!==modeler.revision)throw Object.assign(Error('revision'),{code:'REVISION_CONFLICT'});};
- const blocks=context.window.NaraMcpBlocks.create({modeler,read,guard,describe,getRevision:()=>modeler.revision});
+ const blocks=context.window.NaraMcpBlocks.create({modeler,read,guard,describe,getRevision:()=>modeler.revision,...options});
  return{modeler,read,blocks,semantic,task:modeler.get('elementRegistry').get('Task')};
 }
 const changes=[{type:'documentation',elementId:'Task',text:'Description'},{type:'properties',elementId:'Task',values:{loopMode:'sequential',loopCardinality:'3'}}];
+
+test('compact responses preserve revision, aliases and validation while omitting the model payload',async()=>{
+ const f=await fixture(),before=await f.read(),input={expectedRevision:before.revision,requestId:'compact',operations:changes};
+ const result=await f.blocks.batch({...input,response:'summary'});
+ assert.equal(result.applied,true);assert.equal(result.state.elementsOmitted,true);assert.equal('elements'in result.state,false);assert.equal('xml'in result.state,false);assert.ok(result.validation);
+ const replay=await f.blocks.batch({...input,response:'full'});assert.equal(replay.replayed,true);assert.equal(replay.state.sha256,result.state.sha256);assert.ok(replay.state.elements.length);assert.ok(JSON.stringify(result).length<JSON.stringify(replay).length);
+});
+test('presentation happens once after a valid commit, never in dry-run, and the block still undoes once',async()=>{
+ let calls=0,options;const f=await fixture(xml,{present:async value=>{calls++;options=value;assert.equal(f.task.businessObject.documentation[0].text,'Description');return{paintConfirmed:true};}}),before=await f.read();
+ const input={expectedRevision:before.revision,requestId:'presentation',operations:changes,fit:true,presentation:{expandedCanvas:true}};
+ await f.blocks.batch({...input,dryRun:true});assert.equal(calls,0);
+ const result=await f.blocks.batch(input);assert.equal(calls,1);assert.equal(options.expandedCanvas,true);assert.equal(options.fit,true);assert.ok(result.timings.firstVisibleMs>=0);assert.ok(result.timings.totalMs>=result.timings.firstVisibleMs);
+ await f.blocks.batch(input);assert.equal(calls,1);f.modeler.get('commandStack').undo();assert.equal((await f.read()).sha256,before.sha256);
+});
+test('manual changes during presentation are preserved and explicitly require reconciliation',async()=>{
+ const f=await fixture(xml,{present:async()=>{f.modeler.get('modeling').updateProperties(f.task,{name:'Manual during presentation'});return{paintConfirmed:true};}}),before=await f.read();
+ const result=await f.blocks.batch({expectedRevision:before.revision,requestId:'concurrent-presentation',operations:[changes[0]]});
+ assert.equal(result.applied,true);assert.equal(result.reconciliationRequired,true);assert.notEqual(result.committedRevision,result.state.revision);assert.equal(f.task.businessObject.name,'Manual during presentation');
+});
 
 test('dry run does not alter XML/history; applied properties and documentation undo/redo once',async()=>{
  const f=await fixture(),before=await f.read();

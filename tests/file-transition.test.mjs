@@ -23,3 +23,15 @@ test('a failed new-document import cannot leave an eligible autosave against the
 test('reload cannot replace the current context while a save or a file operation is running',async()=>{
   for(const key of ['saving','loadingDiagram','filePolling']){const f=fixture();f.c[key]=true;await f.c.reloadBrowserFile();assert.equal(f.reads(),0,key);}
 });
+
+test('a failed diagram opening rejects instead of being reported as a successful empty startup',async()=>{
+ const c={ready:true,window:{},status:message=>{c.message=message;},modeler:{importXML:async()=>{throw Error('Native import failed');}}};
+ vm.createContext(c);const start=source.indexOf('async function openDiagram('),end=source.indexOf('\nwindow.openDiagram',start);vm.runInContext(source.slice(start,end),c);
+ await assert.rejects(c.openDiagram('<invalid/>'),/Native import failed/);assert.equal(c.ready,false);assert.equal(c.window.diagramError,'Native import failed');assert.match(c.message,/No se pudo abrir/);
+});
+
+test('a rejected source import restores the prior model and dirty state without binding a new destination',async()=>{
+ const imports=[];let attaches=0;const c={ready:true,dirty:true,browserDocumentVersion:1,window:{},browserFiles:{validate(){},attach:async()=>{attaches++;}},modeler:{saveXML:async()=>({xml:'previous'}),get:()=>({})},openDiagram:async xml=>{imports.push(xml);if(xml==='rejected')throw Error('Bad import');},setDirty:value=>{c.dirty=value;}};
+ vm.createContext(c);const start=source.indexOf('async function acceptBrowserSource('),end=source.indexOf('\nasync function openBrowserFile(',start);vm.runInContext(source.slice(start,end),c);
+ await assert.rejects(c.acceptBrowserSource({xml:'rejected'}),/Bad import/);assert.deepEqual(imports,['rejected','previous']);assert.equal(c.dirty,true);assert.equal(attaches,0);
+});
