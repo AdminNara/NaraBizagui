@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="vendor/diagram-js.css?v=08ead062d4284cb1">
   <link rel="stylesheet" href="vendor/bpmn.css?v=b4b8f7070233c196">
   <link rel="stylesheet" href="vendor/bpmn-js.css?v=b09861c8e7030764">
-  <link rel="stylesheet" href="modelador.css?v=dd3711a29d3250c8">
+  <link rel="stylesheet" href="modelador.css?v=b4dd1dbd57d36469">
 </head>
 <body>
   <header class="titlebar">
@@ -48,7 +48,7 @@
     <aside class="left-panel" id="leftPanel" aria-label="Herramientas de diagramas">
       <div class="panel-heading"><h2>Herramientas</h2><button id="hideLeft" class="icon-button" aria-label="Ocultar herramientas">‹</button></div>
       <div class="tool-modes" aria-label="Tipo de diagrama"><button id="modeBpmn" aria-pressed="true">BPMN</button><button id="modeEr" aria-pressed="false">Modelo de datos</button></div>
-      <div id="bpmnTools"><p class="panel-subtitle">Elementos BPMN</p><div id="paletteHost"></div></div>
+      <div id="bpmnTools"><p class="panel-subtitle">Elementos BPMN</p><div id="paletteHost" tabindex="0" role="region" aria-label="Herramientas BPMN; desplázate para ver todas"></div></div>
       <div id="erdTools" hidden><p class="panel-subtitle">Entidad · relación</p><div class="erd-tools-grid"><button id="erdNewTable"><span aria-hidden="true">▤</span>Tabla</button><button id="erdNewRelation"><span aria-hidden="true">⇢</span>Relación</button><button id="erdAddField"><span aria-hidden="true">＋</span>Campo</button><button id="erdShowProperties"><span aria-hidden="true">≡</span>Propiedades</button></div><button id="erdFit" class="secondary-button">Encajar modelo</button><p class="panel-subtitle">Arrastra el encabezado de una tabla para moverla. Doble clic en un campo para editarlo. Une los puntos de dos campos para relacionarlos.</p></div>
     </aside>
     <section class="diagram-area" aria-label="Diagrama editable">
@@ -59,8 +59,8 @@
       <div class="sheet-bar"><button id="sheetBack" class="sheet-back" title="Volver a la hoja anterior" aria-label="Volver a la hoja anterior" disabled>←</button><nav id="sheetNavigation" class="sheet-navigation" role="tablist" aria-label="Hojas del archivo BPMN"></nav><button id="newSheet" class="new-sheet" aria-label="Nueva hoja de proceso" title="Nueva hoja de proceso">＋</button></div>
     </section>
     <aside class="right-panel" id="rightPanel" aria-label="Detalle del proceso" hidden>
-      <div class="detail-tabs"><button id="tabProperties" class="active">Propiedades</button><button id="hideRight" class="icon-button" aria-label="Ocultar detalle">›</button></div>
-      <div class="detail-body" id="propertiesPanel">
+      <div class="detail-tabs inspector-tabs-bar"><nav class="inspector-tabs" role="tablist" aria-label="Opciones del panel derecho"><button id="tabProperties" data-inspector-tab="properties" class="active" role="tab" aria-selected="true" aria-controls="propertiesPanel erdPropertiesPanel">Propiedades</button><button id="tabStyle" data-inspector-tab="style" role="tab" aria-selected="false" aria-controls="stylePanel" tabindex="-1">Estilo</button><button id="tabText" data-inspector-tab="text" role="tab" aria-selected="false" aria-controls="textPanel" tabindex="-1">Texto</button><button id="tabArrange" data-inspector-tab="arrange" role="tab" aria-selected="false" aria-controls="arrangePanel" tabindex="-1">Organizar</button></nav><button id="hideRight" class="icon-button" aria-label="Ocultar detalle">›</button></div>
+      <div class="detail-body" id="propertiesPanel" role="tabpanel" aria-labelledby="tabProperties">
         <div id="emptySelection" class="empty-selection"><span class="empty-icon">▱</span><h2>Propiedades del elemento</h2><p>Selecciona una figura para editar su nombre y descripción.</p></div>
         <form id="propertyForm" hidden>
           <span class="eyebrow" id="elementType"></span><h2 id="propertyHeading">Elemento</h2>
@@ -77,7 +77,7 @@
           <button type="submit" class="primary-button">Aplicar cambios</button>
         </form>
       </div>
-      <div class="detail-body" id="erdPropertiesPanel" hidden>
+      <div class="detail-body" id="erdPropertiesPanel" role="tabpanel" aria-labelledby="tabProperties" hidden>
         <div id="erdEmptySelection" class="empty-selection"><h2>Modelo de datos</h2><p>Selecciona una tabla, un campo o una relación.</p></div>
         <div id="erdTableProperties" hidden><h2>Tabla</h2><form id="erdTableForm"><label for="erdTableName">Nombre de tabla</label><input id="erdTableName" maxlength="120" required><label for="erdTableWidth">Ancho de tabla</label><input id="erdTableWidth" type="number" min="200" max="1000" required><button class="primary-button" type="submit">Aplicar tabla</button></form><h3>Campos</h3><div id="erdFieldList"></div></div>
         <div id="erdRelationProperties" hidden><h2>Relación</h2><p id="erdRelationSummary"></p><form id="erdRelationForm"><label for="erdRelationSource">Campo de origen</label><select id="erdRelationSource" required></select><label for="erdSourceCardinality">Cardinalidad de origen</label><select id="erdSourceCardinality"><option>1</option><option>0..1</option><option>N</option><option>0..N</option></select><label for="erdRelationTarget">Campo de destino</label><select id="erdRelationTarget" required></select><label for="erdTargetCardinality">Cardinalidad de destino</label><select id="erdTargetCardinality"><option>1</option><option>0..1</option><option>N</option><option>0..N</option></select><label for="erdRelationLabel">Nombre de relación (opcional)</label><input id="erdRelationLabel" maxlength="120"><button type="submit">Guardar relación</button></form></div>
@@ -85,7 +85,7 @@
       </div>
     </aside>
   </main>
-  <footer class="statusbar"><span class="status-dot" aria-hidden="true"></span><span id="status" role="status">Abriendo modelo…</span><span class="status-spacer"></span><span id="attributionHost" title="bpmn.io · licencia del motor de modelado"></span><span class="status-version">Modelador 0.4.0</span><button id="minus" aria-label="Reducir zoom">−</button><input id="zoomRange" type="range" min="10" max="150" value="50" aria-label="Nivel de zoom"><button id="plus" aria-label="Aumentar zoom">+</button><button id="zoomValue" title="Encajar diagrama">50 %</button></footer>
+  <footer class="statusbar"><span class="status-dot" aria-hidden="true"></span><span id="status" role="status">Abriendo modelo…</span><span class="status-spacer"></span><span id="attributionHost" title="bpmn.io · licencia del motor de modelado"></span><span class="status-version">Modelador 0.4.1</span><button id="minus" aria-label="Reducir zoom">−</button><input id="zoomRange" type="range" min="10" max="150" value="50" aria-label="Nivel de zoom"><button id="plus" aria-label="Aumentar zoom">+</button><button id="zoomValue" title="Encajar diagrama">50 %</button></footer>
   <input id="open" type="file" accept=".bpmn,.xml" hidden>
   <dialog id="historyDialog"><div class="history-heading"><h2>Historial de archivos de este navegador</h2><button id="closeHistory" aria-label="Cerrar historial">×</button></div><p>Revisiones anteriores conservadas al guardar. Puedes descargar una copia. Este historial depende de los datos de este navegador.</p><div id="historyItems"></div></dialog>
   <script src="vendor/bpmn-modeler.production.min.js?v=5956b3e36ce23b3f"></script>
@@ -115,13 +115,13 @@
   <script src="archivos.js?v=053d08cb36b53d8f"></script>
   <dialog id="sheetDialog" class="codex-dialog" aria-labelledby="sheetDialogHeading"><form id="sheetForm"><div class="history-heading"><h2 id="sheetDialogHeading">Nueva hoja de proceso</h2><button type="button" id="closeSheetDialog" aria-label="Cerrar hoja">×</button></div><p id="sheetKindField"><label for="sheetKind">Tipo de hoja</label><select id="sheetKind"><option value="bpmn">Proceso BPMN</option><option value="erd">Modelo de datos · entidad-relación</option></select></p><p><label for="sheetName">Nombre de la hoja</label><input id="sheetName" maxlength="120" required autocomplete="off"></p><button type="submit" id="saveSheetName">Crear hoja</button></form></dialog>
   <script src="vendor/sheets-import.js?v=c0b00ddb98c9b5c3"></script>
-  <script src="editor-tools.js?v=0e76bd9271958373"></script>
+  <script src="editor-tools.js?v=83825ac60d4d1040"></script>
   <script src="erd-model.js?v=e373fbf5bec1168a"></script>
-  <script src="erd-editor.js?v=8dc4d2b842285cea"></script>
+  <script src="erd-editor.js?v=bb7bf677d6770843"></script>
   <script src="sheets.js?v=976ea816940c2076"></script>
-  <script src="editor-style.js?v=8e086dc33e594857"></script>
+  <script src="editor-style.js?v=38d9b812c34a6617"></script>
   <script src="editor-properties.js?v=345133142175ca4c"></script>
-  <script src="modelador.js?v=2085e1260c72e5fa"></script>
+  <script src="modelador.js?v=2673a0ddece5049a"></script>
   <script src="mcp-editor.js?v=f372be2828831bde"></script>
   <script src="mcp-bridge.js?v=80dc1ddad7ae993f"></script>
   <script src="microsoft-ui.js?v=7cfe8a888108ccde"></script>

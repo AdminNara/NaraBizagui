@@ -45,7 +45,7 @@ const modeler = new BpmnJS({
 });
 window.bpmnModeler = modeler;
 const semanticProperties = window.NaraBpmnProperties.mount(modeler, byId('semanticFields'), () => basePropertyDraftPending());
-window.NaraAppVersion = '0.4.0';
+window.NaraAppVersion = '0.4.1';
 window.diagramReady = false;
 window.diagramError = null;
 // Agrupa los cambios nativos para poder deshacer toda la columna en un paso.
@@ -341,6 +341,7 @@ function showDetail() {
   byId('propertiesPanel').hidden = !!window.NaraER?.active();
   byId('erdPropertiesPanel').hidden = !window.NaraER?.active();
   if(window.NaraER?.active())window.NaraER.renderProperties();
+  window.NaraStylePanel?.setTab('properties');
   requestAnimationFrame(() => {modeler.get('canvas').resized();if(window.NaraER?.active())window.NaraER.resize();});
 }
 function togglePanel(side, explicit) {
@@ -622,7 +623,6 @@ byId('documentFormat').onchange = applyDocumentControls;
 byId('connectDocument').onclick = linkDocument;
 document.querySelectorAll('[data-fit]').forEach(button => button.onclick = fit);
 document.querySelectorAll('[data-stage]').forEach(button => button.onclick = () => focusStage(button.dataset.stage));
-byId('tabProperties').onclick = () => showDetail();
 byId('properties').onclick = () => showDetail('properties');
 byId('toggleLeft').onclick = () => togglePanel('left'); byId('hideLeft').onclick = () => togglePanel('left', true); byId('showLeft').onclick = () => togglePanel('left', false);
 byId('toggleRight').onclick = () => togglePanel('right'); byId('hideRight').onclick = () => togglePanel('right', true); byId('showRight').onclick = () => { togglePanel('right', false); showDetail('properties'); };
@@ -712,7 +712,7 @@ eventBus.on('nara.stage.insert', event => {
 eventBus.on('nara.openSubprocess', event => {
   try { modeler.get('naraSheets').openSubprocess(event.element.id); } catch (error) { status(error.message); }
 });
-eventBus.on('nara.sheet.changed', () => { renderStageNavigation(); updateProperties(null);updateFocusSheet(); });
+eventBus.on('nara.sheet.changed', () => { renderStageNavigation(); updateProperties(null);updateFocusSheet();window.NaraStylePanel?.refresh(); });
 eventBus.on('commandStack.shape.create.postExecuted', event => {
   const shape = event.context.shape;
   if (isStage(shape) && !stageName(shape)) modeler.get('modeling').updateLabel(shape, 'Nueva etapa', {x: shape.x + 10, y: shape.y + 8, width: shape.width - 20, height: 32});

@@ -102,3 +102,20 @@ button,input,textarea{font:inherit}button{cursor:pointer}button:disabled{cursor:
 .semantic-checkbox{display:flex;align-items:center;gap:8px}.semantic-checkbox label{flex:1;margin:0}.semantic-checkbox input{width:17px;height:17px;flex:none}
 @media(max-width:1100px){.titlebar{gap:12px}.titlebar #focusCanvas{font-size:10px;padding:7px}.focus-mode .focus-sheet{max-width:120px}.focus-mode .save-state{display:none}}
 .erd-inline-editor{position:absolute;z-index:25;border:2px solid #199fd4;border-radius:0;background:white;color:#213e53;padding:2px 7px;box-shadow:0 0 0 1px white;outline:none!important}.erd-row-actions{display:none}.erd-field-selected .erd-row-actions{display:block}.erd-table [data-action]{cursor:pointer}.erd-table [data-cell]{cursor:text}.erd-table [data-cell="key"]{cursor:pointer}.visual-properties{border-top:1px solid #d8e1e9;margin-top:20px;padding-top:8px}.visual-properties details{padding:10px 0;border-bottom:1px solid #dce5ed}.visual-properties summary{cursor:pointer;font-weight:600}.format-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.format-grid label{font-size:11px;color:#61798b;margin:0}.format-grid input,.format-grid select{display:block;width:100%;min-width:0;margin-top:5px;border:1px solid #c7d7e4;border-radius:3px;padding:5px;background:white}.format-grid input[type="color"]{height:29px;padding:3px}.format-grid input[type="checkbox"]{width:18px;height:18px}.right-panel .detail-body{flex-shrink:0;overflow:visible}.right-panel .detail-body[hidden]{display:none}.erd-active #erdCanvas{background:transparent}.erd-active .nara-direction-tools{display:none!important}
+/* Each tool area owns its remaining height so its final rows remain reachable. */
+.left-panel>.tool-modes{flex-shrink:0}
+#bpmnTools{display:flex;flex:1;flex-direction:column;min-height:0;overflow:hidden}
+#paletteHost{flex:1;min-height:0;overflow-x:hidden;overflow-y:auto;scrollbar-gutter:stable;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#93acbf #f1f5f8}
+#paletteHost .djs-palette{height:auto!important;max-height:none!important;overflow:visible}
+#erdTools{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain}
+.inspector-tabs-bar{position:sticky;top:0;z-index:2;padding:0 5px;background:#f6f8fa}
+.inspector-tabs{display:flex;flex:1;min-width:0;overflow-x:auto;scrollbar-width:thin}
+.inspector-tabs button{flex-shrink:0;white-space:nowrap;font-size:11px;padding:12px 6px 10px;border-radius:0;border-bottom:2px solid transparent}
+.inspector-tabs button.active{border-bottom-color:var(--blue);font-weight:600;color:var(--blue)}
+#formatPanel .visual-properties{margin:0;padding:0;border:0}
+#formatPanel .format-grid{margin-top:0}
+#formatPanel .format-grid label{line-height:1.5}
+.nara-direction-tools>.nara-stage-actions{left:4px!important;right:auto!important;bottom:auto!important;transform:none!important;flex-direction:row!important;padding:3px;border-radius:5px;white-space:nowrap}
+.nara-stage-actions .nara-stage-split-button{width:auto;min-width:112px;height:29px;padding:4px 9px;font:12px/20px 'Segoe UI',Arial,sans-serif}
+@media(max-width:850px){.inspector-tabs button{font-size:10px;padding-left:5px;padding-right:5px}.titlebar{gap:8px}.titlebar .save-state{display:none}}
+@media(max-height:650px){#paletteHost .djs-palette .entry{height:50px;gap:4px;font-size:25px}#paletteHost .djs-palette .group{padding-bottom:5px;margin-bottom:5px}}

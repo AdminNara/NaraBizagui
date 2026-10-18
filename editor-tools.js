@@ -59,6 +59,7 @@
       if (!visual) return hide();
       const box = visual.getBoundingClientRect(), container = host.getBoundingClientRect();
       Object.assign(layer.style, { left: box.left - container.left + 'px', top: box.top - container.top + 'px', width: box.width + 'px', height: box.height + 'px' });
+      const stageActions=layer.querySelector('.nara-stage-actions');if(stageActions)stageActions.style.top=box.top-container.top>44?'-40px':'36px';
     }
     function chooseSide(event) {
       if (!current || current.waypoints || !event) return;
@@ -125,10 +126,12 @@
       if (name === 'bpmn-replace' && window.NaraPropertyDraftPending?.()) return report('Aplica los cambios de Propiedades antes de cambiar el tipo.');
       selection.select(element);
       const box = anchor?.getBoundingClientRect();
-      if (box?.width) lastMenuPoint = { x: Math.max(8,Math.min(box.right + 6, innerWidth - 250)), y: Math.max(8,Math.min(box.top, innerHeight - 280)) };
-      popupMenu.open(element, name, lastMenuPoint || { x: 250, y: 250 }, { title: name === 'bpmn-replace' ? 'Tipo de elemento' : 'Más acciones', width: 230, search: false });
+      const width=name==='nara-stage-split'?280:230;
+      if (box?.width) lastMenuPoint = { x: Math.max(8,Math.min(box.right + 6, innerWidth - width - 8)), y: Math.max(8,Math.min(box.top, innerHeight - 280)) };
+      popupMenu.open(element, name, lastMenuPoint || { x: 250, y: 250 }, { title: name === 'bpmn-replace' ? 'Tipo de elemento' : name==='nara-stage-split'?'Dividir etapa':'Más acciones', width, search: false });
     }
     function show(element, original) {
+      if(element.labelTarget?.type==='bpmn:Group'&&element.labelTarget.id.startsWith(window.NaraStagePrefix?.()||'Stage_'))element=element.labelTarget;
       if (dragging.context() || element.type === 'label' || !element.parent) return;
       clearTimeout(hideTimer);
       if (current === element && !layer.hidden) { chooseSide(original); return; }
@@ -165,7 +168,7 @@
             add.onclick = event => { event.stopPropagation(); safe(() => { if (window.NaraPropertyDraftPending?.()) throw Error('Aplica o descarta el texto pendiente en Propiedades.'); action(); hide(); }); };
             layer.appendChild(add);
           }
-          if(stage){const panel=document.createElement('div');panel.className='nara-quick-options nara-lane-options';for(const count of [2,3]){const option=button('Dividir en '+count+' etapas','',String(count)+' columnas');option.dataset.stageSplit=count;option.onclick=()=>safe(()=>{if(window.NaraPropertyDraftPending?.())throw Error('Aplica la edición pendiente.');eventBus.fire('nara.stage.split',{element,count});hide();});panel.appendChild(option);}layer.appendChild(panel);}
+          if(stage){const panel=document.createElement('div');panel.className='nara-quick-options nara-stage-actions';const split=button('Dividir etapa','nara-stage-split-button','Dividir etapa ▾');split.onclick=()=>safe(()=>{if(window.NaraPropertyDraftPending?.())throw Error('Aplica la edición pendiente.');menu(element,'nara-stage-split',split);});panel.appendChild(split);layer.appendChild(panel);}
           const split = ['lane-divide-two','lane-divide-three'].filter(id => entries[id]);
           if (split.length) {
             const panel = document.createElement('div'); panel.className = 'nara-quick-options nara-lane-options';
@@ -230,6 +233,10 @@
     eventBus.on('diagram.destroy', () => { clearTimeout(hideTimer); clearTimeout(clickTimer); layer.remove(); });
     contextPad.registerProvider(500, this);
     popupMenu.registerProvider('nara-actions', this);
+    popupMenu.registerProvider('nara-stage-split',{getPopupMenuEntries:element=>Object.fromEntries([2,3].map(count=>['split-stage-'+count,{
+      label:'Dividir en '+count+' columnas iguales',description:element.width/count<80?'Amplía la etapa a '+count*80+' px de ancho para dividirla.':'Conserva el ancho total de la etapa.',
+      disabled:element.width/count<80,action:()=>safe(()=>{if(window.NaraPropertyDraftPending?.())throw Error('Aplica la edición pendiente.');popupMenu.close();eventBus.fire('nara.stage.split',{element,count});hide();})
+    }]))});
   }
   DirectionTools.$inject = ['contextPad','popupMenu','eventBus','canvas','elementRegistry','elementFactory','modeling','rules','connect','create','dragging','selection'];
   window.NaraEditorTools = { __init__: ['naraDocumentSymbols','naraDirectionTools'], naraDocumentSymbols: ['type',DocumentSymbols], naraDirectionTools: ['type', DirectionTools] };
