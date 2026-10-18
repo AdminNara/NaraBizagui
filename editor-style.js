@@ -44,8 +44,8 @@
     }
     function refresh(){
       const er=!!window.NaraER?.active(),element=target();panel.hidden=!element;empty.hidden=!!element;sync();if(!element)return;
-      const s=read(element),di=element.di;
-      for(const [key,value]of Object.entries({Fill:s.fill||di?.fill||'#ffffff',Stroke:s.stroke||di?.stroke||'#345b78',StrokeWidth:s.strokeWidth||1.5,FontColor:s.fontColor||'#213e53',FontSize:s.fontSize||12,Align:s.align||'left'}))$('style'+key).value=value;
+      const s=read(element),di=element.di,stage=element.type==='bpmn:Group'&&element.id.startsWith(window.NaraStagePrefix?.()||'Stage_');
+      for(const [key,value]of Object.entries({Fill:s.fill||di?.fill||'#ffffff',Stroke:s.stroke||di?.stroke||(stage?'#22242a':'#345b78'),StrokeWidth:s.strokeWidth||1.5,FontColor:s.fontColor||(stage?'#22242a':'#213e53'),FontSize:s.fontSize||(stage?16:12),Align:s.align||'left'}))$('style'+key).value=value;
       $('styleBold').checked=!!s.bold;$('styleAlign').disabled=!er;
       const shape=Number.isFinite(element.x)&&!element.waypoints&&!element.sourceTableId;$('geometryForm').hidden=!shape;
       if(shape){for(const [key,value]of Object.entries({X:element.x,Y:element.y,Width:element.width,Height:er?M.height(element):element.height}))$('style'+key).value=String(Math.round(value*100)/100);const resizable=er||!!rules.allowed('shape.resize',{shape:element});$('styleWidth').disabled=!resizable;$('styleHeight').disabled=er||!resizable;$('styleWidth').min=er?'200':'20';$('styleWidth').max=er?'1000':'100000';sizeHint.hidden=!er&&resizable;sizeHint.textContent=er?'La altura de la tabla se ajusta a sus campos.':'Esta figura conserva su tamaño. Puedes cambiar su posición.';}

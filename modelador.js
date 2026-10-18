@@ -45,7 +45,7 @@ const modeler = new BpmnJS({
 });
 window.bpmnModeler = modeler;
 const semanticProperties = window.NaraBpmnProperties.mount(modeler, byId('semanticFields'), () => basePropertyDraftPending());
-window.NaraAppVersion = '0.4.1';
+window.NaraAppVersion = '0.4.2';
 window.diagramReady = false;
 window.diagramError = null;
 // Agrupa los cambios nativos para poder deshacer toda la columna en un paso.
@@ -478,18 +478,24 @@ function stageName(stage) {
   return stage.businessObject.categoryValueRef?.value || stage.businessObject.categoryValue?.value || stage.businessObject.name || '';
 }
 function decorateStages() {
-  const registry=modeler.get('elementRegistry'),NS='http://www.w3.org/2000/svg';
+  const registry=modeler.get('elementRegistry'),canvas=modeler.get('canvas'),NS='http://www.w3.org/2000/svg',layer=canvas.getActiveLayer();
+  if(!layer)return;
+  let backgrounds=layer.querySelector(':scope > .nara-stage-backgrounds');
+  if(!backgrounds){backgrounds=document.createElementNS(NS,'g');backgrounds.setAttribute('class','nara-stage-backgrounds');backgrounds.setAttribute('pointer-events','none');}
+  // Keep column fills behind activities and participants, also in SVG/PNG exports.
+  layer.prepend(backgrounds);backgrounds.replaceChildren();
   for(const el of registry.getAll().filter(isStage)){
     const gfx=registry.getGraphics(el),visual=gfx?.querySelector('.djs-visual');if(!visual)continue;
-    const style=window.NaraStylePanel?.read(el)||{};gfx.classList.add('nara-stage');
+    const style=window.NaraStylePanel?.read(el)||{},stroke=style.stroke||el.di?.stroke||'#22242a',fill=style.fill||el.di?.fill||'#ffffff';gfx.classList.add('nara-stage');
+    if(canvas.findRoot(el)===canvas.getRootElement()){const background=document.createElementNS(NS,'rect');for(const [key,value]of Object.entries({x:el.x,y:el.y,width:el.width,height:el.height,fill,'fill-opacity':.95}))background.setAttribute(key,value);background.dataset.stageBackground=el.id;backgrounds.appendChild(background);}
     const outline=visual.querySelector('rect:not(.stage-header-fill)');
-    if(outline){for(const [key,value]of Object.entries({fill:'none',stroke:style.stroke||'#55758c','stroke-width':style.strokeWidth||1.4,'stroke-dasharray':'none',rx:0,ry:0}))outline.setAttribute(key,value);Object.assign(outline.style,{fill:'none',stroke:style.stroke||'#55758c',strokeWidth:(style.strokeWidth||1.4)+'px',strokeDasharray:'none'});}
+    if(outline){for(const [key,value]of Object.entries({fill:'none',stroke,'stroke-width':style.strokeWidth||1.5,'stroke-dasharray':'none',rx:0,ry:0}))outline.setAttribute(key,value);Object.assign(outline.style,{fill:'none',stroke,strokeWidth:(style.strokeWidth||1.5)+'px',strokeDasharray:'none'});}
     let header=visual.querySelector('.stage-header-fill');if(!header){header=document.createElementNS(NS,'rect');header.classList.add('stage-header-fill');visual.insertBefore(header,visual.firstChild);}
-    for(const [key,value]of Object.entries({x:0,y:0,width:el.width,height:34,fill:style.fill||'#edf3f7',stroke:style.stroke||'#55758c','stroke-width':style.strokeWidth||1.4}))header.setAttribute(key,value);
-    let hit=gfx.querySelector('.nara-stage-header-hit');if(!hit){hit=document.createElementNS(NS,'rect');hit.setAttribute('class','djs-hit djs-hit-all nara-stage-header-hit');gfx.appendChild(hit);}for(const [key,value]of Object.entries({x:0,y:0,width:el.width,height:34,fill:'transparent','pointer-events':'all'}))hit.setAttribute(key,value);
+    for(const [key,value]of Object.entries({x:0,y:0,width:el.width,height:30,fill,'fill-opacity':.95,stroke,'stroke-width':style.strokeWidth||1.5}))header.setAttribute(key,value);
+    let hit=gfx.querySelector('.nara-stage-header-hit');if(!hit){hit=document.createElementNS(NS,'rect');hit.setAttribute('class','djs-hit djs-hit-all nara-stage-header-hit');gfx.appendChild(hit);}for(const [key,value]of Object.entries({x:0,y:0,width:el.width,height:30,fill:'transparent','pointer-events':'all'}))hit.setAttribute(key,value);
     // Labels use the native Group category and native editing; place their visual inside the column header.
     const label=registry.get(el.id+'_label'),labelGfx=label?registry.getGraphics(label):null;
-    if(labelGfx){const box=labelGfx.querySelector('.djs-visual')?.getBBox();if(box)labelGfx.setAttribute('transform',`translate(${el.x+el.width/2-box.x-box.width/2},${el.y+17-box.y-box.height/2})`);labelGfx.querySelectorAll('text').forEach(t=>{t.style.fill=style.fontColor||'#214b6a';t.style.fontSize=(style.fontSize||14)+'px';t.style.fontWeight=style.bold===false?'400':'600';});}
+    if(labelGfx){labelGfx.classList.add('nara-stage-label');labelGfx.querySelectorAll('text').forEach(t=>{t.style.fill=style.fontColor||'#22242a';t.style.fontSize=(style.fontSize||16)+'px';t.style.fontWeight=style.bold?'700':'400';});const box=labelGfx.querySelector('.djs-visual')?.getBBox();if(box)labelGfx.setAttribute('transform',`translate(${el.x+el.width/2-box.x-box.width/2},${el.y+15-box.y-box.height/2})`);}
   }
 }
 function roleFor(el) {

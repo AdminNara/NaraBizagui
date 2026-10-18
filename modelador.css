@@ -115,7 +115,9 @@ button,input,textarea{font:inherit}button{cursor:pointer}button:disabled{cursor:
 #formatPanel .visual-properties{margin:0;padding:0;border:0}
 #formatPanel .format-grid{margin-top:0}
 #formatPanel .format-grid label{line-height:1.5}
-.nara-direction-tools>.nara-stage-actions{left:4px!important;right:auto!important;bottom:auto!important;transform:none!important;flex-direction:row!important;padding:3px;border-radius:5px;white-space:nowrap}
-.nara-stage-actions .nara-stage-split-button{width:auto;min-width:112px;height:29px;padding:4px 9px;font:12px/20px 'Segoe UI',Arial,sans-serif}
+.nara-direction-tools>.nara-stage-options{right:auto!important;bottom:auto!important;transform:none!important;flex-direction:row!important}
+.nara-column-split-icon{display:block;transform:rotate(90deg)}
+.nara-stage-split-option:disabled{opacity:.35;cursor:default}
+#canvas .nara-stage-label,#canvas .nara-stage-label *{pointer-events:none!important}
 @media(max-width:850px){.inspector-tabs button{font-size:10px;padding-left:5px;padding-right:5px}.titlebar{gap:8px}.titlebar .save-state{display:none}}
 @media(max-height:650px){#paletteHost .djs-palette .entry{height:50px;gap:4px;font-size:25px}#paletteHost .djs-palette .group{padding-bottom:5px;margin-bottom:5px}}
