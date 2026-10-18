@@ -81,7 +81,7 @@ export function validateSnapshot(snapshot, { profile = 'review', geometry = true
   }
   if (geometry) {
     for (const e of elements) {
-      const connection = /(?:Flow|Association)$/.test(e.type) || Boolean(e.sourceId || e.targetId);
+      const connection = /(?:Flow|Association|Relationship)$/.test(e.type) || Boolean(e.sourceId || e.targetId);
       if (connection && !(e.waypoints?.length > 1 && e.waypoints.every(p => Number.isFinite(p.x) && Number.isFinite(p.y)))) coverage.missingRoutes.push(e.id);
       else if (!connection && !containers.has(e.type) && !(Number.isFinite(e.x) && Number.isFinite(e.y) && e.width > 0 && e.height > 0)) coverage.missingFigureBounds.push(e.id);
       const external = e.externalLabelExpected ?? (Boolean(e.name?.trim()) && /(?:Event|Gateway|Flow|Reference)$/.test(e.type));

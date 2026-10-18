@@ -8,7 +8,7 @@
 
 ## Revisiones y errores
 
-Leer antes de editar y usar la revisión como `expectedRevision`. Una operación devuelve el nuevo estado; lee antes del siguiente cambio. Los bloques son una sola mutación secuencial con su propia revisión base. Navegar de hoja también cambia la revisión, aunque no cambie el XML. No paralelices mutaciones con la misma revisión.
+Leer antes de editar y usar la revisión como `expectedRevision`. Una operación confirmada devuelve una nueva lectura del estado; úsala como base siguiente si es completa y vigente. Relee cuando falten datos, haya demora o una edición concurrente. Los bloques son una sola mutación secuencial con su propia revisión base. Navegar de hoja también cambia la revisión, aunque no cambie el XML. No paralelices mutaciones con la misma revisión.
 
 - `REVISION_CONFLICT`: relee y reconcilia el cambio manual; no adoptes la revisión nueva para sobrescribir a ciegas.
 - `FORM_PENDING`: aplica o descarta únicamente el borrador autorizado; no fuerces cambios mientras haya propiedades sin aplicar, aunque su pestaña del panel esté oculta.
