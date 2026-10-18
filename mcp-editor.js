@@ -48,7 +48,7 @@
     if (op.type === 'label') {
       affected = element(op.elementId);
       if (affected.type === 'bpmn:TextAnnotation') modeling.updateProperties(affected, { text: op.text });
-      else modeling.updateLabel(affected, op.text);
+      else modeling.updateLabel(affected, op.text, op.bounds);
     } else if (op.type === 'documentation') {
       affected = element(op.elementId);
       modeling.updateProperties(affected, { documentation: op.text ? [modeler.get('moddle').create('bpmn:Documentation', { text: op.text })] : [] });
@@ -91,6 +91,10 @@
       affected = element(op.elementId);
       if (![op.x, op.y, op.width, op.height].every(Number.isFinite) || op.width < 20 || op.height < 20 || !rules.allowed('shape.resize', { shape: affected })) throw error('BPMN_RULE', 'No se permite ese tamaño para el elemento.');
       modeling.resizeShape(affected, { x: op.x, y: op.y, width: op.width, height: op.height });
+    } else if (op.type === 'route') {
+      affected = element(op.elementId);
+      if (!affected.waypoints || !Array.isArray(op.waypoints) || op.waypoints.length < 2 || op.waypoints.length > 100 || op.waypoints.some(p => !Number.isFinite(p.x) || !Number.isFinite(p.y))) throw error('INVALID_OPERATION', 'El trazado requiere una conexión y entre 2 y 100 puntos válidos.');
+      modeling.updateWaypoints(affected, op.waypoints.map(p => ({ x: p.x, y: p.y })));
     } else if (op.type === 'delete') {
       affected = element(op.elementId);
       if (!affected.parent) throw error('BPMN_RULE', 'No se puede eliminar la raíz.');
