@@ -40,6 +40,8 @@ await writeFile(path.join(root, 'vendor/MICROSOFT_LICENSES.txt'), microsoftNotic
 await build({ entryPoints:[path.join(root,'plugins/narabizagui/shared/audit.mjs')],outfile:path.join(root,'vendor/model-audit.js'),bundle:true,platform:'browser',target:'es2022',format:'iife',globalName:'NaraModelAudit',legalComments:'inline' });
 const distributed = ['index.html', 'modelador.js', 'modelador.css', 'archivos.js', 'autoguardado.js', 'mcp-editor.js', 'mcp-bridge.js', 'editor-tools.js', 'sheets.js','erd-model.js','erd-editor.js','editor-style.js', 'assets/narabizagui_blanco.png', 'vendor/bpmn-modeler.production.min.js', 'vendor/bpmn.css', 'vendor/bpmn.woff2', 'vendor/diagram-js.css', 'vendor/LICENSE.txt', 'vendor/sheets-import.js', 'vendor/bpmn-js.css', 'vendor/SHEETS_LICENSES.txt'];
 const manifest = {};
+
+distributed.push('favicon.ico','assets/favicon-nb.png');
 distributed.push('workspace.css','workspace-ui.js','instant-edit.js','editor-structure.js','editor-readiness.js');
 distributed.push('editor-operations.js','editor-blocks.js','vendor/model-audit.js','bpmn-merge.js', 'editor-properties.js', 'microsoft-ui.js', 'microsoft-auth.html', 'assets/microsoft-symbol.svg', 'vendor/microsoft-client.js', 'vendor/microsoft-auth.js', 'vendor/MICROSOFT_LICENSES.txt');
 for (const file of distributed) manifest[file] = createHash('sha256').update(await readFile(path.join(root, file))).digest('hex');
@@ -47,7 +49,7 @@ for (const file of distributed) manifest[file] = createHash('sha256').update(awa
 for (const page of ['index.html', 'microsoft-auth.html']) {
   const source = (await readFile(path.join(root,page),'utf8')).replace(/(<meta name="narabizagui-build" content=")[^"]*(">)/, (_,a,b)=>a+createHash('sha256').update(Object.entries(manifest).filter(([p])=>/\.js$/.test(p)).map(([,hash])=>hash).join('')).digest('hex').slice(0,16)+b);
   const html = source.replace(/((?:src|href)=["'])([^"'?#]+)(?:\?[^"'#]*)?(["'])/g, (match, prefix, file, quote) =>
-    manifest[file] && /\.(?:js|css)$/.test(file) ? `${prefix}${file}?v=${manifest[file].slice(0, 16)}${quote}` : match);
+    manifest[file] && (/\.(?:js|css)$/.test(file)||file==='favicon.ico'||file==='assets/favicon-nb.png') ? `${prefix}${file}?v=${manifest[file].slice(0, 16)}${quote}` : match);
   await writeFile(path.join(root, page), html);
   manifest[page] = createHash('sha256').update(html).digest('hex');
 }
