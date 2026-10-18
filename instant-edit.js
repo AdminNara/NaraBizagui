@@ -37,7 +37,7 @@
   $('rightPanel').addEventListener('compositionstart',()=>{composing=true;clearTimeout(timer);});
   $('rightPanel').addEventListener('compositionend',event=>{composing=false;if(relevant(event.target))schedule(event.target);});
   function cancelPending(event){
-    if(event.key==='Escape'&&dirty.size){event.preventDefault();event.stopPropagation();clearTimeout(timer);dirty.clear();window.NaraRefreshProperties();window.NaraER?.renderProperties();window.NaraStylePanel?.refresh();message('Edición pendiente cancelada.');}
+    if(event.key==='Escape'&&dirty.size){event.preventDefault();event.stopPropagation();clearTimeout(timer);dirty.clear();window.NaraRefreshProperties();window.NaraER?.renderProperties();window.NaraStylePanel?.refresh();window.naraAutoSave?.refresh();message('Edición pendiente cancelada.');}
   }
   $('rightPanel').addEventListener('keydown',cancelPending);
   document.addEventListener('pointerdown',event=>{

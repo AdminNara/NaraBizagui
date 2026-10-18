@@ -1,5 +1,5 @@
 {
-  "index.html": "9cfc83c1f121832d5a2772cc107c8fbf80f9b6fe9ee9d5fe7a72980e6f60c8e8",
+  "index.html": "1b0cf173ade1b5d64d0835f5297dcd11322a9d13af2d2e0c406d798f0cf00f6c",
   "modelador.js": "1f3aa5c230db8b3ff69a883fe61f096b51b687a3e1345638012f4b5a013e21b0",
   "modelador.css": "373ca594fbe8fac891ba880fa612d2466d310aad0d022c9ea46f3da87ee4db14",
   "archivos.js": "283c1b72bfdaa48e849f2910eb35471c4550df0873d090fc477f4874c4edc3f6",
@@ -22,7 +22,7 @@
   "vendor/SHEETS_LICENSES.txt": "ff488a72a9e9fbce428771fc0c10fc37cdd6e2567f478f4b1eda2d6dbe053346",
   "workspace.css": "d8434a9255bba63482b8be2ec12072556f67f2d530458084c2088fea40f86b12",
   "workspace-ui.js": "d7fdfec1e522110d4213778c3616b95452d6400a4706d66214cf5e9e3dcf0866",
-  "instant-edit.js": "02428c3b6caeb4340ddbd2d3559ef3cf259a2273024261d532bd9a80c0db655d",
+  "instant-edit.js": "a5b55f83b2dea6746c323313990cf18b91993aa770aed446d433a6d188dca1a2",
   "editor-operations.js": "730b893e879bb40985c0f86f4ce8f180010a8a22072729f1cc234029d61ea1f0",
   "editor-blocks.js": "dd84bfb31574412aff544f54f8d97786fddbc11fa3da1313eee0a191f2ce6824",
   "vendor/model-audit.js": "8f54e10baa4507a29726208b82eb553ad229fb5e7b6b86721cd068bc9ebe02b6",
