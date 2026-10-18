@@ -1,5 +1,5 @@
 {
-  "index.html": "87ea2ac24b6528902f225052faffd583869276ab88b2dd9a8de04be6f7aa4b4b",
+  "index.html": "093c2889389e64d0e160930a36774ca4c8d89484774a4f1562c70e5693d12e6c",
   "modelador.js": "1f3aa5c230db8b3ff69a883fe61f096b51b687a3e1345638012f4b5a013e21b0",
   "modelador.css": "373ca594fbe8fac891ba880fa612d2466d310aad0d022c9ea46f3da87ee4db14",
   "archivos.js": "283c1b72bfdaa48e849f2910eb35471c4550df0873d090fc477f4874c4edc3f6",
@@ -21,8 +21,8 @@
   "vendor/bpmn-js.css": "b09861c8e703076475cb6d406dc396c7c8bf3046512cdf07231bf418ec3be30d",
   "vendor/SHEETS_LICENSES.txt": "ff488a72a9e9fbce428771fc0c10fc37cdd6e2567f478f4b1eda2d6dbe053346",
   "workspace.css": "d8434a9255bba63482b8be2ec12072556f67f2d530458084c2088fea40f86b12",
-  "workspace-ui.js": "8c365d1ded4adff5b6ef1d8ebd4fa44be7ece8d038a664d891cd05dd56178d2d",
-  "instant-edit.js": "534a5fde1d154d48d0e22f1a207a527b7967a9eaa2f5e07dfadf8d07c0404829",
+  "workspace-ui.js": "707a0847948a7af0a0b004a8a6b1bffe92d268e27956d1491b3e558bb83e3d71",
+  "instant-edit.js": "02428c3b6caeb4340ddbd2d3559ef3cf259a2273024261d532bd9a80c0db655d",
   "editor-operations.js": "730b893e879bb40985c0f86f4ce8f180010a8a22072729f1cc234029d61ea1f0",
   "editor-blocks.js": "dd84bfb31574412aff544f54f8d97786fddbc11fa3da1313eee0a191f2ce6824",
   "vendor/model-audit.js": "8f54e10baa4507a29726208b82eb553ad229fb5e7b6b86721cd068bc9ebe02b6",

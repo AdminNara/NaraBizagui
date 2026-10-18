@@ -36,15 +36,16 @@
   $('rightPanel').addEventListener('focusout',event=>{if(relevant(event.target)&&dirty.size)flush();});
   $('rightPanel').addEventListener('compositionstart',()=>{composing=true;clearTimeout(timer);});
   $('rightPanel').addEventListener('compositionend',event=>{composing=false;if(relevant(event.target))schedule(event.target);});
-  $('rightPanel').addEventListener('keydown',event=>{
+  function cancelPending(event){
     if(event.key==='Escape'&&dirty.size){event.preventDefault();event.stopPropagation();clearTimeout(timer);dirty.clear();window.NaraRefreshProperties();window.NaraER?.renderProperties();window.NaraStylePanel?.refresh();message('Edición pendiente cancelada.');}
-  });
+  }
+  $('rightPanel').addEventListener('keydown',cancelPending);
   document.addEventListener('pointerdown',event=>{
     if(!dirty.size||event.target.closest('#rightPanel'))return;
     if(!flush()){event.preventDefault();event.stopPropagation();message('Corrige el valor indicado o pulsa Escape para cancelar la edición pendiente.',true);}
   },true);
   document.addEventListener('click',event=>{if(dirty.size&&!event.target.closest('#rightPanel')&&!flush()){event.preventDefault();event.stopImmediatePropagation();}},true);
-  document.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&['s','z','y'].includes(event.key.toLowerCase())&&(event.key.toLowerCase()==='s'||!event.target.matches('input,textarea,select'))&&!flush()){event.preventDefault();event.stopImmediatePropagation();}},true);
+  document.addEventListener('keydown',event=>{cancelPending(event);if((event.ctrlKey||event.metaKey)&&['s','z','y'].includes(event.key.toLowerCase())&&(event.key.toLowerCase()==='s'||!event.target.matches('input,textarea,select'))&&!flush()){event.preventDefault();event.stopImmediatePropagation();}},true);
   for(const id of forms){const submit=$(id)?.querySelector('button[type="submit"],button.primary-button');if(submit)submit.hidden=true;}
   for(const id of ['documentActivity','subprocessTarget'])$(id).addEventListener('change',()=>{if($(id).value)$(id==='documentActivity'?'connectDocument':'linkSubprocess').click();});
   $('connectDocument').hidden=true;$('linkSubprocess').hidden=true;
