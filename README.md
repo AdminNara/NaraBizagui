@@ -63,11 +63,13 @@ La interfaz muestra primero el inicio de sesión. Después abre OneDrive y ofrec
 
 El retorno de producción es `https://demo.naraconsultores.com/NaraBizagui/microsoft-auth.html`. Para desarrollo está registrado `http://localhost:8767/microsoft-auth.html`; se debe servir esta carpeta en ese origen. La página de retorno usa el puente de MSAL y no debe recibir una cabecera COOP que rompa la ventana de autenticación. La verificación de editor de Microsoft está pendiente; las políticas de otras organizaciones pueden impedir el consentimiento o exigir aprobación de su administrador. El diálogo de conexión describe los permisos y el tratamiento de los documentos.
 
+La paleta izquierda tiene desplazamiento propio para llegar a todas las herramientas en ventanas pequeñas.
+
 **Ampliar lienzo**, en el encabezado o en Vista, deja visibles el encabezado y el área de dibujo. Conserva el archivo, la conexión MCP y la hoja activa. **Salir de vista ampliada** o Escape recupera los paneles y la vista anterior. La atribución del motor permanece visible en el encabezado.
 
-En participantes y carriles hay controles directos para añadir carriles arriba/abajo (izquierda/derecha si son verticales) y dividirlos en dos o tres. Las etapas muestran **＋** a izquierda y derecha, división en dos o tres columnas y ajuste de bordes compartidos; insertar una columna conserva las figuras existentes. Los cuatro símbolos de documentos comparten el mismo vector en paleta, lienzo, vista previa y exportaciones.
+En participantes y carriles hay controles directos para añadir carriles arriba/abajo (izquierda/derecha si son verticales) y dividirlos en dos o tres. Las etapas muestran **＋** a izquierda y derecha, un menú **Dividir etapa** con dos o tres columnas iguales y ajuste de bordes compartidos; las opciones sin ancho suficiente explican cuánto se necesita. Insertar una columna conserva las figuras existentes. Los cuatro símbolos de documentos comparten el mismo vector en paleta, lienzo, vista previa y exportaciones.
 
-El panel derecho ofrece relleno, color y grosor de línea, color/tamaño de texto, negrita y posición/tamaño. En tablas ER también permite alinear el nombre de los campos. El formato se conserva en el archivo y en las exportaciones. Las hojas nuevas comienzan vacías.
+El panel derecho se organiza en pestañas **Propiedades**, **Estilo**, **Texto** y **Organizar**. Ofrece relleno, color y grosor de línea, color/tamaño de texto, negrita y posición/tamaño; los tamaños fijos de BPMN se muestran como solo lectura. Cambiar de pestaña conserva los textos pendientes. En tablas ER también permite alinear el nombre de los campos. El formato se conserva en el archivo y en las exportaciones. Las hojas nuevas comienzan vacías.
 
 ## Modelos de datos: entidad-relación
 
