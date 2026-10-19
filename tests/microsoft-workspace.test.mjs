@@ -183,7 +183,7 @@ test('the real import guard preserves user work changed during asynchronous seri
 test('the UI exposes restoration as pending until startup and workspace resume both settle',async()=>{
  const f=fixture(),startup=defer(),resume=defer();f.auth.initialized=Promise.resolve();f.auth.onChange=()=>{};f.workspace.resume=()=>resume.promise;
  const nodes=new Map(),byId=id=>{if(!nodes.has(id))nodes.set(id,{open:false,value:'',classList:{toggle(){}},setAttribute(){},querySelectorAll:()=>[],replaceChildren(){},addEventListener(){}});return nodes.get(id);};
- const context={byId,browserFiles:{handle:null},saving:false,ready:true,dirty:false,loadingDiagram:false,filePolling:false,standalone:true,browserDocumentVersion:1,window:{projectReady:true,NaraInitialDocumentVersion:1,NaraPropertyDraftPending:()=>false,NaraStartup:startup.promise,NaraMicrosoft:{create:()=>({auth:f.auth,files:f.files,workspace:f.workspace})}},status(){}};
+ const context={URLSearchParams,location:{search:''},byId,browserFiles:{handle:null},saving:false,ready:true,dirty:false,loadingDiagram:false,filePolling:false,standalone:true,browserDocumentVersion:1,window:{projectReady:true,NaraInitialDocumentVersion:1,NaraPropertyDraftPending:()=>false,NaraStartup:startup.promise,NaraMicrosoft:{create:()=>({auth:f.auth,files:f.files,workspace:f.workspace})}},status(){}};
  vm.runInNewContext(await readFile(new URL('../microsoft-ui.js',import.meta.url),'utf8'),context);
  assert.equal(context.window.NaraMicrosoftUI.restoring(),true);startup.resolve();await new Promise(resolve=>setImmediate(resolve));assert.equal(context.window.NaraMicrosoftUI.restoring(),true);
  resume.resolve(false);await new Promise(resolve=>setImmediate(resolve));assert.equal(context.window.NaraMicrosoftUI.restoring(),false);
@@ -198,7 +198,7 @@ test('the UI preserves a recovered diagram as an unsaved copy if its account cha
     return elements.get(id);
   };
   const files = { handle: null, hash: null, name: 'Generic.bpmn' };
-  const context = { byId, browserFiles: files, standalone: true, ready: true, dirty: false, saving: false, loadingDiagram: false, filePolling: false, browserDocumentVersion: 1,
+  const context = { URLSearchParams,location:{search:''},byId, browserFiles: files, standalone: true, ready: true, dirty: false, saving: false, loadingDiagram: false, filePolling: false, browserDocumentVersion: 1,
     window: { projectReady: true, NaraInitialDocumentVersion: 1, NaraStartup: Promise.resolve(), NaraPropertyDraftPending: () => false, NaraMicrosoft: { create: () => ({ auth: f.auth, files: f.files, workspace: f.workspace }) } },
     acceptBrowserSource: async source => { files.handle = source.handle; f.auth.account = null; f.auth.generation++; return true; },
     browserFileContext() {}, setDirty(value) { context.dirty = value; }, status(message) { context.statusMessage = message; }
@@ -208,4 +208,12 @@ test('the UI preserves a recovered diagram as an unsaved copy if its account cha
   assert.equal(files.handle, null);
   assert.equal(context.dirty, true);
   assert.match(context.statusMessage, /diagrama sigue abierto/);
+});
+
+test('an explicit new-document link never reads or resumes a remembered Microsoft file',async()=>{
+ const f=fixture();f.workspace.rememberFile(f.handle,ref);f.auth.initialized=Promise.resolve();f.auth.onChange=()=>{};let resumes=0;f.workspace.resume=async()=>{resumes++;return false;};
+ const nodes=new Map(),byId=id=>{if(!nodes.has(id))nodes.set(id,{open:false,value:'',classList:{toggle(){}},setAttribute(){},querySelectorAll:()=>[],replaceChildren(){},addEventListener(){}});return nodes.get(id);};
+ const context={URLSearchParams,location:{search:'?nuevo=1'},byId,browserFiles:{handle:null},saving:false,ready:true,dirty:false,loadingDiagram:false,filePolling:false,standalone:true,browserDocumentVersion:1,window:{projectReady:true,NaraInitialDocumentVersion:1,NaraPropertyDraftPending:()=>false,NaraStartup:Promise.resolve(),NaraMicrosoft:{create:()=>({auth:f.auth,files:f.files,workspace:f.workspace})}},status(){}};
+ vm.runInNewContext(await readFile(new URL('../microsoft-ui.js',import.meta.url),'utf8'),context);await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(resumes,0);assert.equal(f.reads.length,0);assert.equal(f.workspace.read().last.id,ref.id);assert.equal(context.window.NaraMicrosoftUI.restoring(),false);
 });

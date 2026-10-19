@@ -230,6 +230,8 @@
     if (dialog.open && !account) message(reason === 'expired' ? 'Microsoft requiere iniciar sesión de nuevo. Tu diagrama sigue abierto.' : 'La conexión se cerró o cambió en este navegador. Tu diagrama sigue abierto.');
   });
   Promise.all([auth.initialized, window.NaraStartup]).then(async () => {
+    // An explicit new-document link must never resume an existing cloud file.
+    if(new URLSearchParams(location.search).get('nuevo')==='1')return;
     const canApply = () => !resumeCancelled && auth.account && window.projectReady && standalone && ready && !dirty && !saving && !loadingDiagram && !filePolling && !browserFiles.handle && browserDocumentVersion === window.NaraInitialDocumentVersion && !window.NaraPropertyDraftPending();
     const last = workspace.read().last, stamp = workspace.stamp();
     let recoveredHandle = null;
