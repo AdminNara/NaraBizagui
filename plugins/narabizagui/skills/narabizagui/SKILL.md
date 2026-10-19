@@ -44,3 +44,5 @@ Reutiliza la sesión y las lecturas confirmadas. Para una matriz usa la operaci�
 En tareas combinadas coordina modelado → validación → entrega, conservando la misma sesión, hoja y versión. El archivo y su contenido pertenecen al proyecto elegido; las mejoras genéricas de la herramienta se trabajan con pruebas genéricas en su propio repositorio. No incluyas datos de clientes en el paquete del plugin.
 
 Para correcciones de texto, tamaño, rutas, documentos y notas, sigue [edición visual y calidad](../../shared/visual-editing.md). Preserva las correcciones manuales y usa un bloque compatible por conjunto afectado.
+
+Para gestionar una ubicación OneDrive/SharePoint expresamente solicitada, lee [el contrato de archivos Microsoft](../../shared/microsoft-files.md) y comprueba microsoft-files-v1. Una revisión sin cambios sigue siendo de solo lectura: no abre, crea, guarda ni activa autoguardado por inferencia.

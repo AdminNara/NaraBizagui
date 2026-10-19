@@ -9,7 +9,7 @@ Lee [el contrato común](../../shared/workflow.md). Identifica la hoja y revisi�
 
 Una solicitud de ver el cambio en el editor se confirma allí; no activa por sí sola una exportación para informe. Reutiliza el estado confirmado del bloque o una lectura resumida vigente para exportar. Una sola imagen comprobada basta; no añadas además una captura equivalente ni guardados manuales si el destino/autoguardado ya están autorizados.
 
-Para guardado nativo usa `narabizagui_save` solo con el archivo elegido y autorizado en el visor. Si falta destino o permiso, explica el paso específico en la interfaz; no simules selectores ni inventes rutas. Informa guardado únicamente con `saved:true` y hash comprobado. El destino puede ser local o Microsoft; conectar Microsoft y conectar el MCP son autorizaciones distintas.
+Para guardar sobre el destino actual usa `narabizagui_save` con el archivo autorizado. Para elegir, crear o abrir un destino Microsoft explícitamente solicitado usa [microsoft-files-v1](../../shared/microsoft-files.md) si la capacidad está disponible. Un destino local o una autenticación pendiente pueden requerir un paso específico del usuario en el editor; no simules selectores ni inventes rutas. Informa guardado con `saved:true` y hash comprobado, o creación con `created:true`, `verified:true` e identificadores exactos; `attached` confirma por separado la asociación. Conectar Microsoft y conectar el MCP son autorizaciones distintas.
 
 Cuando esté autorizado conservar una copia local del XML leído, guarda el contenido exacto de `read(includeXml:true)` en el proyecto o destino acordado y verifica su hash. Identifícala como copia exportada: no acredita guardado nativo ni permite cerrar un lienzo con cambios pendientes por inferencia.
 
@@ -20,3 +20,5 @@ Un archivo puede contener varias hojas; el PNG incluye únicamente la activa. Ex
 Entrega enlaces utilizables a los archivos, qué se comprobó y cualquier limitación material. No presentes XML válido, una imagen o un guardado como aprobación funcional o de negocio.
 
 Para correcciones de texto, tamaño, rutas, documentos y notas, sigue [edición visual y calidad](../../shared/visual-editing.md). Preserva las correcciones manuales y usa un bloque compatible por conjunto afectado.
+
+Para gestionar una ubicación OneDrive/SharePoint expresamente solicitada, lee [el contrato de archivos Microsoft](../../shared/microsoft-files.md) y comprueba microsoft-files-v1. Una revisión sin cambios sigue siendo de solo lectura: no abre, crea, guarda ni activa autoguardado por inferencia.

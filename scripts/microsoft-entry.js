@@ -2,10 +2,11 @@ import { PublicClientApplication, InteractionRequiredAuthError, EventType } from
 import { MicrosoftFiles } from '../microsoft-files.js';
 import { MicrosoftAccount } from './microsoft-account.js';
 import { MicrosoftWorkspace } from './microsoft-workspace.js';
+import { MicrosoftFileLifecycle } from '../microsoft-lifecycle.js';
 
 // OAuth client identifiers are public application identifiers, not client secrets.
 const clientId = 'f6e8c708-7319-4fde-8220-af052e371621';
-window.NaraMicrosoft = { create() {
+window.NaraMicrosoft = { FileLifecycle: MicrosoftFileLifecycle, create() {
     const client = new PublicClientApplication({
       auth: { clientId, authority: 'https://login.microsoftonline.com/common', redirectUri: new URL('microsoft-auth.html', location.href).href },
       cache: { cacheLocation: 'localStorage' },

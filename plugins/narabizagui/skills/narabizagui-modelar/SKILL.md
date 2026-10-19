@@ -34,3 +34,5 @@ Para correcciones de texto, tamaño, rutas, documentos y notas, sigue [edición 
 ## Proyectos en paralelo
 
 Cada pestaña conserva su documento y cuenta. Usa una vinculación distinta por proyecto; identifica `sessionId`, archivo y `documentId` al leer. Envía `expectedDocumentId` junto con `expectedRevision` al editar/guardar. Si se omite, el puente utiliza el documento de la última lectura confirmada; no sustituye el destino por el de una pestaña nueva. Ante `DOCUMENT_MISMATCH` vuelve a identificar el documento y conserva el trabajo. Un archivo abierto en consulta por otra pestaña rechaza ediciones con `FILE_READ_ONLY`; pide transferir su edición mediante **Editar aquí**, sin forzarla ni desconectar la sesión original.
+
+Para gestionar una ubicación OneDrive/SharePoint expresamente solicitada, lee [el contrato de archivos Microsoft](../../shared/microsoft-files.md) y comprueba microsoft-files-v1. Una revisión sin cambios sigue siendo de solo lectura: no abre, crea, guarda ni activa autoguardado por inferencia.

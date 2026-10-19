@@ -58,6 +58,13 @@ En un chat con el plugin activo pide conectar NaraBizagui. En la pestaña del BP
 | `narabizagui_save` | Guardado en el archivo autorizado, historial y comprobación. |
 | `narabizagui_export_png` | Hoja activa completa para el chat y archivo PNG temporal para Word/PDF. |
 | `narabizagui_disconnect` | Revocar una pestaña sin perder su trabajo. |
+| `narabizagui_microsoft_status` | Cuenta/tenant, documento, destino y recibos por requestId. |
+| `narabizagui_microsoft_resolve` | Resolver enlace o IDs Microsoft sin cambiar identidad ni permisos. |
+| `narabizagui_microsoft_list` | Bibliotecas o carpetas/BPMN dentro del alcance explícito. |
+| `narabizagui_microsoft_create` | Crear sin sobrescribir, verificar y asociar el documento actual. |
+| `narabizagui_microsoft_open` | Abrir un BPMN remoto conservando cambios y borradores. |
+| `narabizagui_microsoft_attach` | Asociar bytes idénticos sin importar ni sobrescribir. |
+| `narabizagui_microsoft_autosave` | Activar/pausar el programador y comprobar su destino exacto. |
 
 El puente escucha únicamente en `127.0.0.1`, en un puerto asignado al arrancar. Solo acepta el origen de la web publicada, exige un código aleatorio de un solo uso y autentica cada sesión. No permite ejecución de JavaScript arbitrario ni acceso general al disco. Los comandos que no reciben confirmación no se repiten automáticamente.
 
@@ -98,3 +105,7 @@ La web 0.9.0 permite redimensionar Task y CallActivity, ajustar texto a 16 px co
 ## Proyectos en paralelo
 
 Cada pestaña conserva su documento y cuenta. Usa una vinculación distinta por proyecto; identifica `sessionId`, archivo y `documentId` al leer. Envía `expectedDocumentId` junto con `expectedRevision` al editar/guardar. Si se omite, el puente utiliza el documento de la última lectura confirmada; no sustituye el destino por el de una pestaña nueva. Ante `DOCUMENT_MISMATCH` vuelve a identificar el documento y conserva el trabajo. Un archivo abierto en consulta por otra pestaña rechaza ediciones con `FILE_READ_ONLY`; pide transferir su edición mediante **Editar aquí**, sin forzarla ni desconectar la sesión original.
+
+## Archivos Microsoft mediante MCP
+
+La extensión microsoft-files-v1 añade siete herramientas para estado, resolución de enlaces/IDs, listado acotado, creación sin sobrescritura, apertura protegida, asociación de bytes idénticos y configuración verificable del autoguardado. Reutiliza la cuenta y los permisos del editor; el puente no obtiene tokens. El [contrato operativo](shared/microsoft-files.md) describe argumentos, consentimiento y recuperación. Las referencias son temporales y los recibos viven en memoria; no se promete idempotencia durable tras recargar. Una escritura sin confirmar se consulta antes de repetir. La capacidad nueva requiere la web y el servidor compatibles; instalar un paquete no recarga otro chat.

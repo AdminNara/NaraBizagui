@@ -100,7 +100,7 @@ export async function startBridge({ allowedOrigins = ['https://demo.naraconsulto
         if (!pending || input.commandId !== pending.command.id || !pending.delivered) return reply(res, 409, { error: 'Comando vencido o ya confirmado.' });
         clearTimeout(pending.timer);
         session.pending = null;
-        if (input.error) pending.reject(Object.assign(fail(String(input.error.code || 'EDITOR_ERROR'), String(input.error.message || 'El visor rechazó la operación.')),Object.fromEntries(['busyReason','retryable','retryAfterMs','recovery'].filter(key=>input.error[key]!==undefined).map(key=>[key,input.error[key]]))));
+        if (input.error) pending.reject(Object.assign(fail(String(input.error.code || 'EDITOR_ERROR'), String(input.error.message || 'El visor rechazó la operación.')),Object.fromEntries(['busyReason','retryable','retryAfterMs','recovery','phase','requestId','created','verified','attached','remote','currentSaved','currentSavedRemote'].filter(key=>input.error[key]!==undefined).map(key=>[key,input.error[key]]))));
         else{if(typeof input.result?.documentId==='string')session.observedDocumentId=input.result.documentId;if(pending.command.action==='editBatch'&&input.result&&typeof input.result==='object')input.result.timings={...input.result.timings,transport:{queueMs:pending.deliveredAt-pending.started,roundTripMs:Date.now()-pending.started}};pending.resolve(input.result);}
         reply(res, 200, { accepted: true });
         return;
