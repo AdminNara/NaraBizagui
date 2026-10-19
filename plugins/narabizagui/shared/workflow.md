@@ -22,6 +22,25 @@ Leer antes de editar y usar la revisión como `expectedRevision`. Una operación
 
 El historial de solicitudes se conserva en memoria de la pestaña (64 registros); no sobrevive a cerrar/recargar. Después de una pérdida de sesión verifica XML/hash y copias conservadas antes de reintentar. La recuperación del vínculo en la misma pestaña depende de que el MCP siga activo; no equivale a persistencia del BPMN.
 
+## Responsables y etiquetas del flujo
+
+Representa a los responsables mediante áreas, cargos o roles funcionales sustentados en la evidencia, sin nombres de personas. Aplica la regla a participantes, carriles, tareas, eventos, compuertas, conexiones, anotaciones, títulos y demás etiquetas visibles del flujo. Quitar el nombre de un carril no permite reintroducirlo en una tarea o nota.
+
+Desde el plan, relaciona cada actividad y su responsable funcional con la evidencia disponible. Si la fuente solo identifica a una persona, busca allí su área o rol; no deduzcas un cargo, jerarquía ni atribuciones. Si no puede establecerse, conserva el dato faltante en la trazabilidad del proyecto y consúltalo cuando sea necesario para continuar. No añadas el nombre personal al diagrama ni notas pendientes al lienzo por rutina. No asignes una actividad a un área sin sustento para llenar ese vacío.
+
+Conserva los nombres legítimos de empresas, fincas, sistemas y documentos, así como datos operativos como cantidades de personas. No trates todo nombre propio como una persona. Las transcripciones y fuentes originales conservan sus nombres; la trazabilidad interna puede registrar quién informó o validó, separada de las etiquetas del proceso.
+
+Ejemplos genéricos:
+
+| Caso | Criterio |
+| --- | --- |
+| Carril «Compras / Nombre de persona» | «Compras»; un cargo más específico requiere evidencia. |
+| Tarea «Revisar con Nombre de persona» o anotación equivalente | Usar «Revisar con Compras» solo si ese es el responsable acreditado; revisar también las demás etiquetas. |
+| La fuente solo dice «Nombre de persona revisa la solicitud», sin área o rol identificable | Mantener esa falta en la trazabilidad y consultar si afecta el montaje; no inventar el responsable ni añadir el nombre al lienzo. |
+| «Empresa Ejemplo», «Finca San José», «Sistema ERP», «Manual de compras», «3 personas» | Conservar esas referencias si la evidencia confirma su significado; no son identificaciones personales por sí mismas. |
+
+En un flujo existente, detectar una referencia personal no autoriza corregirla durante una revisión de solo lectura. Cuando se solicite la corrección, limita el cambio a las etiquetas y asignaciones sustentadas dentro del alcance autorizado; conserva IDs, semántica BPMN y ajustes manuales no afectados.
+
 ## Preservación y separación
 
 Preserva IDs, documentación, asociaciones, hojas, extensiones y geometría no afectadas. Un cambio puntual no autoriza regenerar el XML. `open_bpmn` se limita a una pestaña nueva vacía sin archivo autorizado; abrir no guarda. Nunca recargues/cierres descartando cambios del usuario.

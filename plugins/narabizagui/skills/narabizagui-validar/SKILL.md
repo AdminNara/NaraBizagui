@@ -9,6 +9,8 @@ Lee [el contrato común](../../shared/workflow.md). En una sesión conectada, id
 
 Usa `narabizagui_validate` con la revisión vigente. `profile:review` corresponde a diagramas explicativos o para revisión; `formal` exige condiciones BPMN en las ramas aplicables. Ningún perfil certifica ejecución ni aprobación del negocio. Mantén el perfil declarado por el proyecto; no inventes reglas para eliminar avisos.
 
+Revisa las etiquetas visibles contra la [regla de responsables y etiquetas](../../shared/workflow.md#responsables-y-etiquetas-del-flujo), usando las fuentes autorizadas y la trazabilidad disponible para distinguir personas de otras referencias legítimas. Incluye participantes, carriles, tareas, anotaciones y el resto de las etiquetas del alcance revisado. Reporta cada referencia personal sustentada con ID, etiqueta, hoja/revisión, evidencia y área o rol propuesto solo si está acreditado; si falta, informa ese dato fuera del lienzo. Distingue los casos confirmados de los dudosos y declara los límites de cobertura si no tienes las etiquetas o fuentes necesarias. Esta es una revisión de contenido: ni `narabizagui_validate` ni el analizador geométrico reconocen todos los nombres de personas; cero incidencias técnicas no acredita ausencia de referencias personales. Identifica estos hallazgos como revisión de contenido, sin presentarlos como códigos emitidos por el validador. Informar no autoriza renombrar ni corregir automáticamente.
+
 Clasifica las incidencias por impacto e incluye sus `code`, `elementIds` y revisión: enlaces incompletos o duplicados por ámbito, extremos inválidos, condiciones/predeterminadas, temporizadores y condiciones de eventos, líneas atravesando figuras, cruces/contactos/superposiciones y etiquetas. Distingue errores de avisos. Un resultado incompleto o con incidencias truncadas no es un pase integral.
 
 Para un snapshot local autorizado, ejecuta `node <plugin>/shared/snapshot-cli.mjs validate <snapshot.json> [--formal]`. Para contrastar antes/después, usa `diff <before.json> <after.json>`; evalúa el cambio esperado y la preservación de elementos ajenos. Los scripts no editan el modelo.
@@ -17,4 +19,4 @@ Cuando exista una sesión o imagen autorizada, complementa el análisis con una 
 
 Entrega hallazgos verificables, alcance cubierto y pendientes; separa validación técnica, contenido del proceso y aceptación del cliente. Si el usuario pidió además corregir, devuelve los hallazgos a modelado; una solicitud de análisis sola no autoriza aplicar cambios.
 
-Para correcciones de texto, tamaño, rutas, documentos y notas, sigue [edición visual y calidad](../../shared/visual-editing.md). Preserva las correcciones manuales y usa un bloque compatible por conjunto afectado.
+Consulta [edición visual y calidad](../../shared/visual-editing.md) para interpretar texto, rutas y documentos. Esta skill sigue siendo de solo lectura; remite las correcciones autorizadas a modelado.
