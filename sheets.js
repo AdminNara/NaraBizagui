@@ -3,6 +3,34 @@
   function SheetManager(bpmnjs, canvas, commandStack, elementFactory, bpmnFactory, modeling, eventBus, elementRegistry, bpmnReplace, selection, naraER) {
     let importing = true, previousRoot, back = [], goingBack = false;
     const views = new Map();
+    // A call path belongs to this editor/document, never to the called process.
+    // Keep it separate from the general sheet history (back).
+    let calls = [], navigatingCall = false;
+    const returnBar = document.getElementById('subprocessReturnBar');
+    const returnButton = document.getElementById('subprocessReturn');
+    function validCall(call) {
+      if (call.document !== definitions() || call.documentId !== window.browserBpmnFiles?.documentId) return false;
+      if (canvas.findRoot(call.origin.id) !== call.origin || canvas.findRoot(call.target.id) !== call.target) return false;
+      if (elementRegistry.get(call.activity.id) !== call.activity || canvas.findRoot(call.activity) !== call.origin) return false;
+      if (call.type === 'bpmn:SubProcess') return call.activity.type === call.type && call.activity.collapsed && call.target.businessObject === call.activity.businessObject;
+      return call.activity.type === call.type && call.activity.businessObject.calledElement === call.calledElement && list().some(s => s.id === call.target.id && s.processId === call.calledElement);
+    }
+    function renderReturn() {
+      if (navigatingCall) return;
+      if (calls.some(call => !validCall(call)) || naraER.active() || (calls.length && calls.at(-1).target !== canvas.getRootElement())) calls = [];
+      const call = calls.at(-1), visible = !!call;
+      if (call) {
+        const name = list().find(s => s.id === call.origin.id)?.name || call.origin.id;
+        returnButton.textContent = '← Volver a ' + name;
+        returnButton.title = 'Volver a ' + name;
+        returnButton.setAttribute('aria-label', 'Volver a ' + name);
+      }
+      if (returnBar.hidden === visible) {
+        returnBar.hidden = !visible;
+        document.getElementById('canvas').classList.toggle('has-call-return', visible);
+        canvas.resized();
+      }
+    }
     let dialogTarget = null;
     let pasteIds=null;
     eventBus.on('copyPaste.pasteElement',500,({descriptor})=>{if(pasteIds&&descriptor.businessObject){if(descriptor.type==='bpmn:Group'&&descriptor.id.startsWith(window.NaraStagePrefix?.()||'Stage_'))descriptor.businessObject.id=(window.NaraStagePrefix?.()||'Stage_')+crypto.randomUUID().replaceAll('-','');pasteIds.set(descriptor.id,descriptor.businessObject.id);}});
@@ -64,14 +92,21 @@
         tab.append(button,options);nav.appendChild(tab);
       }
       document.getElementById('sheetBack').disabled = !back.some(exists);
+      renderReturn();
     }
     const exists = id => canvas.findRoot(id) || naraER.list().some(sheet => sheet.id === id);
     function changed(id) {
+      if (!navigatingCall) calls = [];
       if (!importing && previousRoot && previousRoot !== id && !goingBack) back.push(previousRoot);
       previousRoot=id;render();eventBus.fire('nara.sheet.changed');
     }
     function open(id) {
       canNavigate();
+      navigate(id);
+      // Even clicking the current tab is an explicit, non-call visit.
+      calls = []; renderReturn();
+    }
+    function navigate(id) {
       if (naraER.list().some(s => s.id === id)) { naraER.open(id); return; }
       const root = canvas.findRoot(id);
       if (!root) throw failure('SHEET_NOT_FOUND', 'La hoja no existe en este archivo.');
@@ -175,17 +210,57 @@
       canNavigate();
       const element = elementRegistry.get(id);
       if (!element) throw failure('ELEMENT_NOT_FOUND', 'No existe el subproceso.');
+      if (naraER.active() || canvas.findRoot(element) !== canvas.getRootElement()) throw failure('WRONG_SHEET', 'Abre la hoja de la actividad antes de abrir su detalle.');
+      let root;
       if (element.type === 'bpmn:CallActivity') {
         const target = list().find(sheet => sheet.processId === element.businessObject.calledElement);
         if (!target) throw failure('SHEET_NOT_FOUND', 'El proceso llamado no tiene una hoja en este archivo.');
-        open(target.id); return;
+        root = canvas.findRoot(target.id);
+      } else {
+        if (element.type !== 'bpmn:SubProcess') throw failure('INVALID_OPERATION', 'Elige un subproceso o una actividad de llamada.');
+        // Opening detail must not collapse, resize or move any BPMN element.
+        if (!element.collapsed) throw failure('SUBPROCESS_EXPANDED', 'Este subproceso muestra su contenido en el lienzo. Su detalle en otra hoja requiere un subproceso contraído.');
+        root = canvas.findRoot(element.businessObject.id + '_plane');
       }
-      if (element.type !== 'bpmn:SubProcess') throw failure('INVALID_OPERATION', 'Elige un subproceso o una actividad de llamada.');
-      if (!element.collapsed) modeling.toggleCollapse(element);
-      const root = canvas.findRoot(element.businessObject.id + '_plane');
       if (!root) throw failure('SHEET_NOT_FOUND', 'No se encontró el detalle del subproceso.');
-      open(root.id);
+      if (root === canvas.getRootElement()) throw failure('RECURSIVE_LINK', 'La actividad llama a la misma hoja que ya está abierta.');
+      renderReturn();
+      const call = { document: definitions(), documentId: window.browserBpmnFiles?.documentId, origin: canvas.getRootElement(), target: root, activity: element, type: element.type, calledElement: element.businessObject.calledElement, view: { ...canvas.viewbox() } };
+      navigatingCall = true;
+      try {
+        navigate(root.id);
+        if (canvas.getRootElement() !== root || naraER.active()) throw failure('SHEET_NOT_FOUND', 'No se pudo abrir la hoja llamada.');
+        calls.push(call);
+      } finally { navigatingCall = false; renderReturn(); }
     }
+    function returnFromCall() {
+      canNavigate(); renderReturn();
+      const call = calls.at(-1);
+      if (!call) return;
+      navigatingCall = true;
+      try {
+        navigate(call.origin.id);
+        calls.pop();
+      } finally { navigatingCall = false; renderReturn(); }
+      // Restore zoom independently of viewport size (normal/expanded canvas).
+      const size = canvas.getSize(), view = call.view;
+      canvas.viewbox({ x: view.x, y: view.y, width: size.width / view.scale, height: size.height / view.scale });
+      selection.select(call.activity);
+      const box = canvas.viewbox(), e = call.activity;
+      if (e.x < box.x || e.y < box.y || e.x + e.width > box.x + box.width || e.y + e.height > box.y + box.height) canvas.scrollToElement(e, 24);
+      const focus = calls.length ? returnButton : canvas.getContainer();
+      if (!calls.length) focus.setAttribute('tabindex', '0');
+      focus.focus({ preventScroll: true });
+      report('Hoja: ' + (list().find(s => s.id === call.origin.id)?.name || call.origin.id));
+    }
+    returnButton.onclick = () => { try { returnFromCall(); } catch (error) { report(error.message); } };
+    // The native drilldown icon must use the same guarded call navigation.
+    document.getElementById('canvas').addEventListener('click', event => {
+      const button = event.target.closest('.bjs-drilldown');
+      if (!button) return;
+      event.preventDefault(); event.stopImmediatePropagation();
+      try { openSubprocess(button.closest('[data-container-id]')?.dataset.containerId); } catch (error) { report(error.message); }
+    }, true);
     function link(elementId, sheetId) {
       canNavigate();
       const element = elementRegistry.get(elementId), target = list().find(s => s.id === sheetId);
@@ -284,13 +359,18 @@
     };
     document.getElementById('openSubprocess').onclick = () => { try { openSubprocess(selection.get()[0]?.id); } catch (error) { report(error.message); } };
     document.getElementById('linkSubprocess').onclick = () => { try { link(selection.get()[0]?.id, document.getElementById('subprocessTarget').value); } catch (error) { report(error.message); } };
-    eventBus.on('import.parse.start', () => { importing = true; back = []; views.clear(); previousRoot = undefined; });
+    eventBus.on(['import.parse.start', 'diagram.clear'], () => { importing = true; calls = []; back = []; views.clear(); previousRoot = undefined; renderReturn(); });
     eventBus.on('canvas.viewbox.changed', event => { if (!importing && canvas.getRootElement()) views.set(canvas.getRootElement().id, { ...event.viewbox }); });
     eventBus.on('root.set', event => {
       naraER.close({silent:true});changed(event.element.id);
     });
     eventBus.on('nara.erd.view.changed',()=>changed(naraER.active()||canvas.getRootElement()?.id));
     eventBus.on(['commandStack.changed', 'element.changed'], () => { if (!importing) render(); });
+    eventBus.on('root.removed', event => {
+      // bpmn-js fires this before removing the root from its registry.
+      if (calls.some(call => call.origin === event.element || call.target === event.element)) calls = [];
+      if (!importing) renderReturn();
+    });
     eventBus.on('element.dblclick', 2000, event => {
       if (!['bpmn:SubProcess','bpmn:CallActivity'].includes(event.element.type)) return;
       try { openSubprocess(event.element.id); } catch (error) { report(error.message); }

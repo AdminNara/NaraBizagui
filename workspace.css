@@ -71,3 +71,9 @@ body :is(button,summary,input,select,textarea,[tabindex]):focus-visible{outline:
 .focus-mode .app-header .app-menu-body{position:absolute;top:100%}
 
 .file-ownership-notice{display:flex;align-items:center;justify-content:center;gap:16px;padding:8px 16px;background:#fff7dd;color:#574500;border-bottom:1px solid #e4cd85}.file-ownership-notice[hidden]{display:none}.file-readonly .djs-palette,.file-readonly .djs-context-pad{display:none!important}
+
+/* Editor-only return rail: reserve space so the control never covers the drawing. */
+#canvas.has-call-return>.bjs-container{height:calc(100% - 36px)!important}
+.subprocess-return-bar{position:absolute;inset:auto 0 0;height:36px;display:flex;align-items:center;padding:0 8px;border-top:1px solid #dce4eb;background:#f1f4f7;z-index:6}
+.subprocess-return{display:block;max-width:min(320px,100%);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-height:28px;padding:4px 8px;font-size:12px;color:#365d78;background:#fff;border:1px solid #d2dfe8}
+.focus-mode .subprocess-return-bar{padding-right:130px}
