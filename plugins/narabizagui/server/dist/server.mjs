@@ -31357,7 +31357,7 @@ import { randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 // plugins/narabizagui/shared/contract.mjs
 var TOOL_CONTRACT = "visual-quality-v1";
 var BATCH_LIMIT = 200;
-var BATCH_OPERATIONS = ["label", "documentation", "create", "connect", "move", "resize", "move_elements", "route", "route_orthogonal", "compact_container", "fit_text", "style", "delete", "properties", "lane_split", "lane_add", "matrix", "clear"];
+var BATCH_OPERATIONS = ["label", "documentation", "create", "connect", "move", "resize", "move_elements", "route", "route_orthogonal", "share_connection", "compact_container", "fit_text", "style", "delete", "properties", "lane_split", "lane_add", "matrix", "clear"];
 var BPMN_CREATE_TYPES = ["bpmn:Task", "bpmn:ManualTask", "bpmn:UserTask", "bpmn:ServiceTask", "bpmn:SendTask", "bpmn:ReceiveTask", "bpmn:ScriptTask", "bpmn:BusinessRuleTask", "bpmn:SubProcess", "bpmn:CallActivity", "bpmn:StartEvent", "bpmn:EndEvent", "bpmn:IntermediateCatchEvent", "bpmn:IntermediateThrowEvent", "bpmn:ExclusiveGateway", "bpmn:InclusiveGateway", "bpmn:ParallelGateway", "bpmn:ComplexGateway", "bpmn:EventBasedGateway", "bpmn:TextAnnotation", "bpmn:DataObjectReference", "bpmn:DataStoreReference", "bpmn:Participant"];
 var EVENT_KINDS = {
   "bpmn:StartEvent": ["Message", "Timer", "Conditional", "Signal"],
@@ -31367,7 +31367,7 @@ var EVENT_KINDS = {
 };
 
 // plugins/narabizagui/server/bridge.mjs
-var VERSION = "0.8.0";
+var VERSION = "0.8.1";
 var token = () => randomBytes(32).toString("base64url");
 var same = (a, b) => {
   if (typeof a !== "string" || typeof b !== "string") return false;
@@ -31606,6 +31606,7 @@ async function startServer(bridgeOptions = {}) {
     external_exports.object({ type: external_exports.literal("resize"), elementId, x: finite, y: finite, width: external_exports.number().min(20).max(1e5), height: external_exports.number().min(20).max(1e5), autoResize: external_exports.boolean().optional() }),
     external_exports.object({ type: external_exports.literal("delete"), elementId, cascade: external_exports.boolean().default(false) }),
     external_exports.object({ type: external_exports.literal("route"), elementId, waypoints: external_exports.array(external_exports.object({ x: finite, y: finite })).min(2).max(100) }),
+    external_exports.object({ type: external_exports.literal("share_connection"), elementId, withConnectionId: elementId, x: finite, y: finite, end: external_exports.enum(["source", "target"]).default("target") }),
     external_exports.object({ type: external_exports.literal("route_orthogonal"), elementId, sourceSide: external_exports.enum(["auto", "top", "right", "bottom", "left"]).optional(), targetSide: external_exports.enum(["auto", "top", "right", "bottom", "left"]).optional(), sourceOffset: external_exports.number().min(0.05).max(0.95).optional(), targetOffset: external_exports.number().min(0.05).max(0.95).optional(), clearance: external_exports.number().min(2).max(40).optional() }),
     external_exports.object({ type: external_exports.literal("fit_text"), elementId, fontSize: external_exports.number().min(9).max(32).optional(), minWidth: external_exports.number().min(100).max(2e3).optional(), maxWidth: external_exports.number().min(100).max(2e3).optional(), minHeight: external_exports.number().min(80).max(2e3).optional(), maxHeight: external_exports.number().min(80).max(2e3).optional() }),
     external_exports.object({ type: external_exports.literal("compact_container"), elementId, padding: external_exports.number().min(10).max(200).default(40) }),

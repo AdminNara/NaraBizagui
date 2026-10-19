@@ -179,6 +179,12 @@
       layer.classList.toggle('connection-tools', !!element.waypoints);
       if (element.waypoints) {
         const panel = document.createElement('div'); panel.className = 'nara-quick-options';
+        const coincident=elementRegistry.getAll().filter(other=>other!==element&&other.waypoints&&(other.source===element.source||other.target===element.target)&&window.NaraModelAudit.segments(element).some(([a,b])=>window.NaraModelAudit.segments(other).some(([c,d])=>window.NaraModelAudit.segmentContact(a,b,c,d)?.type==='overlap')));
+        if(coincident.length){
+          const choice=document.createElement('select');choice.className='nara-connection-choice';choice.setAttribute('aria-label','Seleccionar conexión del tramo compartido');choice.title='Cada conexión conserva su origen y destino';
+          for(const connection of [element,...coincident]){const option=document.createElement('option');option.value=connection.id;option.textContent=(connection.source.businessObject.name||connection.source.id)+' → '+(connection.target.businessObject.name||connection.target.id);choice.appendChild(option);}
+          choice.onchange=()=>{const chosen=elementRegistry.get(choice.value);selection.select(chosen);show(chosen);};panel.appendChild(choice);
+        }
         const straight = button('Recorrido sencillo sin diagonales', 'nara-line-direct', '─');
         straight.onclick = () => safe(() => { naraVisual.orthogonal(element,{preserveSides:true}); hide(); });
         const elbow = button('Línea en ángulo', 'nara-line-elbow', '┐');

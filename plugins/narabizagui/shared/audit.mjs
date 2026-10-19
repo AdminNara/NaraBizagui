@@ -5,8 +5,10 @@ const containers = new Set(['bpmn:Participant', 'bpmn:Lane', 'bpmn:Group', 'bpmn
 const conditional = new Set(['bpmn:ExclusiveGateway', 'bpmn:InclusiveGateway', 'bpmn:ComplexGateway']);
 import {same,pointEqual,segments,segmentContact,lineHitsBox,boxesOverlap} from './geometry.mjs';
 export {segments,segmentContact,lineHitsBox,boxesOverlap} from './geometry.mjs';
-export {SIDES,anchorPoint,inferAnchor,routeMetrics,simplifyOrthogonal,routeOrthogonal} from './routing.mjs';
+export {SIDES,anchorPoint,inferAnchor,routeMetrics,simplifyOrthogonal,orthogonalizeWaypoints,routeOrthogonal} from './routing.mjs';
 import {reviewVisualQuality} from './quality.mjs';
+import {intentionalSharedContact} from './connection-editing.mjs';
+export {projectRoute,planReconnectPreview,shareConnectionTail,shareConnectionPath,intentionalSharedContact} from './connection-editing.mjs';
 export {reviewVisualQuality} from './quality.mjs';
 export function validateSnapshot(snapshot, { profile = 'review', geometry = true, maxIssues = 200 } = {}) {
   if (!['review', 'formal'].includes(profile)) throw Error('profile must be review or formal');
@@ -84,6 +86,7 @@ export function validateSnapshot(snapshot, { profile = 'review', geometry = true
       const a = flows[i], b = flows[j];
       for (const [p, q] of segments(a)) for (const [r, s] of segments(b)) {
         const hit = segmentContact(p, q, r, s); if (!hit) continue;
+        if(intentionalSharedContact(a,b,p,q,r,s,hit))continue;
         const shared = [a.sourceId, a.targetId].some(id => id && [b.sourceId, b.targetId].includes(id));
         const endpoint = f => hit.point && [f.waypoints[0], f.waypoints.at(-1)].some(p => pointEqual(p, hit.point));
         if (hit.type === 'contact' && shared && endpoint(a) && endpoint(b)) continue;

@@ -6,7 +6,7 @@ import path from 'node:path';
 import http from 'node:http';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import { startBridge } from '../plugins/narabizagui/server/bridge.mjs';
+import { startBridge, VERSION } from '../plugins/narabizagui/server/bridge.mjs';
 
 const origin = 'https://demo.naraconsultores.com';
 async function post(port, route, data, token, extra = {}) {
@@ -89,12 +89,12 @@ test('bundled plugin starts outside the checkout without npm install and serves 
   const discovered = (await client.listTools()).tools;
   assert.equal(discovered.length, 9);
   const editSchema=JSON.stringify(discovered.find(tool=>tool.name==='narabizagui_edit').inputSchema);
-  for(const operation of ['matrix','clear','fit','lane_split','lane_add','style','delete','fit_text','route_orthogonal','compact_container'])assert.ok(editSchema.includes('"'+operation+'"'),'Missing structural operation '+operation);
+  for(const operation of ['matrix','clear','fit','lane_split','lane_add','style','delete','fit_text','route_orthogonal','share_connection','compact_container'])assert.ok(editSchema.includes('"'+operation+'"'),'Missing structural operation '+operation);
   assert.ok(JSON.stringify(discovered.find(tool=>tool.name==='narabizagui_read').inputSchema).includes('summary'));
   assert.ok(discovered.some(tool=>tool.name==='narabizagui_validate'));
   assert.ok(discovered.some(tool=>tool.name==='narabizagui_edit_batch'));
   const connection = (await client.callTool({ name: 'narabizagui_connect', arguments: {} })).structuredContent;
-  assert.equal(connection.toolContract,'visual-quality-v1');assert.equal(connection.serverVersion,'0.8.0');
+  assert.equal(connection.toolContract,'visual-quality-v1');assert.equal(connection.serverVersion,VERSION);
   const [port, code] = connection.pairingCode.split('.');
   const paired = await (await post(port, '/pair', { code })).json();
   const sessions = (await client.callTool({ name: 'narabizagui_sessions', arguments: {} })).structuredContent.sessions;

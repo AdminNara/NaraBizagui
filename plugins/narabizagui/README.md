@@ -1,6 +1,8 @@
 # NaraBizagui by NaraLab — plugin local
 
-La versión 0.8.0 incluye cuatro skills, scripts compartidos, nueve herramientas MCP y el contrato `visual-quality-v1`. El recorrido habitual es una consulta de preparación, un bloque de edición/presentación y una confirmación visual cuando corresponde. Conserva procesos completos, revisión obligatoria, prevalidación, idempotencia y Deshacer/Rehacer.
+La versión 0.8.1 incluye cuatro skills, scripts compartidos, nueve herramientas MCP y el contrato `visual-quality-v1`. El recorrido habitual es una consulta de preparación, un bloque de edición/presentación y una confirmación visual cuando corresponde. Conserva procesos completos, revisión obligatoria, prevalidación, idempotencia y Deshacer/Rehacer.
+
+Con web 0.9.3, `share_connection` permite compartir un tramo de llegada (`end:"target"`) o salida (`end:"source"`) entre conexiones que conservan el mismo destino u origen, respectivamente. Recibe `elementId`, `withConnectionId`, `x`, `y` y `end`; admite alias en un bloque. Cada conexión conserva ID, extremos y selección independiente. No crea compuertas ni uniones semánticas implícitas. El editor muestra el mismo recorrido en la previsualización y al soltar, conserva los ajustes manuales viables y permite acoplar segmentos cercanos sin diagonales. La ampliación es compatible con el contrato previo, pero un servidor antiguo no expone la operación nueva: comprobar el esquema real y `capabilities.batchOperations`.
 
 ## Preparación y presentación en una petición
 

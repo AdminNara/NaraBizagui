@@ -1,27 +1,6 @@
 'use strict';
 (() => {
-  const sameCoordinate=(a,b)=>Math.abs(a-b)<.01,samePoint=(a,b)=>sameCoordinate(a.x,b.x)&&sameCoordinate(a.y,b.y);
-  // Keep the user's endpoints and bends. Only add square elbows where a dragged
-  // segment would otherwise be diagonal; this is not a full automatic reroute.
-  function orthogonalizeWaypoints(points,{sourceSide,targetSide}={}){
-    if(points.length<2)return points.map(p=>({...p}));
-    if(points.length===2&&sourceSide&&targetSide&&['left','right'].includes(sourceSide)===['left','right'].includes(targetSide)&&!sameCoordinate(points[0].x,points[1].x)&&!sameCoordinate(points[0].y,points[1].y)){
-      const [a,b]=points,horizontal=['left','right'].includes(sourceSide),middle=horizontal?(a.x+b.x)/2:(a.y+b.y)/2;
-      return window.NaraModelAudit.simplifyOrthogonal([a,horizontal?{x:middle,y:a.y}:{x:a.x,y:middle},horizontal?{x:middle,y:b.y}:{x:b.x,y:middle},b]);
-    }
-    const output=[{...points[0]}];let horizontal=['left','right'].includes(sourceSide);
-    for(let i=1;i<points.length;i++){
-      const a=output.at(-1),b=points[i];
-      if(!sameCoordinate(a.x,b.x)&&!sameCoordinate(a.y,b.y)){
-        let firstHorizontal=horizontal;
-        if(i===points.length-1&&targetSide)firstHorizontal=['top','bottom'].includes(targetSide);
-        output.push(firstHorizontal?{x:b.x,y:a.y}:{x:a.x,y:b.y});
-      }
-      const previous=output.at(-1);if(!samePoint(previous,b))horizontal=sameCoordinate(previous.y,b.y);
-      output.push({...b});
-    }
-    return window.NaraModelAudit.simplifyOrthogonal(output);
-  }
+  const orthogonalizeWaypoints=(...args)=>window.NaraModelAudit.orthogonalizeWaypoints(...args);
   const instances=new WeakMap(),fail=(code,message)=>Object.assign(Error(message),{code});
   const activity=e=>!!e?.businessObject&&(e.businessObject.$instanceOf?.('bpmn:Task')||e.type==='bpmn:CallActivity'||e.type==='bpmn:SubProcess'&&e.di?.isExpanded===false);
   const external=e=>e.type==='label'||/(?:Event|Gateway|Flow|Reference)$/.test(e.type);
@@ -54,10 +33,10 @@
     events.on('commandStack.changed',2000,()=>{for(const [di,label]of labels)di?.set('label',label);labels.clear();});
   }
   function build(modeler){
-    const get=name=>modeler.get(name,false),modeling=get('modeling'),registry=get('elementRegistry'),canvas=get('canvas'),moddle=get('moddle'),stack=get('commandStack'),events=get('eventBus'),textRenderer=get('textRenderer'),layouter=get('layouter');
+    const get=name=>modeler.get(name,false),modeling=get('modeling'),registry=get('elementRegistry'),canvas=get('canvas'),moddle=get('moddle'),stack=get('commandStack'),events=get('eventBus'),textRenderer=get('textRenderer'),layouter=get('layouter'),rules=get('rules');
     function extension(element,type){return element.businessObject.extensionElements?.values?.find(value=>value.$type===type);}
     function readStyle(element){try{return window.NaraERModel.visualStyle(JSON.parse(extension(element,'nara:VisualStyle')?.json||'{}'));}catch{return{};}}
-    function readRouting(element){try{const r=JSON.parse(extension(element,'nara:ConnectionRouting')?.json||'null');if(!r||!['orthogonal','manual'].includes(r.mode)||!['source','target'].every(end=>window.NaraModelAudit.SIDES.includes(r[end]?.side)&&Number.isFinite(r[end]?.offset)&&r[end].offset>=.05&&r[end].offset<=.95))return null;return r;}catch{return null;}}
+    function readRouting(element){try{const r=JSON.parse(extension(element,'nara:ConnectionRouting')?.json||'null');if(!r||!['orthogonal','manual'].includes(r.mode)||!['source','target'].every(end=>window.NaraModelAudit.SIDES.includes(r[end]?.side)&&Number.isFinite(r[end]?.offset)&&r[end].offset>=.05&&r[end].offset<=.95))return null;if(r.sharedWith!==undefined&&(typeof r.sharedWith!=='string'||!['source','target'].includes(r.sharedEnd)||![r.joinPoint?.x,r.joinPoint?.y].every(Number.isFinite)))return null;r.manual=r.manual!==false;return r;}catch{return null;}}
     function putExtension(element,type,json){
       const value=moddle.create(type,{json:JSON.stringify(json)}),extensionElements=moddle.create('bpmn:ExtensionElements',{values:[...(element.businessObject.extensionElements?.values||[]).filter(v=>v.$type!==type),value]});
       modeling.updateProperties(element,{extensionElements});
@@ -136,14 +115,35 @@
       this.preExecute=c=>{
         const connection=c.element;
         let result=c.plan;
-        if(c.waypoints){const source=window.NaraModelAudit.inferAnchor(connection.source,c.waypoints[0]),target=window.NaraModelAudit.inferAnchor(connection.target,c.waypoints.at(-1));result={waypoints:orthogonalizeWaypoints(c.waypoints,{sourceSide:source.side,targetSide:target.side}),routing:{mode:'orthogonal',source,target}};}
+        if(c.waypoints){const source=window.NaraModelAudit.inferAnchor(connection.source,c.waypoints[0]),target=window.NaraModelAudit.inferAnchor(connection.target,c.waypoints.at(-1));result={waypoints:orthogonalizeWaypoints(c.waypoints,{sourceSide:source.side,targetSide:target.side}),routing:{mode:'orthogonal',manual:true,source,target}};}
         else if(!result)result=planRoute(connection,c.options);
-        putExtension(connection,'nara:ConnectionRouting',result.routing);modeling.updateWaypoints(connection,result.waypoints,{naraExplicitRoute:true});c.result=result;
+        result={...result,routing:{...result.routing,manual:result.routing.manual??false}};putExtension(connection,'nara:ConnectionRouting',result.routing);modeling.updateWaypoints(connection,result.waypoints,{naraExplicitRoute:true});c.result=result;
       };this.execute=this.revert=c=>[c.element];
     });
     function orthogonal(element,options={}){options={...options};if(options.preserveSides&&!readRouting(element)){options.sourceSide=window.NaraModelAudit.inferAnchor(element.source,element.waypoints[0]).side;options.targetSide=window.NaraModelAudit.inferAnchor(element.target,element.waypoints.at(-1)).side;}const plan=planRoute(element,options);stack.execute('nara.visual.route',{element,options,plan});return element;}
     function manualRoute(element,waypoints){stack.execute('nara.visual.route',{element,waypoints});return element;}
     function compactContainer(element,options={}){const plan=window.NaraModelAudit.planContainerFit(snapshot(),element.id,options);modeling.resizeShape(element,{x:plan.x,y:plan.y,width:plan.width,height:plan.height},undefined,{autoResize:false});return element;}
+    function sharedPlan(connection,reference,point,end='target',sourcePoint,cachedSnapshot){
+      const data=cachedSnapshot?{...cachedSnapshot,elements:cachedSnapshot.elements.slice()}:snapshot(),source=end==='source'?reference.source:connection.source,target=end==='target'?reference.target:connection.target;
+      const virtual={id:connection.id||'__nara_shared_preview',type:connection.type,sourceId:source.id,targetId:target.id,flowScopeId:connection.businessObject?.$parent?.id||source.businessObject?.$parent?.id,parentId:source.parent?.id,waypoints:connection.waypoints||[{x:source.x+source.width/2,y:source.y+source.height/2},{x:target.x+target.width/2,y:target.y+target.height/2}],routing:connection.businessObject?readRouting(connection):undefined};
+      data.elements=data.elements.filter(e=>e.id!==virtual.id);data.elements.push(virtual);
+      let anchor=sourcePoint&&window.NaraModelAudit.inferAnchor(source,sourcePoint);
+      if(anchor){const edge=window.NaraModelAudit.anchorPoint(source,anchor.side,anchor.offset);if(Math.hypot(edge.x-sourcePoint.x,edge.y-sourcePoint.y)>2)anchor=null;}
+      return window.NaraModelAudit.shareConnectionPath(data,{elementId:virtual.id,withConnectionId:reference.id,point,end,...(anchor?{sourceSide:anchor.side,sourceOffset:anchor.offset}:{})});
+    }
+    stack.registerHandler('nara.visual.share',function(){
+      this.preExecute=c=>{
+        let connection=c.connection;
+        if(!connection)connection=c.connection=modeling.connect(c.source,c.reference.target,c.attrs,{connectionStart:c.connectionStart});
+        else if(c.end==='source'&&connection.source!==c.reference.source)modeling.reconnectStart(connection,c.reference.source,c.plan.waypoints[0],{docking:'source'});
+        else if(c.end!=='source'&&connection.target!==c.reference.target)modeling.reconnectEnd(connection,c.reference.target,c.plan.waypoints.at(-1),{docking:'target'});
+        putExtension(connection,'nara:ConnectionRouting',c.plan.routing);modeling.updateWaypoints(connection,c.plan.waypoints,{naraExplicitRoute:true});
+      };this.execute=this.revert=c=>[c.connection];
+    });
+    function shareConnection(connection,reference,point,end='target'){
+      if(connection[end]!==reference[end])throw fail('SHARED_TARGET_REQUIRED','Selecciona conexiones con el mismo '+(end==='source'?'origen.':'destino.'));
+      const plan=sharedPlan(connection,reference,point,end);stack.execute('nara.visual.share',{connection,reference,end,plan});return connection;
+    }
     function repairEndpoint(points,shape,anchor){
       const first=window.NaraModelAudit.anchorPoint(shape,anchor.side,anchor.offset),v={top:[0,-1],bottom:[0,1],left:[-1,0],right:[1,0]}[anchor.side],next=points[1];points[0]=first;
       if(!next)return points;
@@ -155,7 +155,13 @@
     if(preview){
       const draw=preview.drawPreview.bind(preview);
       preview.drawPreview=(context,allowed,hints={})=>{
-        if(hints.noLayout&&hints.waypoints?.length>1&&context.connection?.source&&context.connection?.target){
+        if(context.naraSharedPlan){hints={...hints,source:context.source,target:context.target,waypoints:context.naraSharedPlan.waypoints,noLayout:true,noCropping:true};allowed=context.naraSharedAllowed;}
+        else if(allowed&&context.hover&&!context.hover.waypoints&&['reconnectStart','reconnectEnd'].includes(context.type)){
+          try{
+            const rounded=p=>p&&({x:Math.round(p.x),y:Math.round(p.y)}),plan=window.NaraModelAudit.planReconnectPreview(context.naraRouteSnapshot||(context.naraRouteSnapshot=snapshot()),context.connection.id,{sourceId:hints.source?.id,targetId:hints.target?.id,sourcePoint:rounded(hints.connectionStart),targetPoint:rounded(hints.connectionEnd),routing:readRouting(context.connection)});
+            hints={...hints,waypoints:plan.waypoints,noLayout:true,noCropping:true};
+          }catch(error){if(!['ROUTE_BLOCKED','ROUTE_SELF_LOOP','ROUTE_GEOMETRY_MISSING'].includes(error.code))throw error;}
+        }else if(hints.noLayout&&hints.waypoints?.length>1&&context.connection?.source&&context.connection?.target){
           const connection=context.connection,source=window.NaraModelAudit.inferAnchor(connection.source,hints.waypoints[0]),target=window.NaraModelAudit.inferAnchor(connection.target,hints.waypoints.at(-1));
           hints={...hints,waypoints:orthogonalizeWaypoints(hints.waypoints,{sourceSide:source.side,targetSide:target.side})};
         }
@@ -164,6 +170,47 @@
     }
     if(events){
       installHistoryGuards(events,registry,modeling);
+      events.on('commandStack.connection.delete.preExecute',1600,({context:c})=>{for(const e of registry.getAll().filter(e=>e.waypoints&&readRouting(e)?.sharedWith===c.connection.id)){const routing={...readRouting(e)};delete routing.sharedWith;delete routing.sharedEnd;delete routing.joinPoint;putExtension(e,'nara:ConnectionRouting',routing);}});
+      const pendingSnap=new WeakMap();
+      function snapShared(event){
+        const c=event.context,connection=c.connection;
+        if(c.naraSnap)canvas.removeMarker(c.naraSnap.reference,'nara-snap-target');c.naraSnap=null;
+        const segment=event.type.startsWith('connectionSegment.');
+        if(!connection||!segment&&c.type!=='updateWaypoints'||event.originalEvent?.altKey)return;
+        let nearest;const tolerance=7/canvas.zoom();
+        for(const reference of registry.getAll().filter(e=>e!==connection&&e.waypoints&&canvas.findRoot(e)===canvas.getRootElement()&&(e.source===connection.source||e.target===connection.target))){
+          const projected=window.NaraModelAudit.projectRoute(reference.waypoints,{x:event.x,y:event.y});if(!projected||projected.distance>tolerance)continue;
+          if(segment){
+            const a=reference.waypoints[projected.index],b=reference.waypoints[projected.index+1],u=c.segmentStart,v=c.segmentEnd;
+            if(c.axis==='y'&&Math.abs(a.y-b.y)>.01||c.axis==='x'&&Math.abs(a.x-b.x)>.01||(v.x-u.x)*(b.x-a.x)+(v.y-u.y)*(b.y-a.y)<=0)continue;
+          }
+          if(!nearest||projected.distance<nearest.distance)nearest={...projected,reference};
+        }
+        if(nearest){const axis=segment?c.axis:null,p=nearest.point;if(!axis||axis==='x'){event.dx+=p.x-event.x;event.x=p.x;}if(!axis||axis==='y'){event.dy+=p.y-event.y;event.y=p.y;}c.naraSnap=nearest;canvas.addMarker(nearest.reference,'nara-snap-target');}
+      }
+      events.on(['connectionSegment.move.move','connectionSegment.move.end','bendpoint.move.move','bendpoint.move.end'],1400,snapShared);
+      events.on(['connectionSegment.move.end','bendpoint.move.end'],1300,event=>{if(event.context.naraSnap)pendingSnap.set(event.context.connection,event.context.naraSnap);});
+      events.on(['connectionSegment.move.cleanup','bendpoint.move.cleanup'],500,event=>{const snap=event.context.naraSnap;if(snap)canvas.removeMarker(snap.reference,'nara-snap-target');pendingSnap.delete(event.context.connection);});
+      function prepareShare(event){
+        const c=event.context,reference=c.hover||event.hover,connection=c.connection,isNew=!!c.start,end=c.type==='reconnectStart'?'source':'target';
+        c.naraSharedPlan=null;
+        if(!reference?.waypoints||reference===connection||!isNew&&!['reconnectStart','reconnectEnd'].includes(c.type)||event.originalEvent?.altKey||![event.x,event.y].every(Number.isFinite))return;
+        const source=isNew?c.start:end==='source'?reference.source:connection.source,target=isNew||end==='target'?reference.target:connection.target;
+        if(source===target)return;
+        const allowed=rules.allowed(isNew?'connection.create':'connection.reconnect',{source,target,...(!isNew?{connection}:{})});if(!allowed)return;
+        try{
+          c.naraSharedPlan=sharedPlan(connection||{type:allowed.type,source},reference,{x:event.x,y:event.y},end,isNew?c.initialConnectionStart||c.connectionStart:undefined,c.naraSharedSnapshot||(c.naraSharedSnapshot=snapshot()));
+          c.naraSharedReference=reference;c.naraSharedEnd=end;c.naraSharedAllowed=typeof allowed==='object'?allowed:{type:connection?.type||'bpmn:SequenceFlow'};c.source=source;c.target=target;c.canExecute=c.allowed=c.naraSharedAllowed;
+          canvas.removeMarker(reference,'connect-not-ok');canvas.addMarker(reference,'connect-ok');
+        }catch(error){if(!['ROUTE_BLOCKED','SHARED_ROUTE_DIAGONAL','SHARED_TARGET_REQUIRED','SHARED_ROUTE_CYCLE','SHARED_ROUTE_EMPTY'].includes(error.code))throw error;}
+      }
+      events.on(['connect.hover','bendpoint.move.hover'],950,prepareShare);
+      events.on(['connect.move','bendpoint.move.move'],1200,prepareShare);
+      const commitShare=event=>{
+        const c=event.context;if(!c.naraSharedPlan)return;
+        const command={connection:c.start?undefined:c.connection,source:c.start,reference:c.naraSharedReference,end:c.naraSharedEnd,attrs:c.naraSharedAllowed,connectionStart:c.connectionStart,plan:c.naraSharedPlan};stack.execute('nara.visual.share',command);c.connection=command.connection;return true;
+      };
+      events.on('connect.end',1500,commitShare);events.on('bendpoint.move.end',1050,commitShare);
       events.on('commandStack.shape.resize.postExecute',500,({context:c})=>{
         const pool=c.shape;if(pool?.type!=='bpmn:Participant'||!c.oldBounds)return;
         const right=pool.x+pool.width;
@@ -175,12 +222,22 @@
       events.on('commandStack.shape.resize.canExecute',1600,event=>{const {shape,newBounds}=event.context;if(!activity(shape))return;return !newBounds||[newBounds.x,newBounds.y,newBounds.width,newBounds.height].every(Number.isFinite)&&newBounds.width>=100&&newBounds.height>=80;});
       events.on('commandStack.connection.updateWaypoints.preExecute',1600,event=>{
         const c=event.context,r=readRouting(c.connection);if(c.hints?.naraExplicitRoute||c.newWaypoints.length<2)return;
+        const snap=pendingSnap.get(c.connection);pendingSnap.delete(c.connection);
+        if(snap){const end=c.connection.target===snap.reference.target?'target':'source';try{const plan=sharedPlan(c.connection,snap.reference,snap.point,end);putExtension(c.connection,'nara:ConnectionRouting',plan.routing);c.newWaypoints=plan.waypoints;return;}catch(error){if(!['ROUTE_BLOCKED','SHARED_ROUTE_CYCLE'].includes(error.code))throw error;}}
         const interactive=c.hints?.segmentMove||c.hints?.bendpointMove;
         let points=c.newWaypoints.map(p=>({...p}));
         if(r?.mode==='orthogonal'&&!interactive){points=repairEndpoint(points,c.connection.source,r.source);points=repairEndpoint(points.reverse(),c.connection.target,r.target).reverse();}
         const source=interactive||!r?window.NaraModelAudit.inferAnchor(c.connection.source,points[0]):r.source,target=interactive||!r?window.NaraModelAudit.inferAnchor(c.connection.target,points.at(-1)):r.target;
         c.newWaypoints=orthogonalizeWaypoints(points,{sourceSide:source.side,targetSide:target.side});
-        if(interactive||!r)putExtension(c.connection,'nara:ConnectionRouting',{mode:'orthogonal',source,target});
+        if(interactive||!r)putExtension(c.connection,'nara:ConnectionRouting',{mode:'orthogonal',manual:!!interactive,source,target});
+      });
+      const synchronizing=new Set();
+      events.on(['commandStack.connection.updateWaypoints.postExecute','commandStack.connection.layout.postExecute'],500,event=>{
+        const reference=event.context.connection;if(synchronizing.has(reference))return;synchronizing.add(reference);
+        try{for(const connection of registry.getAll().filter(e=>e.waypoints&&readRouting(e)?.sharedWith===reference.id)){
+          const r=readRouting(connection),end=r.sharedEnd||'target';if(connection[end]!==reference[end])continue;
+          try{const plan=sharedPlan(connection,reference,r.joinPoint,end);if(JSON.stringify(plan.waypoints)===JSON.stringify(connection.waypoints))continue;putExtension(connection,'nara:ConnectionRouting',plan.routing);modeling.updateWaypoints(connection,plan.waypoints,{naraExplicitRoute:true});}catch(error){if(!['ROUTE_BLOCKED','SHARED_ROUTE_CYCLE','SHARED_ROUTE_DIAGONAL'].includes(error.code))throw error;}
+        }}finally{synchronizing.delete(reference);}
       });
       events.on('commandStack.connection.reconnect.postExecute',1600,event=>{
         const c=event.context,connection=c.connection,old=readRouting(connection)||{mode:'orthogonal',source:window.NaraModelAudit.inferAnchor(connection.source,connection.waypoints[0]),target:window.NaraModelAudit.inferAnchor(connection.target,connection.waypoints.at(-1))};
@@ -201,6 +258,8 @@
       layouter.layoutConnection=(connection,hints={})=>{
         const normalize=points=>orthogonalizeWaypoints(points,{sourceSide:window.NaraModelAudit.inferAnchor(hints.source||connection.source,points[0])?.side,targetSide:window.NaraModelAudit.inferAnchor(hints.target||connection.target,points.at(-1))?.side});
         const routing=readRouting(connection);if(routing?.mode!=='orthogonal')return normalize(native(connection,hints));
+        if(routing.sharedWith){const reference=registry.get(routing.sharedWith);if(reference&&connection[routing.sharedEnd||'target']===reference[routing.sharedEnd||'target'])try{return sharedPlan(connection,reference,routing.joinPoint,routing.sharedEnd).waypoints;}catch(error){if(!['ROUTE_BLOCKED','SHARED_ROUTE_DIAGONAL'].includes(error.code))throw error;}}
+        if(routing.manual)return window.NaraModelAudit.planReconnectPreview(snapshot(),connection.id,{routing}).waypoints;
         try{return planRoute(connection).waypoints;}catch(error){
           // Keep native undo/movement intact when an imported or crowded layout
           // has no local solution. The subsequent quality audit reports it.
@@ -216,7 +275,7 @@
         return{x:Math.round(bounds.x+bounds.width/2-dimensions.width/2),y:bounds.y,width:Math.ceil(dimensions.width),height:Math.ceil(dimensions.height)};
       };
     }
-    return{readStyle,readRouting,applyStyle,defaultFont,decorate,describeText,fitPlan,fitText:(element,options={})=>{const plan=fitPlan(element,options);stack.execute('nara.visual.fitText',{element,options,plan});return element;},orthogonal,manualRoute,compactContainer,activity};
+    return{readStyle,readRouting,applyStyle,defaultFont,decorate,describeText,fitPlan,fitText:(element,options={})=>{const plan=fitPlan(element,options);stack.execute('nara.visual.fitText',{element,options,plan});return element;},orthogonal,manualRoute,compactContainer,shareConnection,activity};
   }
   function create(modeler){const existing=modeler.get('naraVisual',false);if(existing)return existing;if(!instances.has(modeler))instances.set(modeler,build(modeler));return instances.get(modeler);}
   function Service(injector){return build({get:(name,strict)=>injector.get(name,strict)});}Service.$inject=['injector'];
