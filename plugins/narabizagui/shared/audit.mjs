@@ -5,10 +5,10 @@ const containers = new Set(['bpmn:Participant', 'bpmn:Lane', 'bpmn:Group', 'bpmn
 const conditional = new Set(['bpmn:ExclusiveGateway', 'bpmn:InclusiveGateway', 'bpmn:ComplexGateway']);
 import {same,pointEqual,segments,segmentContact,lineHitsBox,boxesOverlap} from './geometry.mjs';
 export {segments,segmentContact,lineHitsBox,boxesOverlap} from './geometry.mjs';
-export {SIDES,anchorPoint,inferAnchor,routeMetrics,simplifyOrthogonal,orthogonalizeWaypoints,routeOrthogonal} from './routing.mjs';
+export {SIDES,anchorPolicy,anchorPoint,inferAnchor,routeMetrics,simplifyOrthogonal,orthogonalizeWaypoints,routeOrthogonal} from './routing.mjs';
 import {reviewVisualQuality} from './quality.mjs';
 import {intentionalSharedContact} from './connection-editing.mjs';
-export {projectRoute,planReconnectPreview,shareConnectionTail,shareConnectionPath,intentionalSharedContact} from './connection-editing.mjs';
+export {projectRoute,planReconnectPreview,planMovedRoutes,shareConnectionTail,shareConnectionPath,intentionalSharedContact} from './connection-editing.mjs';
 export {reviewVisualQuality} from './quality.mjs';
 export function validateSnapshot(snapshot, { profile = 'review', geometry = true, maxIssues = 200 } = {}) {
   if (!['review', 'formal'].includes(profile)) throw Error('profile must be review or formal');

@@ -14,7 +14,7 @@ export function planReconnectPreview(snapshot,elementId,{sourceId,targetId,sourc
   const index=new Map(snapshot.elements.map(e=>[e.id,e])),connection=index.get(elementId),source=index.get(sourceId||connection?.sourceId),target=index.get(targetId||connection?.targetId);
   if(!connection||!source||!target)throw fail('ROUTE_GEOMETRY_MISSING','Faltan los extremos de la conexión.');
   const old=routing||connection.routing||{},a=sourcePoint?inferAnchor(source,sourcePoint):old.source||inferAnchor(source,connection.waypoints[0]),b=targetPoint?inferAnchor(target,targetPoint):old.target||inferAnchor(target,connection.waypoints.at(-1));
-  const virtual={...connection,sourceId:source.id,targetId:target.id,routing:{mode:'orthogonal',source:a,target:b}};
+  const virtual={...connection,sourceId:source.id,targetId:target.id,routing:{...old,mode:'orthogonal',source:a,target:b,anchorPolicy:{...old.anchorPolicy,...(sourcePoint?{source:'fixed'}:{}),...(targetPoint?{target:'fixed'}:{})}}};
   if(old.manual&&connection.waypoints.length>2){
     const repair=(points,shape,anchor)=>{
       const first=anchorPoint(shape,anchor.side,anchor.offset),v={top:[0,-1],right:[1,0],bottom:[0,1],left:[-1,0]}[anchor.side],next=points[1];points[0]=first;
@@ -24,10 +24,42 @@ export function planReconnectPreview(snapshot,elementId,{sourceId,targetId,sourc
     };
     let points=connection.waypoints.map(p=>({...p}));points=repair(points,source,a);points=repair(points.reverse(),target,b).reverse();
     points=orthogonalizeWaypoints(points,{sourceSide:a.side,targetSide:b.side});
-    if(!segments({waypoints:points}).some(([p,q])=>lineHitsBox(p,q,source)||lineHitsBox(p,q,target)))return{waypoints:points,routing:{...old,...virtual.routing,manual:true}};
+    // A movement is not consent to discard the user's interior bends. Quality
+    // exposes collisions and the local recalculate action releases the route.
+    return{waypoints:points,routing:{...virtual.routing,manual:true}};
   }
   const plan=routeOrthogonal({...snapshot,elements:snapshot.elements.map(e=>e.id===elementId?virtual:e)},{elementId});
   if(old.manual)plan.routing.manual=true;return plan;
+}
+// A disposable view of one drag closure. The editor and the ghost use the same
+// order and geometry; incident automatic routes cannot bias each other with
+// their old paths. No other connection or sheet is laid out.
+export function planMovedRoutes(snapshot,{elementIds,delta={x:0,y:0}}){
+  const moved=new Set(elementIds),shift=p=>({...p,x:p.x+delta.x,y:p.y+delta.y});
+  const elements=snapshot.elements.map(e=>{
+    const both=e.waypoints&&moved.has(e.sourceId)&&moved.has(e.targetId);
+    return{...e,...(moved.has(e.id)&&!e.waypoints?shift(e):{}),...(e.labelBounds&&(moved.has(e.id)||moved.has(e.id+'_label'))?{labelBounds:shift(e.labelBounds)}:{}),...(both?{waypoints:e.waypoints.map(shift)}:{})};
+  });
+  const data={...snapshot,elements},affectedIds=new Set(elements.filter(e=>e.waypoints?.length>1&&(moved.has(e.sourceId)||moved.has(e.targetId))).map(e=>e.id)),plans=[];
+  let expanded=true;while(expanded){expanded=false;for(const e of elements)if(e.routing?.sharedWith&&affectedIds.has(e.routing.sharedWith)&&!affectedIds.has(e.id)){affectedIds.add(e.id);expanded=true;}}
+  const affected=elements.filter(e=>affectedIds.has(e.id)).sort((a,b)=>a.id.localeCompare(b.id));
+  for(const e of affected)if(e.routing?.manual===false&&!e.routing.sharedWith)e.waypoints=[];
+  // Manual/shared paths remain obstacles with their intended bends intact.
+  for(const e of affected.filter(e=>e.routing?.manual!==false||e.routing.sharedWith)){
+    if(!e.routing)continue;
+    try{const plan=planReconnectPreview(data,e.id,{routing:{...e.routing,manual:true}});Object.assign(e,plan);plans.push({elementId:e.id,...plan});}catch(error){if(!['ROUTE_BLOCKED','ROUTE_SELF_LOOP'].includes(error.code))throw error;}
+  }
+  for(const e of affected.filter(e=>e.routing?.manual===false&&!e.routing.sharedWith)){
+    try{const plan=routeOrthogonal(data,{elementId:e.id});Object.assign(e,plan);plans.push({elementId:e.id,...plan});}catch(error){if(!['ROUTE_BLOCKED','ROUTE_SELF_LOOP'].includes(error.code))throw error;}
+  }
+  const resolved=new Set(),resolve=e=>{
+    if(resolved.has(e.id))return;resolved.add(e.id);const r=e.routing,reference=elements.find(f=>f.id===r?.sharedWith);if(!reference)return;
+    if(affectedIds.has(reference.id))resolve(reference);
+    const both=moved.has(reference.sourceId)&&moved.has(reference.targetId),point=both?shift(r.joinPoint):r.joinPoint;
+    try{const plan=shareConnectionPath(data,{elementId:e.id,withConnectionId:reference.id,point,end:r.sharedEnd});Object.assign(e,plan);const slot=plans.findIndex(p=>p.elementId===e.id);if(slot>=0)plans.splice(slot,1);plans.push({elementId:e.id,...plan});}catch(error){if(!['ROUTE_BLOCKED','SHARED_ROUTE_DIAGONAL','SHARED_ROUTE_EMPTY','SHARED_ROUTE_CYCLE'].includes(error.code))throw error;}
+  };
+  for(const e of affected.filter(e=>e.routing?.sharedWith))resolve(e);
+  return plans;
 }
 export function shareConnectionTail(snapshot,{elementId,withConnectionId,point,sourceSide,sourceOffset}={}){
   const index=new Map(snapshot.elements.map(e=>[e.id,e])),connection=index.get(elementId),reference=index.get(withConnectionId),source=index.get(connection?.sourceId),target=index.get(reference?.targetId);

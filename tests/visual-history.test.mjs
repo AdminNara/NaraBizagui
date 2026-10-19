@@ -14,6 +14,14 @@ test('native lane references retain order across resizing undo and redo',()=>{
  const registry={getAll:()=>[{type:'bpmn:Lane',businessObject:lane}]},events=new EventBus(),services={elementRegistry:registry},stack=new CommandStack(events,{instantiate:T=>new T(...T.$inject.map(k=>services[k]))});stack.registerHandler('lane.updateRefs',UpdateRefs);context.window.NaraVisual.installHistoryGuards(events,registry);
  stack.execute('lane.updateRefs',{updates:[{flowNode:a,remove:[lane],add:[lane]}]});assert.deepEqual(lane.flowNodeRef,[b,a]);stack.undo();assert.deepEqual(lane.flowNodeRef,[a,b]);stack.redo();assert.deepEqual(lane.flowNodeRef,[b,a]);stack.undo();assert.deepEqual(lane.flowNodeRef,[a,b]);
 });
+test('a grouped lane move restores native process ordering on undo and replays exactly',async()=>{
+ const m=new BpmnModdle(),process=m.create('bpmn:Process',{id:'P'}),a=m.create('bpmn:Task',{id:'A'}),b=m.create('bpmn:Task',{id:'B'}),doc=m.create('bpmn:DataObjectReference',{id:'D'}),first=m.create('bpmn:Lane',{id:'L1'}),second=m.create('bpmn:Lane',{id:'L2'}),laneSet=m.create('bpmn:LaneSet',{id:'LS',lanes:[first,second]});
+ process.flowElements=[a,b,doc];for(const e of process.flowElements)e.$parent=process;process.laneSets=[laneSet];laneSet.$parent=process;first.$parent=second.$parent=laneSet;
+ const events=new EventBus(),registry={getAll:()=>[a,b,doc,first,second].map(bo=>({businessObject:bo}))},stack=new CommandStack(events,{instantiate:T=>new T()}),updater=Object.create(Updater.prototype);context.window.NaraVisual.installHistoryGuards(events,registry);
+ stack.registerHandler('elements.move',function(){this.execute=()=>{updater.updateSemanticParent(a,second);updater.updateSemanticParent(doc,second);return[];};this.revert=()=>{updater.updateSemanticParent(a,first);updater.updateSemanticParent(doc,first);return[];};});
+ const before=(await m.toXML(process)).xml;stack.execute('elements.move',{});const after=(await m.toXML(process)).xml;assert.notEqual(after,before);assert.deepEqual(process.flowElements,[b,a,doc]);
+ stack.undo();assert.equal((await m.toXML(process)).xml,before);stack.redo();assert.equal((await m.toXML(process)).xml,after);stack.undo();assert.equal((await m.toXML(process)).xml,before);
+});
 
 test('delete cleanup uses the native moddle command before removal, including imported lanes without inverse node refs',async()=>{
  const m=new BpmnModdle(),defs=m.create('bpmn:Definitions',{id:'Defs',targetNamespace:'https://example.test'}),process=m.create('bpmn:Process',{id:'P'}),lane=m.create('bpmn:Lane',{id:'L'}),laneSet=m.create('bpmn:LaneSet',{id:'LS',lanes:[lane]}),node=m.create('bpmn:StartEvent',{id:'Start'});defs.rootElements=[process];process.$parent=defs;process.laneSets=[laneSet];laneSet.$parent=process;lane.$parent=laneSet;process.flowElements=[node];node.$parent=process;lane.flowNodeRef=[node];

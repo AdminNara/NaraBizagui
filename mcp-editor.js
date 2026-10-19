@@ -66,7 +66,7 @@
     if(!serialized||serialized.revision!==base){const {xml}=await modeler.saveXML({format:true});const sha256=await browserFiles.digest(xml);if(base===revision)serialized={revision:base,xml,sha256};else throw error('REVISION_CONFLICT','El diagrama cambió durante la lectura. Lee nuevamente.');}
     const {xml,sha256}=serialized;
     if (base !== revision) throw error('REVISION_CONFLICT', 'El diagrama cambió durante la lectura. Lee nuevamente.');
-    const present=state=>{Object.assign(state,runtime(),{documentReady:true});Object.assign(state.capabilities,{protocolVersion:window.NaraModelAudit?.PROTOCOL_VERSION||5,toolContract:window.NaraModelAudit?.TOOL_CONTRACT||'visual-quality-v1',matrix:state.diagramType==='bpmn'&&Boolean(window.NaraMcpStructure),clearActive:state.diagramType==='bpmn'&&Boolean(window.NaraMcpStructure),fit:true,documentGuard:true,tabIsolation:true,compactRead:true,compactBatch:true,batchPresentation:true,visualFormatting:state.diagramType==='bpmn',activityResize:state.diagramType==='bpmn',fitText:state.diagramType==='bpmn',orthogonalRouting:state.diagramType==='bpmn',persistentAnchors:state.diagramType==='bpmn',visualQuality:true,waitForReadyMs:5000,waitForAutoSaveMs:5000});if(detail==='summary')return window.NaraEditorReadiness.compact(state);return state;};
+    const present=state=>{Object.assign(state,runtime(),{documentReady:true});Object.assign(state.capabilities,{protocolVersion:window.NaraModelAudit?.PROTOCOL_VERSION||5,toolContract:window.NaraModelAudit?.TOOL_CONTRACT||'visual-quality-v1',matrix:state.diagramType==='bpmn'&&Boolean(window.NaraMcpStructure),clearActive:state.diagramType==='bpmn'&&Boolean(window.NaraMcpStructure),fit:true,documentGuard:true,tabIsolation:true,compactRead:true,compactBatch:true,batchPresentation:true,visualFormatting:state.diagramType==='bpmn',activityResize:state.diagramType==='bpmn',fitText:state.diagramType==='bpmn',orthogonalRouting:state.diagramType==='bpmn',persistentAnchors:state.diagramType==='bpmn',adaptiveRouting:state.diagramType==='bpmn',localRouteRecalculation:state.diagramType==='bpmn',visualQuality:true,waitForReadyMs:5000,waitForAutoSaveMs:5000});if(detail==='summary')return window.NaraEditorReadiness.compact(state);return state;};
     const canvas = modeler.get('canvas'), er=window.NaraER,activeSheetId = er?.active() || canvas.getRootElement().id;
     if(er?.active()){
       const dataModel=er.read(),elements=[...dataModel.tables.map(t=>({...t,type:'nara:Entity',height:window.NaraERModel.height(t)})),...dataModel.relationships.map(r=>({...r,type:'nara:Relationship'}))];
@@ -148,7 +148,7 @@
       const target = op.parentId ? element(op.parentId) : affected.parent;
       const delta = { x: op.dx, y: op.dy };
       if (!rules.allowed('elements.move', { shapes: [affected], delta, target })) throw error('BPMN_RULE', 'El movimiento no está permitido.');
-      modeling.moveShape(affected, delta, target);
+      modeling.moveElements([affected], delta, target);
     } else if (op.type === 'resize') {
       affected = element(op.elementId);
       if (![op.x, op.y, op.width, op.height].every(Number.isFinite) || op.width < 20 || op.height < 20 || !rules.allowed('shape.resize', { shape: affected })) throw error('BPMN_RULE', 'No se permite ese tamaño para el elemento.');
@@ -156,7 +156,7 @@
     } else if (op.type === 'route') {
       affected = element(op.elementId);
       if (!affected.waypoints || !Array.isArray(op.waypoints) || op.waypoints.length < 2 || op.waypoints.length > 100 || op.waypoints.some(p => !Number.isFinite(p.x) || !Number.isFinite(p.y))) throw error('INVALID_OPERATION', 'El trazado requiere una conexión y entre 2 y 100 puntos válidos.');
-      modeling.updateWaypoints(affected, op.waypoints.map(p => ({ x: p.x, y: p.y })));
+      window.NaraVisual.create(modeler).manualRoute(affected,op.waypoints.map(p => ({ x: p.x, y: p.y })));
     } else if (op.type === 'delete') {
       affected = element(op.elementId);
       if (!affected.parent) throw error('BPMN_RULE', 'No se puede eliminar la raíz.');

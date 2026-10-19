@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {planReconnectPreview,shareConnectionPath,projectRoute} from '../plugins/narabizagui/shared/connection-editing.mjs';
+import {planReconnectPreview,planMovedRoutes,shareConnectionPath,projectRoute} from '../plugins/narabizagui/shared/connection-editing.mjs';
 import {routeMetrics,routeOrthogonal} from '../plugins/narabizagui/shared/routing.mjs';
 import {validateSnapshot} from '../plugins/narabizagui/shared/audit.mjs';
 const a={id:'A',type:'bpmn:Task',x:50,y:200,width:100,height:80,flowScopeId:'P'},c={...a,id:'C',y:20},b={...a,id:'B',x:500};
@@ -17,6 +17,10 @@ test('joining a tail preserves two semantic connections and the reference geomet
  assert.ok(routeMetrics(result.waypoints).orthogonal);assert.deepEqual(result.waypoints.at(-1),reference.waypoints.at(-1));assert.equal(result.routing.sharedWith,'F');assert.deepEqual(result.routing.joinPoint,{x:350,y:160});assert.deepEqual(data,before);
  data.elements.find(e=>e.id==='G').waypoints=result.waypoints;data.elements.find(e=>e.id==='G').routing=result.routing;
  const issues=validateSnapshot(data).issues;assert.ok(!issues.some(i=>['DANGLING_FLOW','LINE_OVERLAP','UNINTENDED_CONTACT'].includes(i.code)),JSON.stringify(issues));
+});
+test('moving a reference source also plans its dependent shared branch without moving either branch endpoint',()=>{
+ const data=snapshot(),g=data.elements.find(e=>e.id==='G');Object.assign(g,shareConnectionPath(data,{elementId:'G',withConnectionId:'F',point:{x:350,y:160}}));const before=structuredClone(data);
+ const plans=planMovedRoutes(data,{elementIds:['A'],delta:{x:80,y:80}});assert.deepEqual(plans.map(p=>p.elementId).sort(),['F','G']);assert.equal(plans.find(p=>p.elementId==='G').routing.sharedWith,'F');assert.deepEqual(data,before);
 });
 test('sharing a head retains distinct destinations and the same source docking',()=>{
  const data=snapshot();const g=data.elements.find(e=>e.id==='G');g.sourceId='A';g.targetId='C';g.waypoints=[{x:150,y:240},{x:200,y:240},{x:200,y:60},{x:150,y:60}];
