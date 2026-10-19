@@ -31367,7 +31367,7 @@ var EVENT_KINDS = {
 };
 
 // plugins/narabizagui/server/bridge.mjs
-var VERSION = "0.8.1";
+var VERSION = "0.9.0";
 var token = () => randomBytes(32).toString("base64url");
 var same = (a, b) => {
   if (typeof a !== "string" || typeof b !== "string") return false;
@@ -31375,7 +31375,7 @@ var same = (a, b) => {
   return left.length === right.length && timingSafeEqual(left, right);
 };
 var fail = (code, message) => Object.assign(new Error(message), { code });
-async function startBridge({ allowedOrigins = ["https://demo.naraconsultores.com"], timeoutMs = 25e3, pairingTtlMs = 3e5, now = Date.now } = {}) {
+async function startBridge({ allowedOrigins = ["https://demo.naraconsultores.com"], timeoutMs = 25e3, pairingTtlMs = 3e5, sessionTtlMs = 3e5, now = Date.now } = {}) {
   const sessions = /* @__PURE__ */ new Map();
   let pairing;
   let closed = false;
@@ -31424,6 +31424,9 @@ async function startBridge({ allowedOrigins = ["https://demo.naraconsultores.com
     }
     return false;
   }
+  function prune() {
+    for (const s of sessions.values()) if (!s.pending && now() - s.lastSeen > sessionTtlMs) disconnect(s.id);
+  }
   const server = http.createServer(async (req, res) => {
     try {
       if (req.headers.host !== `127.0.0.1:${server.address().port}`) return reply(res, 403, { error: "Host rechazado." });
@@ -31440,20 +31443,37 @@ async function startBridge({ allowedOrigins = ["https://demo.naraconsultores.com
       if (req.method !== "POST") return reply(res, 405, { error: "M\xE9todo no permitido." });
       const url2 = new URL(req.url, "http://127.0.0.1");
       if (url2.pathname === "/pair") {
+        prune();
         const input2 = await body(req);
         if (!pairing || pairing.expiresAt <= now() || !same(input2.code, pairing.secret)) return reply(res, 401, { error: "C\xF3digo inv\xE1lido o vencido. Solicita otro a Codex." });
         if (sessions.size >= 8) return reply(res, 409, { error: "Desconecta una sesi\xF3n antes de agregar otra." });
         pairing = null;
         const id = randomUUID();
         const auth = token();
-        sessions.set(id, { id, auth, origin, name: String(input2.name || "Diagrama").slice(0, 180), lastSeen: Date.now(), pending: null, poll: null });
-        return reply(res, 200, { sessionId: id, sessionToken: auth, version: VERSION, toolContract: TOOL_CONTRACT });
+        sessions.set(id, { id, auth, origin, name: String(input2.name || "Diagrama").slice(0, 180), lastSeen: now(), generation: 1, pending: null, poll: null });
+        return reply(res, 200, { sessionId: id, sessionToken: auth, generation: 1, ownership: true, version: VERSION, toolContract: TOOL_CONTRACT });
       }
-      const match = /^\/sessions\/([0-9a-f-]+)\/(poll|result|disconnect)$/.exec(url2.pathname);
+      const match = /^\/sessions\/([0-9a-f-]+)\/(poll|result|disconnect|resume)$/.exec(url2.pathname);
       const session = match && sessions.get(match[1]);
       if (!session || session.origin !== origin || !same(req.headers.authorization, `Bearer ${session.auth}`)) return reply(res, 401, { error: "Sesi\xF3n no autorizada." });
-      session.lastSeen = Date.now();
+      session.lastSeen = now();
       const input = await body(req);
+      if (input.generation !== void 0 && input.generation !== session.generation) return reply(res, 401, { error: "El v\xEDnculo de esta pesta\xF1a fue reemplazado." });
+      if (match[2] === "resume") {
+        if (session.poll) {
+          clearTimeout(session.poll.timer);
+          reply(session.poll.res, 410, { error: "V\xEDnculo restablecido." });
+          session.poll = null;
+        }
+        if (session.pending?.delivered) {
+          clearTimeout(session.pending.timer);
+          session.pending.reject(fail("RESULT_UNKNOWN", "La pesta\xF1a se recarg\xF3 durante una operaci\xF3n. Lee su estado antes de repetir."));
+          session.pending = null;
+        }
+        session.auth = token();
+        session.generation++;
+        return reply(res, 200, { sessionToken: session.auth, generation: session.generation, ownership: true });
+      }
       if (match[2] === "disconnect") {
         reply(res, 200, { disconnected: true });
         disconnect(session.id);
@@ -31466,6 +31486,7 @@ async function startBridge({ allowedOrigins = ["https://demo.naraconsultores.com
         session.pending = null;
         if (input.error) pending.reject(Object.assign(fail(String(input.error.code || "EDITOR_ERROR"), String(input.error.message || "El visor rechaz\xF3 la operaci\xF3n.")), Object.fromEntries(["busyReason", "retryable", "retryAfterMs", "recovery"].filter((key) => input.error[key] !== void 0).map((key) => [key, input.error[key]]))));
         else {
+          if (typeof input.result?.documentId === "string") session.observedDocumentId = input.result.documentId;
           if (pending.command.action === "editBatch" && input.result && typeof input.result === "object") input.result.timings = { ...input.result.timings, transport: { queueMs: pending.deliveredAt - pending.started, roundTripMs: Date.now() - pending.started } };
           pending.resolve(input.result);
         }
@@ -31473,6 +31494,7 @@ async function startBridge({ allowedOrigins = ["https://demo.naraconsultores.com
         return;
       }
       if (typeof input.name === "string") session.name = input.name.slice(0, 180);
+      if (typeof input.documentId === "string" && input.documentId.length <= 200) session.documentId = input.documentId;
       if (session.poll) return reply(res, 409, { error: "Ya hay una consulta activa." });
       if (deliver(session, res)) return;
       const timer = setTimeout(() => {
@@ -31505,13 +31527,19 @@ async function startBridge({ allowedOrigins = ["https://demo.naraconsultores.com
       return { serverVersion: VERSION, toolContract: TOOL_CONTRACT, pairingCode: code, expiresAt: new Date(pairing.expiresAt).toISOString(), editorUrl: `https://demo.naraconsultores.com/NaraBizagui/#mcp=${code}`, instructions: "En la pesta\xF1a del BPMN elegido pulsa Conectar con Codex, pega el c\xF3digo y pulsa Vincular. El enlace alternativo abre el editor. Autoriza el acceso local si el navegador lo solicita. Despu\xE9s consulta narabizagui_sessions y compara el contrato activo. El c\xF3digo es de un solo uso y vence en cinco minutos." };
     },
     list() {
-      return [...sessions.values()].map((s) => ({ sessionId: s.id, name: s.name, connected: Date.now() - s.lastSeen < 45e3, lastSeen: new Date(s.lastSeen).toISOString(), busy: Boolean(s.pending) }));
+      prune();
+      return [...sessions.values()].map((s) => ({ sessionId: s.id, name: s.name, documentId: s.documentId || null, connected: now() - s.lastSeen < 45e3, lastSeen: new Date(s.lastSeen).toISOString(), busy: Boolean(s.pending) }));
     },
     request(id, action, args) {
       if (closed) return Promise.reject(fail("CLOSED", "El puente est\xE1 cerrado."));
       const session = sessions.get(id);
-      if (!session || Date.now() - session.lastSeen >= 45e3) return Promise.reject(fail("NOT_CONNECTED", "Vincula la pesta\xF1a y comprueba sus permisos de red local."));
+      if (!session || now() - session.lastSeen >= 45e3) return Promise.reject(fail("NOT_CONNECTED", "Vincula la pesta\xF1a y comprueba sus permisos de red local."));
       if (session.pending) return Promise.reject(fail("BUSY", "Espera el resultado de la operaci\xF3n anterior."));
+      if (action !== "read" && session.documentId) {
+        const expected = args.expectedDocumentId || session.observedDocumentId;
+        if (!expected) return Promise.reject(fail("DOCUMENT_NOT_READ", "Lee el archivo de esta pesta\xF1a antes de modificarlo o exportarlo."));
+        args = { ...args, expectedDocumentId: expected };
+      }
       return new Promise((resolve, reject) => {
         const command = { id: randomUUID(), action, args, deadline: Date.now() + timeoutMs };
         const pending = { command, resolve, reject, delivered: false, started: Date.now() };
@@ -31653,18 +31681,18 @@ async function startServer(bridgeOptions = {}) {
     }
     return { serverVersion: VERSION, toolContract: TOOL_CONTRACT, sessionId, ...await bridge.request(sessionId, "read", { detail: args.includeXml || args.includePropertyFields || args.elementIds ? "full" : args.detail, waitForReadyMs: args.waitForReadyMs, includeXml: args.includeXml, includePropertyFields: args.includePropertyFields, elementIds: args.elementIds }) };
   });
-  register("narabizagui_validate", "Valida la hoja activa sin editar. Devuelve incidencias con c\xF3digos e IDs, enlaces por \xE1mbito, condiciones y geometr\xEDa real. review permite representaci\xF3n explicativa; formal exige condiciones. Incluye quality separado de errores BPMN: texto renderizado, marcadores, carriles y recorridos. elementIds limita esa revisi\xF3n visual al conjunto y conexiones afectadas. No aprueba el negocio ni ejecuta expresiones.", { sessionId: id, expectedRevision: revision, profile: external_exports.enum(["review", "formal"]).default("review"), geometry: external_exports.boolean().default(true), maxIssues: external_exports.number().int().min(1).max(1e3).default(200), elementIds: external_exports.array(elementId).min(1).max(250).optional() }, true, (args) => bridge.request(args.sessionId, "validate", { expectedRevision: args.expectedRevision, profile: args.profile, geometry: args.geometry, maxIssues: args.maxIssues, elementIds: args.elementIds }));
+  register("narabizagui_validate", "Valida la hoja activa sin editar. Devuelve incidencias con c\xF3digos e IDs, enlaces por \xE1mbito, condiciones y geometr\xEDa real. review permite representaci\xF3n explicativa; formal exige condiciones. Incluye quality separado de errores BPMN: texto renderizado, marcadores, carriles y recorridos. elementIds limita esa revisi\xF3n visual al conjunto y conexiones afectadas. No aprueba el negocio ni ejecuta expresiones.", { sessionId: id, expectedRevision: revision, expectedDocumentId: external_exports.string().min(1).max(200).optional(), profile: external_exports.enum(["review", "formal"]).default("review"), geometry: external_exports.boolean().default(true), maxIssues: external_exports.number().int().min(1).max(1e3).default(200), elementIds: external_exports.array(elementId).min(1).max(250).optional() }, true, (args) => bridge.request(args.sessionId, "validate", { expectedRevision: args.expectedRevision, expectedDocumentId: args.expectedDocumentId, profile: args.profile, geometry: args.geometry, maxIssues: args.maxIssues, elementIds: args.elementIds }));
   const batchOperation = external_exports.discriminatedUnion("type", edit.options.filter((schema) => BATCH_OPERATIONS.includes(schema.shape.type.value)).map((schema) => schema.extend({ as: external_exports.string().regex(/^[A-Za-z][A-Za-z0-9_-]{0,63}$/).optional() })));
-  register("narabizagui_edit_batch", "Prevalida y aplica de 1 a 200 operaciones BPMN con alias, revisi\xF3n obligatoria, un Deshacer e idempotencia. Admite procesos completos, matrix, clear de hoja activa, carriles, style, delete, fit_text y route_orthogonal con lados persistentes. presentation.expandedCanvas y fit preparan la vista dentro de la misma petici\xF3n. response=summary devuelve revisi\xF3n, alias y validaci\xF3n sin las figuras; full incluye geometr\xEDa. El resultado distingue tiempo de editor, transporte y primer cuadro confirmado; no mide la espera total del usuario. dryRun no aplica ni cambia la vista; requireValid rechaza errores sin tocar el modelo. Respeta autoguardado. No incluye hojas ni ER.", { sessionId: id, expectedRevision: revision, requestId: external_exports.string().uuid(), operations: external_exports.array(batchOperation).min(1).max(BATCH_LIMIT), dryRun: external_exports.boolean().default(false), fit: external_exports.boolean().default(true), presentation: external_exports.object({ expandedCanvas: external_exports.boolean().optional() }).default({}), response: external_exports.enum(["summary", "full"]).default("summary"), requireValid: external_exports.boolean().default(false) }, false, (args) => bridge.request(args.sessionId, "editBatch", { expectedRevision: args.expectedRevision, requestId: args.requestId, operations: args.operations, dryRun: args.dryRun, fit: args.fit, presentation: args.presentation, response: args.response, requireValid: args.requireValid }));
-  register("narabizagui_edit", "Aplica una operaci\xF3n nativa bpmn-js, con revisi\xF3n base obligatoria y deshacer. properties edita los campos de semanticProperties seg\xFAn propertyFields de read y reutiliza la validaci\xF3n manual. create.eventDefinition configura el tipo de evento. Usa read para conocer IDs. x/y son el centro al crear; move usa desplazamiento. stage a\xF1ade una etapa al final o a izquierda/derecha de sourceId. lane_add/lane_split gestionan carriles nativos. stage_split divide columnas. style aplica formato persistente y erd_field_move reordena campos. view ampl\xEDa/restaura el lienzo sin cambiar el archivo. Las operaciones erd_ crean hojas de datos, tablas, campos y relaciones por campo; sus x/y son esquina superior izquierda. sheet_create crea otra hoja, sheet_open navega, sheet_rename renombra, subprocess_open abre el detalle y sheet_link vincula con otro proceso mediante CallActivity; no reemplaza subprocesos con contenido.", { sessionId: id, expectedRevision: revision, operation: edit }, false, (args) => bridge.request(args.sessionId, "edit", { expectedRevision: args.expectedRevision, operation: args.operation }));
-  register("narabizagui_save", "Guarda en el archivo ya elegido y autorizado en el visor, conservando historial y comprobando conflictos. Si falta acceso, el usuario debe usar Guardar como en el navegador. No elige destinos ni descarga copias silenciosamente.", { sessionId: id, expectedRevision: revision }, false, (args) => bridge.request(args.sessionId, "save", { expectedRevision: args.expectedRevision }));
+  register("narabizagui_edit_batch", "Prevalida y aplica de 1 a 200 operaciones BPMN con alias, revisi\xF3n obligatoria, un Deshacer e idempotencia. Admite procesos completos, matrix, clear de hoja activa, carriles, style, delete, fit_text y route_orthogonal con lados persistentes. presentation.expandedCanvas y fit preparan la vista dentro de la misma petici\xF3n. response=summary devuelve revisi\xF3n, alias y validaci\xF3n sin las figuras; full incluye geometr\xEDa. El resultado distingue tiempo de editor, transporte y primer cuadro confirmado; no mide la espera total del usuario. dryRun no aplica ni cambia la vista; requireValid rechaza errores sin tocar el modelo. Respeta autoguardado. No incluye hojas ni ER.", { sessionId: id, expectedRevision: revision, expectedDocumentId: external_exports.string().min(1).max(200).optional(), requestId: external_exports.string().uuid(), operations: external_exports.array(batchOperation).min(1).max(BATCH_LIMIT), dryRun: external_exports.boolean().default(false), fit: external_exports.boolean().default(true), presentation: external_exports.object({ expandedCanvas: external_exports.boolean().optional() }).default({}), response: external_exports.enum(["summary", "full"]).default("summary"), requireValid: external_exports.boolean().default(false) }, false, (args) => bridge.request(args.sessionId, "editBatch", { expectedRevision: args.expectedRevision, expectedDocumentId: args.expectedDocumentId, requestId: args.requestId, operations: args.operations, dryRun: args.dryRun, fit: args.fit, presentation: args.presentation, response: args.response, requireValid: args.requireValid }));
+  register("narabizagui_edit", "Aplica una operaci\xF3n nativa bpmn-js, con revisi\xF3n base obligatoria y deshacer. properties edita los campos de semanticProperties seg\xFAn propertyFields de read y reutiliza la validaci\xF3n manual. create.eventDefinition configura el tipo de evento. Usa read para conocer IDs. x/y son el centro al crear; move usa desplazamiento. stage a\xF1ade una etapa al final o a izquierda/derecha de sourceId. lane_add/lane_split gestionan carriles nativos. stage_split divide columnas. style aplica formato persistente y erd_field_move reordena campos. view ampl\xEDa/restaura el lienzo sin cambiar el archivo. Las operaciones erd_ crean hojas de datos, tablas, campos y relaciones por campo; sus x/y son esquina superior izquierda. sheet_create crea otra hoja, sheet_open navega, sheet_rename renombra, subprocess_open abre el detalle y sheet_link vincula con otro proceso mediante CallActivity; no reemplaza subprocesos con contenido.", { sessionId: id, expectedRevision: revision, expectedDocumentId: external_exports.string().min(1).max(200).optional(), operation: edit }, false, (args) => bridge.request(args.sessionId, "edit", { expectedRevision: args.expectedRevision, expectedDocumentId: args.expectedDocumentId, operation: args.operation }));
+  register("narabizagui_save", "Guarda en el archivo ya elegido y autorizado en el visor, conservando historial y comprobando conflictos. Si falta acceso, el usuario debe usar Guardar como en el navegador. No elige destinos ni descarga copias silenciosamente.", { sessionId: id, expectedRevision: revision, expectedDocumentId: external_exports.string().min(1).max(200).optional() }, false, (args) => bridge.request(args.sessionId, "save", { expectedRevision: args.expectedRevision, expectedDocumentId: args.expectedDocumentId }));
   server.registerTool("narabizagui_export_png", {
     description: "Renderiza la hoja activa completa como PNG con fondo blanco, sin paneles; devuelve sheetId y sheetName. Devuelve la imagen al chat para inspecci\xF3n visual y un archivo temporal local para insertarlo en Word/PDF. Lee antes para indicar expectedRevision. No modifica ni guarda el BPMN. scale=2 por defecto; se reduce si es necesario para respetar 8192 px por lado y 16 megap\xEDxeles.",
-    inputSchema: { sessionId: id, expectedRevision: revision, scale: external_exports.number().min(0.5).max(3).default(2) },
+    inputSchema: { sessionId: id, expectedRevision: revision, expectedDocumentId: external_exports.string().min(1).max(200).optional(), scale: external_exports.number().min(0.5).max(3).default(2) },
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false }
   }, async (args) => {
     try {
-      const artifact = await pngArtifact(await bridge.request(args.sessionId, "exportPng", { expectedRevision: args.expectedRevision, scale: args.scale }));
+      const artifact = await pngArtifact(await bridge.request(args.sessionId, "exportPng", { expectedRevision: args.expectedRevision, expectedDocumentId: args.expectedDocumentId, scale: args.scale }));
       const result = normalizeResult(artifact.structuredContent, { toolName: "narabizagui_export_png", sessionId: args.sessionId });
       return { ...artifact, structuredContent: result, content: artifact.content.map((item) => item.type === "text" ? { type: "text", text: JSON.stringify(result) } : item) };
     } catch (error51) {

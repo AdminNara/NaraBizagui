@@ -17,9 +17,10 @@ function fixture(active = user) {
       calls,
       async initialize() {},
       getActiveAccount() { return shared.active; },
+      getAccount(filter) {return shared.accounts.find(a=>["homeAccountId","localAccountId","tenantId"].every(k=>a[k]===filter[k]))||null;},
       addEventCallback(callback) { shared.callbacks.add(callback); },
       setActiveAccount(account) { shared.active = account; for (const callback of shared.callbacks) callback(); },
-      async clearCache() { calls.clear++; shared.accounts = []; },
+      async clearCache() { calls.clear++; shared.accounts = []; for(const callback of shared.callbacks)callback(); },
       async acquireTokenSilent({ account }) { calls.silent++; return result(account); },
       async loginPopup() { calls.login++; shared.accounts.push(user); return result(user); },
       async acquireTokenPopup({ account }) { calls.popup++; return result(account); }
@@ -64,13 +65,13 @@ test('a new tab recovers the account selected through a successful login', async
   assert.equal(nextClient.calls.login + nextClient.calls.popup, 0);
 });
 
-test('disconnect clears app cache and invalidates other tabs and their pending token requests', async () => {
+test('global disconnect clears app cache and invalidates other tabs and their pending token requests', async () => {
   const f = fixture(), a = f.account(f.client()), c = f.client(), b = f.account(c);
   await Promise.all([a.initialized, b.initialized]);
   const pending = deferred(); c.acquireTokenSilent = () => pending.promise;
   const token = b.token(['Files.ReadWrite.All']);
   await Promise.resolve();
-  await a.disconnect(); pending.resolve(result(user));
+  await a.disconnect({all:true}); pending.resolve(result(user));
   await assert.rejects(token, { code: 'ACCOUNT_CHANGED' });
   assert.equal(b.account, null);
   assert.equal(f.shared.active, null);
@@ -86,29 +87,24 @@ test('disconnect wins over an in-flight startup restore', async () => {
   assert.equal(auth.account, null);
 });
 
-test('logout in another tab prevents a late login result from reconnecting the page', async () => {
-  const f = fixture(null), a = f.account(f.client()), c = f.client(), b = f.account(c);
-  await Promise.all([a.initialized, b.initialized]);
-  const pending = deferred(); c.loginPopup = () => pending.promise;
-  const login = b.connect(); await Promise.resolve();
-  await a.disconnect(); pending.resolve(result(user));
-  await assert.rejects(login, { code: 'ACCOUNT_CHANGED' });
-  assert.equal(b.account, null);
-  assert.equal(f.shared.active, null);
+test('a local disconnect does not cancel another tab pending login', async () => {
+ const f=fixture(null),a=f.account(f.client()),c=f.client(),b=f.account(c);await Promise.all([a.initialized,b.initialized]);
+ const pending=deferred();c.loginPopup=()=>pending.promise;const login=b.connect();await Promise.resolve();
+ await a.disconnect();f.shared.accounts.push(user);pending.resolve(result(user));await login;assert.equal(b.account,user);assert.equal(a.account,null);
 });
 
-test('switching account or tenant invalidates old access without adopting another identity', async () => {
+test('switching the shared default preserves each tab pinned account and tenant', async () => {
   for (const next of [other, { ...user, tenantId: 'different-tenant' }]) {
     const f = fixture(), c = f.client(), auth = f.account(c); await auth.initialized;
     c.setActiveAccount(next);
-    assert.equal(auth.account, null);
-    await assert.rejects(() => auth.token(['User.Read']), { code: 'MICROSOFT_CONNECT' });
+    assert.equal(auth.account, user);
+    assert.equal(await auth.token(['User.Read']), 'generic-test-access');
   }
 });
 
 test('focus reconciliation invalidates a changed selection even if its broadcast was missed', async () => {
   const f = fixture(), auth = f.account(f.client()); await auth.initialized;
-  f.shared.active = other; auth.synchronize();
+  f.shared.accounts=[]; auth.synchronize();
   assert.equal(auth.account, null);
 });
 
@@ -145,10 +141,25 @@ test('a cross-tab disconnect preserves the in-memory diagram and detaches its cl
   };
   vm.runInNewContext(await readFile(new URL('../microsoft-ui.js', import.meta.url), 'utf8'), context);
   await new Promise(resolve => setImmediate(resolve));
-  f.shared.active = null; auth.synchronize();
+  f.shared.accounts=[]; auth.synchronize();
   assert.equal(files.handle, null);
   assert.equal(context.fileName, 'Generic.bpmn');
   assert.equal(context.dirty, true);
   assert.match(context.statusText, /diagrama sigue abierto/);
   assert.equal(element('connectMicrosoft').textContent, 'Conectar Microsoft');
+});
+
+function tabSelection(){const data=new Map();return{getItem:k=>data.get(k)??null,setItem:(k,v)=>data.set(k,v)};}
+test('two account selections survive reload and a local disconnect leaves the other tab and token cache intact',async()=>{
+ const f=fixture(),sa=tabSelection(),sb=tabSelection();f.shared.accounts.push(other);
+ const ca=f.client(),cb=f.client();cb.loginPopup=async()=>result(other);
+ const a=new MicrosoftAccount(ca,{...settings,storage:()=>sa}),b=new MicrosoftAccount(cb,{...settings,storage:()=>sb});await Promise.all([a.initialized,b.initialized]);
+ await b.connect();assert.equal(a.account,user);assert.equal(b.account,other);assert.equal(await a.token(['User.Read']),'generic-test-access');
+ const reload=new MicrosoftAccount(f.client(),{...settings,storage:()=>sa});await reload.initialized;assert.equal(reload.account,user);
+ await b.disconnect();assert.equal(a.account,user);assert.equal(f.shared.accounts.length,2);assert.equal(cb.calls.clear,0);
+ const disconnected=new MicrosoftAccount(f.client(),{...settings,storage:()=>sb});await disconnected.initialized;assert.equal(disconnected.account,null);
+});
+test('malformed tab identity cannot select the first arbitrary cached account',async()=>{
+ const f=fixture(),s=tabSelection();s.setItem('narabizagui.microsoft.account.v1',JSON.stringify({homeAccountId:'generic-home'}));
+ const auth=new MicrosoftAccount(f.client(),{...settings,storage:()=>s});await auth.initialized;assert.equal(auth.account,null);
 });

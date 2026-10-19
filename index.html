@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta name="narabizagui-build" content="142a189263e6baae">
+  <meta name="narabizagui-build" content="fa8188eb6bad415f">
   <meta name="narabizagui-mode" content="browser">
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>NaraBizagui by NaraLab</title>
@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="vendor/bpmn.css?v=b4b8f7070233c196">
   <link rel="stylesheet" href="vendor/bpmn-js.css?v=b09861c8e7030764">
   <link rel="stylesheet" href="modelador.css?v=dbe2adedb14e60ba">
-  <link rel="stylesheet" href="workspace.css?v=e07ff9bebf435b59">
+  <link rel="stylesheet" href="workspace.css?v=7ed8bb39e4f35e74">
 </head>
 <body>
   <header class="titlebar">
@@ -90,9 +90,10 @@
       </div>
     </aside>
   </main>
-  <footer class="statusbar"><span class="status-dot" aria-hidden="true"></span><span id="status" role="status">Abriendo modelo…</span><span class="status-spacer"></span><span id="attributionHost" title="bpmn.io · licencia del motor de modelado"></span><span class="status-version">Modelador 0.9.4</span><button id="minus" aria-label="Reducir zoom">−</button><input id="zoomRange" type="range" min="10" max="150" value="50" aria-label="Nivel de zoom"><button id="plus" aria-label="Aumentar zoom">+</button><button id="zoomValue" title="Encajar diagrama">50 %</button></footer>
+  <footer class="statusbar"><span class="status-dot" aria-hidden="true"></span><span id="status" role="status">Abriendo modelo…</span><span class="status-spacer"></span><span id="attributionHost" title="bpmn.io · licencia del motor de modelado"></span><span class="status-version">Modelador 0.10.0</span><button id="minus" aria-label="Reducir zoom">−</button><input id="zoomRange" type="range" min="10" max="150" value="50" aria-label="Nivel de zoom"><button id="plus" aria-label="Aumentar zoom">+</button><button id="zoomValue" title="Encajar diagrama">50 %</button></footer>
   <input id="open" type="file" accept=".bpmn,.xml" hidden>
-  <dialog id="historyDialog"><div class="history-heading"><h2>Historial de archivos de este navegador</h2><button id="closeHistory" aria-label="Cerrar historial">×</button></div><p>Revisiones anteriores conservadas al guardar. Puedes descargar una copia. Este historial depende de los datos de este navegador.</p><div id="historyItems"></div></dialog>
+  <section id="fileOwnershipNotice" class="file-ownership-notice" hidden role="status"><span>Abierto en consulta: este archivo se edita en otra pestaña.</span><button id="takeFileEditing">Editar aquí</button></section>
+  <dialog id="historyDialog"><div class="history-heading"><h2>Historial de este archivo</h2><button id="closeHistory" aria-label="Cerrar historial">×</button></div><p>Revisiones anteriores conservadas al guardar. Puedes descargar una copia. Este historial depende de los datos de este navegador.</p><label><input id="historyLegacy" type="checkbox"> Ver historial anterior sin identificar</label><div id="historyItems"></div></dialog>
   <script src="vendor/bpmn-modeler.production.min.js?v=5956b3e36ce23b3f"></script>
   <dialog id="codexDialog" class="codex-dialog" aria-labelledby="codexHeading">
     <div class="history-heading"><h2 id="codexHeading">Conectar con Codex</h2><button id="codexClose" aria-label="Cerrar conexión">×</button></div>
@@ -105,7 +106,7 @@
     <div class="ms-heading"><h2 id="msHeading">Abrir desde Microsoft</h2><button id="msClose" aria-label="Cerrar Microsoft">×</button></div>
     <section id="msWelcome" class="ms-welcome"><h3>Tus archivos, donde los guardas</h3><p>Abre y guarda BPMN en OneDrive o SharePoint con tu cuenta personal, de trabajo o de estudio.</p><button id="msConnect" class="ms-signin"><img src="assets/microsoft-symbol.svg" width="21" height="21" alt="">Iniciar sesión con Microsoft</button><p class="ms-muted">Recordaremos la conexión en este navegador. Puedes borrarla desde Cuenta → Desconectar.</p></section>
     <div id="msBrowser" hidden>
-      <div class="ms-account"><div><span class="ms-account-caption">Cuenta conectada</span><span id="msAccount"></span></div><details id="msAccountMenu"><summary aria-label="Opciones de la cuenta">Cuenta ▾</summary><div class="ms-account-options"><button id="msSwitch">Cambiar cuenta</button><button id="msDisconnect">Desconectar</button></div></details></div>
+      <div class="ms-account"><div><span class="ms-account-caption">Cuenta conectada</span><span id="msAccount"></span></div><details id="msAccountMenu"><summary aria-label="Opciones de la cuenta">Cuenta ▾</summary><div class="ms-account-options"><button id="msSwitch">Cambiar cuenta</button><button id="msDisconnect">Desconectar esta pestaña</button><button id="msDisconnectAll">Cerrar todas las conexiones</button></div></details></div>
       <nav class="ms-locations" aria-label="Ubicación de Microsoft"><button id="msRecent" aria-pressed="false">Recientes</button><button id="msOneDrive" aria-pressed="true">OneDrive</button><button id="msSharePointTab" aria-pressed="false">SharePoint</button></nav>
       <form id="msSiteForm" class="ms-site-form" hidden><label for="msSiteUrl">Dirección del sitio de SharePoint</label><div><input id="msSiteUrl" type="url" placeholder="https://empresa.sharepoint.com/sites/Procesos" autocomplete="off" required><button id="msSiteOpen" type="submit">Continuar</button></div></form>
       <div class="ms-folder-bar"><button id="msUp" aria-label="Carpeta anterior" title="Carpeta anterior">↑</button><nav id="msPath" aria-label="Ruta de carpetas"></nav></div>
@@ -116,8 +117,9 @@
     <footer class="ms-footer"><button id="msCancel">Cancelar</button><button id="msOpen" class="ms-primary" hidden disabled>Abrir</button><button id="msSave" class="ms-primary" hidden disabled>Guardar</button></footer>
     <details class="ms-privacy"><summary>Permisos y privacidad</summary><p>El permiso de Microsoft permite leer, modificar y eliminar los archivos a los que tu cuenta tiene acceso. NaraBizagui implementa apertura y guardado de BPMN. Para SharePoint se solicita además lectura de sitios.</p><p>La conexión se recuerda en este navegador mediante la biblioteca de Microsoft. Para conservarla al cerrar todo el navegador, elige «Mantener la sesión iniciada» si Microsoft lo permite. Tu organización puede exigir iniciar sesión de nuevo. Cuenta → Desconectar borra el acceso y las referencias recordadas de esta cuenta en NaraBizagui, sin cerrar Microsoft 365.</p><p>Se recuerdan la carpeta, el último BPMN y hasta 12 archivos recientes por cuenta mediante nombres e identificadores. Al volver a entrar, se relee desde Microsoft el último archivo guardado, si el editor está vacío. Limpiar recientes borra la lista y deja de retomar ese archivo. Los BPMN no se conservan en el Historial local: los cambios sin guardar no se recuperan. Si vinculas Codex, el modelo puede enviarse al chat que autorices.</p></details>
   </dialog>
-  <script src="vendor/microsoft-client.js?v=9245a2d6b2d339cd"></script>
-  <script src="archivos.js?v=283c1b72bfdaa48e"></script>
+  <script src="vendor/microsoft-client.js?v=3fc4bdda06aedc45"></script>
+  <script src="tab-ownership.js?v=95d96466274e1b51"></script>
+  <script src="archivos.js?v=93bc8c358e9b4f56"></script>
   <script src="autoguardado.js?v=0bd55020f202bea6"></script>
   <dialog id="sheetDialog" class="codex-dialog" aria-labelledby="sheetDialogHeading"><form id="sheetForm"><div class="history-heading"><h2 id="sheetDialogHeading">Nueva hoja de proceso</h2><button type="button" id="closeSheetDialog" aria-label="Cerrar hoja">×</button></div><p id="sheetKindField"><label for="sheetKind">Tipo de hoja</label><select id="sheetKind"><option value="bpmn">Proceso BPMN</option><option value="erd">Modelo de datos · entidad-relación</option></select></p><p><label for="sheetName">Nombre de la hoja</label><input id="sheetName" maxlength="120" required autocomplete="off"></p><button type="submit" id="saveSheetName">Crear hoja</button></form></dialog>
   <script src="vendor/sheets-import.js?v=fca983fa20ca86c0"></script>
@@ -132,12 +134,12 @@
   <script src="editor-visual.js?v=14e31b6e1d004246"></script>
   <script src="editor-structure.js?v=61ac2b8e40331e2b"></script>
   <script src="editor-operations.js?v=4e2e7000dbb6d8b7"></script>
-  <script src="editor-readiness.js?v=f402402e4403ae79"></script>
-  <script src="editor-blocks.js?v=6000a5624f3f84ff"></script>
-  <script src="modelador.js?v=83591d1d965a94cd"></script>
-  <script src="mcp-editor.js?v=a24c26ed9946a78d"></script>
-  <script src="mcp-bridge.js?v=fad6281eb3e959e2"></script>
-  <script src="microsoft-ui.js?v=58733debd41453d9"></script>
+  <script src="editor-readiness.js?v=1fc199795fe392da"></script>
+  <script src="editor-blocks.js?v=765337bb24db232a"></script>
+  <script src="modelador.js?v=7a994c86c68a0a78"></script>
+  <script src="mcp-editor.js?v=ae02e6865d6dc1ba"></script>
+  <script src="mcp-bridge.js?v=ef8ac10428239276"></script>
+  <script src="microsoft-ui.js?v=14fffd90f6240e52"></script>
   <script src="instant-edit.js?v=a5b55f83b2dea674"></script>
-  <script src="workspace-ui.js?v=463bb15564f67506"></script>
+  <script src="workspace-ui.js?v=d4a30e557a7ae494"></script>
 </body></html>

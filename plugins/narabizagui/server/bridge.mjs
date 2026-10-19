@@ -2,7 +2,7 @@ import http from 'node:http';
 import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { TOOL_CONTRACT } from '../shared/contract.mjs';
 
-export const VERSION = '0.8.1';
+export const VERSION = '0.9.0';
 const token = () => randomBytes(32).toString('base64url');
 const same = (a, b) => {
   if (typeof a !== 'string' || typeof b !== 'string') return false;
@@ -12,7 +12,7 @@ const same = (a, b) => {
 const fail = (code, message) => Object.assign(new Error(message), { code });
 
 // HTTP is only the browser bridge. MCP itself uses the host's stdio transport.
-export async function startBridge({ allowedOrigins = ['https://demo.naraconsultores.com'], timeoutMs = 25000, pairingTtlMs = 300000, now = Date.now } = {}) {
+export async function startBridge({ allowedOrigins = ['https://demo.naraconsultores.com'], timeoutMs = 25000, pairingTtlMs = 300000, sessionTtlMs = 300000, now = Date.now } = {}) {
   const sessions = new Map();
   let pairing;
   let closed = false;
@@ -55,6 +55,7 @@ export async function startBridge({ allowedOrigins = ['https://demo.naraconsulto
     }
     return false;
   }
+  function prune() { for(const s of sessions.values())if(!s.pending&&now()-s.lastSeen>sessionTtlMs)disconnect(s.id); }
   const server = http.createServer(async (req, res) => {
     try {
       if (req.headers.host !== `127.0.0.1:${server.address().port}`) return reply(res, 403, { error: 'Host rechazado.' });
@@ -71,20 +72,28 @@ export async function startBridge({ allowedOrigins = ['https://demo.naraconsulto
       if (req.method !== 'POST') return reply(res, 405, { error: 'Método no permitido.' });
       const url = new URL(req.url, 'http://127.0.0.1');
       if (url.pathname === '/pair') {
+        prune();
         const input = await body(req);
         if (!pairing || pairing.expiresAt <= now() || !same(input.code, pairing.secret)) return reply(res, 401, { error: 'Código inválido o vencido. Solicita otro a Codex.' });
         if (sessions.size >= 8) return reply(res, 409, { error: 'Desconecta una sesión antes de agregar otra.' });
         pairing = null;
         const id = randomUUID();
         const auth = token();
-        sessions.set(id, { id, auth, origin, name: String(input.name || 'Diagrama').slice(0, 180), lastSeen: Date.now(), pending: null, poll: null });
-        return reply(res, 200, { sessionId: id, sessionToken: auth, version: VERSION,toolContract:TOOL_CONTRACT });
+        sessions.set(id, { id, auth, origin, name: String(input.name || 'Diagrama').slice(0, 180), lastSeen: now(), generation:1, pending: null, poll: null });
+        return reply(res, 200, { sessionId: id, sessionToken: auth, generation:1, ownership:true, version: VERSION,toolContract:TOOL_CONTRACT });
       }
-      const match = /^\/sessions\/([0-9a-f-]+)\/(poll|result|disconnect)$/.exec(url.pathname);
+      const match = /^\/sessions\/([0-9a-f-]+)\/(poll|result|disconnect|resume)$/.exec(url.pathname);
       const session = match && sessions.get(match[1]);
       if (!session || session.origin !== origin || !same(req.headers.authorization, `Bearer ${session.auth}`)) return reply(res, 401, { error: 'Sesión no autorizada.' });
-      session.lastSeen = Date.now();
+      session.lastSeen = now();
       const input = await body(req);
+      if(input.generation!==undefined&&input.generation!==session.generation)return reply(res,401,{error:'El vínculo de esta pestaña fue reemplazado.'});
+      if(match[2]==='resume'){
+        if(session.poll){clearTimeout(session.poll.timer);reply(session.poll.res,410,{error:'Vínculo restablecido.'});session.poll=null;}
+        if(session.pending?.delivered){clearTimeout(session.pending.timer);session.pending.reject(fail('RESULT_UNKNOWN','La pestaña se recargó durante una operación. Lee su estado antes de repetir.'));session.pending=null;}
+        session.auth=token();session.generation++;
+        return reply(res,200,{sessionToken:session.auth,generation:session.generation,ownership:true});
+      }
       if (match[2] === 'disconnect') { reply(res, 200, { disconnected: true }); disconnect(session.id); return; }
       if (match[2] === 'result') {
         const pending = session.pending;
@@ -92,11 +101,12 @@ export async function startBridge({ allowedOrigins = ['https://demo.naraconsulto
         clearTimeout(pending.timer);
         session.pending = null;
         if (input.error) pending.reject(Object.assign(fail(String(input.error.code || 'EDITOR_ERROR'), String(input.error.message || 'El visor rechazó la operación.')),Object.fromEntries(['busyReason','retryable','retryAfterMs','recovery'].filter(key=>input.error[key]!==undefined).map(key=>[key,input.error[key]]))));
-        else{if(pending.command.action==='editBatch'&&input.result&&typeof input.result==='object')input.result.timings={...input.result.timings,transport:{queueMs:pending.deliveredAt-pending.started,roundTripMs:Date.now()-pending.started}};pending.resolve(input.result);}
+        else{if(typeof input.result?.documentId==='string')session.observedDocumentId=input.result.documentId;if(pending.command.action==='editBatch'&&input.result&&typeof input.result==='object')input.result.timings={...input.result.timings,transport:{queueMs:pending.deliveredAt-pending.started,roundTripMs:Date.now()-pending.started}};pending.resolve(input.result);}
         reply(res, 200, { accepted: true });
         return;
       }
       if (typeof input.name === 'string') session.name = input.name.slice(0, 180);
+      if(typeof input.documentId==='string'&&input.documentId.length<=200)session.documentId=input.documentId;
       if (session.poll) return reply(res, 409, { error: 'Ya hay una consulta activa.' });
       if (deliver(session, res)) return;
       const timer = setTimeout(() => { session.poll = null; reply(res, 200, { command: null,serverVersion:VERSION,toolContract:TOOL_CONTRACT }); }, 15000);
@@ -115,12 +125,17 @@ export async function startBridge({ allowedOrigins = ['https://demo.naraconsulto
       const code = `${port}.${pairing.secret}`;
       return { serverVersion:VERSION,toolContract:TOOL_CONTRACT,pairingCode: code, expiresAt: new Date(pairing.expiresAt).toISOString(), editorUrl: `https://demo.naraconsultores.com/NaraBizagui/#mcp=${code}`, instructions: 'En la pestaña del BPMN elegido pulsa Conectar con Codex, pega el código y pulsa Vincular. El enlace alternativo abre el editor. Autoriza el acceso local si el navegador lo solicita. Después consulta narabizagui_sessions y compara el contrato activo. El código es de un solo uso y vence en cinco minutos.' };
     },
-    list() { return [...sessions.values()].map(s => ({ sessionId: s.id, name: s.name, connected: Date.now() - s.lastSeen < 45000, lastSeen: new Date(s.lastSeen).toISOString(), busy: Boolean(s.pending) })); },
+    list() { prune();return [...sessions.values()].map(s => ({ sessionId: s.id, name: s.name, documentId:s.documentId||null, connected: now() - s.lastSeen < 45000, lastSeen: new Date(s.lastSeen).toISOString(), busy: Boolean(s.pending) })); },
     request(id, action, args) {
       if (closed) return Promise.reject(fail('CLOSED', 'El puente está cerrado.'));
       const session = sessions.get(id);
-      if (!session || Date.now() - session.lastSeen >= 45000) return Promise.reject(fail('NOT_CONNECTED', 'Vincula la pestaña y comprueba sus permisos de red local.'));
+      if (!session || now() - session.lastSeen >= 45000) return Promise.reject(fail('NOT_CONNECTED', 'Vincula la pestaña y comprueba sus permisos de red local.'));
       if (session.pending) return Promise.reject(fail('BUSY', 'Espera el resultado de la operación anterior.'));
+      if(action!=='read'&&session.documentId){
+        const expected=args.expectedDocumentId||session.observedDocumentId;
+        if(!expected)return Promise.reject(fail('DOCUMENT_NOT_READ','Lee el archivo de esta pestaña antes de modificarlo o exportarlo.'));
+        args={...args,expectedDocumentId:expected};
+      }
       return new Promise((resolve, reject) => {
         const command = { id: randomUUID(), action, args, deadline: Date.now() + timeoutMs };
         const pending = { command, resolve, reject, delivered: false,started:Date.now() };

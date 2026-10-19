@@ -15607,21 +15607,61 @@
 
   // scripts/microsoft-account.js
   var identity = (account) => account ? JSON.stringify([account.homeAccountId, account.localAccountId, account.tenantId]) : null;
+  var selectionKey = "narabizagui.microsoft.account.v1";
+  var logoutKey = "narabizagui.microsoft.logout.v1";
+  var reference = (account) => account && ["homeAccountId", "localAccountId", "tenantId"].every((k) => typeof account[k] === "string" && account[k].length > 0 && account[k].length <= 1024) ? { homeAccountId: account.homeAccountId, localAccountId: account.localAccountId, tenantId: account.tenantId } : null;
   var MicrosoftAccount = class {
-    constructor(client, { interactionRequired: interactionRequired2, accountChanged }) {
+    constructor(client, { interactionRequired: interactionRequired2, accountChanged, storage = () => window.sessionStorage, events = globalThis.window }) {
       this.client = client;
+      this.storage = storage;
+      this.events = events;
       this.interactionRequired = interactionRequired2;
       this.account = null;
       this.generation = 0;
       this.listeners = /* @__PURE__ */ new Set();
+      this.selection = this.readSelection();
+      if (events) events.addEventListener("storage", (event) => {
+        if (event.key === logoutKey) {
+          this.generation++;
+          this.select(null);
+          this.update(null, "disconnected");
+        }
+      });
       this.clientReady = client.initialize();
       this.initialized = this.clientReady.then(async () => {
-        client.addEventCallback(() => {
-          this.generation++;
-          this.synchronize();
-        }, [accountChanged]);
+        client.enableAccountStorageEvents?.();
+        client.addEventCallback(() => this.synchronize(), [accountChanged]);
         await this.restore();
       });
+    }
+    readSelection() {
+      let value;
+      try {
+        value = this.storage().getItem(selectionKey);
+      } catch {
+        return void 0;
+      }
+      if (value == null) return void 0;
+      try {
+        return reference(JSON.parse(value));
+      } catch {
+        return null;
+      }
+    }
+    select(account) {
+      this.selection = reference(account);
+      try {
+        this.storage().setItem(selectionKey, JSON.stringify(this.selection));
+      } catch {
+      }
+    }
+    cached(selected) {
+      if (!selected) return null;
+      if (this.client.getAccount) {
+        const account = this.client.getAccount(reference(selected));
+        return identity(account) === identity(selected) ? account : null;
+      }
+      return (this.client.getAllAccounts?.() || [this.client.getActiveAccount()]).find((a) => identity(a) === identity(selected)) || null;
     }
     onChange(listener) {
       this.listeners.add(listener);
@@ -15635,22 +15675,30 @@
       for (const listener of this.listeners) listener({ previous, account, reason });
     }
     synchronize() {
-      if (this.account && identity(this.client.getActiveAccount()) !== identity(this.account)) this.update(null, "changed");
+      if (this.account && !this.cached(this.account)) {
+        this.select(null);
+        this.update(null, "removed");
+      }
     }
     async restore() {
-      const account = this.client.getActiveAccount(), generation = this.generation;
+      const account = this.selection === void 0 ? this.client.getActiveAccount() : this.cached(this.selection);
+      const generation = this.generation;
       if (!account) return;
       try {
         const result = await this.client.acquireTokenSilent({ scopes: FILE_SCOPES, account });
-        if (generation === this.generation && identity(this.client.getActiveAccount()) === identity(account) && identity(result.account) === identity(account)) this.update(result.account, "restored");
+        if (generation === this.generation && this.cached(account) && identity(result.account) === identity(account)) {
+          this.select(result.account);
+          this.update(result.account, "restored");
+        }
       } catch {
       }
     }
     async connect() {
       await this.initialized;
-      const generation = this.generation, active = identity(this.client.getActiveAccount());
+      const generation = this.generation;
       const result = await this.client.loginPopup({ scopes: FILE_SCOPES, prompt: "select_account" });
-      if (generation !== this.generation || active !== identity(this.client.getActiveAccount())) throw problem("ACCOUNT_CHANGED", "La conexi\xF3n cambi\xF3 en otra pesta\xF1a. Vuelve a conectar tu cuenta.");
+      if (generation !== this.generation) throw problem("ACCOUNT_CHANGED", "La conexi\xF3n cambi\xF3 durante el inicio de sesi\xF3n. Vuelve a conectar tu cuenta.");
+      this.select(result.account);
       this.update(result.account, "connected");
       this.client.setActiveAccount(result.account);
       return this.account;
@@ -15676,12 +15724,19 @@
       if (generation !== this.generation || identity(result.account) !== identity(account)) throw problem("ACCOUNT_CHANGED", "La cuenta Microsoft cambi\xF3. Conecta de nuevo.");
       return result.accessToken;
     }
-    async disconnect() {
+    async disconnect({ all = false } = {}) {
       this.generation++;
+      this.select(null);
       this.update(null, "disconnected");
       await this.clientReady;
-      this.client.setActiveAccount(null);
-      await this.client.clearCache();
+      if (all) {
+        this.client.setActiveAccount(null);
+        await this.client.clearCache();
+        try {
+          this.events.localStorage.setItem(logoutKey, String(Date.now()) + Math.random());
+        } catch {
+        }
+      }
     }
   };
 
@@ -15692,7 +15747,7 @@
   var sameFile = (a, b) => a && b && a.driveId === b.driveId && a.id === b.id;
   var empty = () => ({ version: 1, folder: null, last: null, recent: [] });
   var identity2 = (account) => account ? JSON.stringify([account.homeAccountId, account.localAccountId, account.tenantId]) : null;
-  function reference(value) {
+  function reference2(value) {
     if (!value || !text(value.id) || !text(value.driveId) || !text(value.name) || !["onedrive", "sharepoint"].includes(value.provider)) return null;
     const result = { id: value.id, driveId: value.driveId, name: value.name, provider: value.provider };
     if (value.siteUrl) {
@@ -15709,22 +15764,56 @@
     if (!value || value.version !== 1) return empty();
     const recent = [];
     for (const item of Array.isArray(value.recent) ? value.recent.slice(0, 100) : []) {
-      const ref = reference(item);
+      const ref = reference2(item);
       if (ref && /\.bpmn$/i.test(ref.name) && !recent.some((other) => sameFile(ref, other))) recent.push(ref);
       if (recent.length === LIMIT) break;
     }
-    const last = reference(value.last);
-    return { version: 1, folder: reference(value.folder), last: last && /\.bpmn$/i.test(last.name) ? last : null, recent };
+    const last = reference2(value.last);
+    return { version: 1, folder: reference2(value.folder), last: last && /\.bpmn$/i.test(last.name) ? last : null, recent };
   }
   var MicrosoftWorkspace = class {
-    constructor(auth, files, storage = () => window.localStorage) {
+    constructor(auth, files, storage = () => window.localStorage, tabStorage = () => window.sessionStorage) {
       this.auth = auth;
       this.files = files;
       this.storage = storage;
+      this.tabStorage = tabStorage;
+      this.current = /* @__PURE__ */ new Map();
     }
     key() {
       const account = identity2(this.auth.account);
       return account ? PREFIX2 + encodeURIComponent(account) : null;
+    }
+    currentFile() {
+      const key = this.key();
+      if (!key) return null;
+      try {
+        return reference2(JSON.parse(this.tabStorage().getItem(key + ".current") || "null"));
+      } catch {
+        return this.current.get(key) || null;
+      }
+    }
+    setCurrent(file) {
+      const key = this.key();
+      if (!key) return;
+      const value = reference2(file);
+      this.current.set(key, value);
+      try {
+        if (value) this.tabStorage().setItem(key + ".current", JSON.stringify(value));
+        else this.tabStorage().removeItem(key + ".current");
+      } catch {
+      }
+    }
+    clearCurrent() {
+      this.setCurrent(null);
+      this.current.clear();
+      try {
+        const s = this.tabStorage();
+        for (let i = s.length - 1; i >= 0; i--) {
+          const key = s.key(i);
+          if (key?.startsWith(PREFIX2) && key.endsWith(".current")) s.removeItem(key);
+        }
+      } catch {
+      }
     }
     read() {
       const key = this.key();
@@ -15748,6 +15837,7 @@
       return false;
     }
     forget() {
+      this.clearCurrent();
       try {
         const key = this.key();
         if (key) {
@@ -15762,13 +15852,13 @@
         const key = this.key();
         if (!key) return [];
         const saved = JSON.parse(this.storage().getItem(key + ".favorites") || "[]");
-        return Array.isArray(saved) ? saved.slice(0, 12).map(reference).filter(Boolean) : [];
+        return Array.isArray(saved) ? saved.slice(0, 12).map(reference2).filter(Boolean) : [];
       } catch {
         return [];
       }
     }
     toggleFavorite(folder) {
-      const ref = reference(folder), key = this.key();
+      const ref = reference2(folder), key = this.key();
       if (!ref || !key) return false;
       const values = this.favorites(), existing = values.findIndex((value) => sameFile(value, ref));
       if (existing >= 0) values.splice(existing, 1);
@@ -15782,17 +15872,18 @@
     }
     rememberFolder(folder) {
       const value = this.read();
-      value.folder = reference(folder);
+      value.folder = reference2(folder);
       return this.write(value);
     }
     rememberFile(handle, context, { updateFolder = true } = {}) {
       if (handle.storageKind !== "microsoft" || handle.accountId !== this.auth.account?.homeAccountId) return false;
-      const file = reference({ id: handle.itemId, driveId: handle.driveId, name: handle.name, provider: context.provider, siteUrl: context.siteUrl });
+      const file = reference2({ id: handle.itemId, driveId: handle.driveId, name: handle.name, provider: context.provider, siteUrl: context.siteUrl });
       if (!file || !/\.bpmn$/i.test(file.name)) return false;
+      this.setCurrent(file);
       const value = this.read();
       value.last = file;
       value.recent = [file, ...value.recent.filter((other) => !sameFile(file, other))].slice(0, LIMIT);
-      if (updateFolder && handle.parent?.id) value.folder = reference({ ...file, id: handle.parent.id, name: handle.parent.name || "Carpeta" });
+      if (updateFolder && handle.parent?.id) value.folder = reference2({ ...file, id: handle.parent.id, name: handle.parent.name || "Carpeta" });
       return this.write(value);
     }
     removeFile(file, stamp = this.stamp()) {
@@ -15804,9 +15895,11 @@
       const value = this.read();
       value.recent = value.recent.filter((other) => !sameFile(file, other));
       if (sameFile(value.last, file)) value.last = null;
+      if (sameFile(this.currentFile(), file)) this.clearCurrent();
       this.write(value);
     }
     clearRecent() {
+      this.clearCurrent();
       const value = this.read();
       value.last = null;
       value.recent = [];
@@ -15818,21 +15911,21 @@
     assert(stamp) {
       if (!stamp.identity || stamp.identity !== identity2(this.auth.account) || stamp.generation !== this.auth.generation) throw problem("ACCOUNT_CHANGED", "La cuenta Microsoft cambi\xF3. Vuelve a abrir el archivo.");
     }
-    async folder(reference2) {
+    async folder(reference3) {
       const stamp = this.stamp(), trail = [], seen = /* @__PURE__ */ new Set();
-      let next = reference2;
+      let next = reference3;
       for (; ; ) {
         if (trail.length >= 64 || seen.has(next.id)) throw problem("INVALID_TARGET", "No se pudo recuperar la ruta de la carpeta.");
         seen.add(next.id);
         const item = await this.files.folder(next);
         this.assert(stamp);
-        trail.push({ id: item.id, driveId: reference2.driveId, name: item.root && reference2.provider === "onedrive" ? "OneDrive" : item.name });
+        trail.push({ id: item.id, driveId: reference3.driveId, name: item.root && reference3.provider === "onedrive" ? "OneDrive" : item.name });
         if (item.root || !item.parentReference?.id) break;
-        if (item.parentReference.driveId && item.parentReference.driveId !== reference2.driveId) throw problem("INVALID_TARGET", "La carpeta cambi\xF3 de biblioteca.");
-        next = { id: item.parentReference.id, driveId: reference2.driveId };
+        if (item.parentReference.driveId && item.parentReference.driveId !== reference3.driveId) throw problem("INVALID_TARGET", "La carpeta cambi\xF3 de biblioteca.");
+        next = { id: item.parentReference.id, driveId: reference3.driveId };
       }
       trail.reverse();
-      return { folder: trail.at(-1), parents: trail.slice(0, -1), provider: reference2.provider, siteUrl: reference2.siteUrl || "" };
+      return { folder: trail.at(-1), parents: trail.slice(0, -1), provider: reference3.provider, siteUrl: reference3.siteUrl || "" };
     }
     async source(file) {
       const stamp = this.stamp();
@@ -15842,8 +15935,8 @@
       return { source: { handle, name: remote.name, xml }, stamp };
     }
     async resume(canApply, accept) {
-      const file = this.read().last;
-      const current = () => sameFile(file, this.read().last) && canApply();
+      const file = this.currentFile();
+      const current = () => sameFile(file, this.currentFile()) && canApply();
       if (!file || !current()) return false;
       const { source, stamp } = await this.source(file);
       if (!current()) return false;
@@ -15870,7 +15963,7 @@
     });
     const auth = new MicrosoftAccount(client, {
       interactionRequired: (error) => error instanceof InteractionRequiredAuthError,
-      accountChanged: EventType.ACTIVE_ACCOUNT_CHANGED
+      accountChanged: EventType.ACCOUNT_REMOVED
     });
     window.addEventListener("focus", () => auth.synchronize());
     window.addEventListener("pageshow", () => auth.synchronize());

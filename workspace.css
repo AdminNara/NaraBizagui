@@ -69,3 +69,5 @@ body :is(button,summary,input,select,textarea,[tabindex]):focus-visible{outline:
 .focus-mode .app-header.focus-header-open .brand-logo{opacity:1}
 .focus-mode .app-header.focus-header-open .brand::before{opacity:0}
 .focus-mode .app-header .app-menu-body{position:absolute;top:100%}
+
+.file-ownership-notice{display:flex;align-items:center;justify-content:center;gap:16px;padding:8px 16px;background:#fff7dd;color:#574500;border-bottom:1px solid #e4cd85}.file-ownership-notice[hidden]{display:none}.file-readonly .djs-palette,.file-readonly .djs-context-pad{display:none!important}

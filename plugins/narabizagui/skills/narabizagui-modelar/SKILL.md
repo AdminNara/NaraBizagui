@@ -28,3 +28,7 @@ Usa `properties` para la configuración semántica; `label` cambia el texto visi
 Valida cada bloque significativo antes de acumular más detalle. Atiende incidencias relacionadas con el cambio, revisa límites reales de etiquetas después de aplicar y comprueba visualmente el PNG cuando corresponda. Conserva puntos de recuperación en el proyecto en cambios estructurales, actualizaciones de versión y entrega, sin pedir autorización de nuevo para acciones ya autorizadas. No incorpores cifras, reglas o fuentes no confirmadas.
 
 Para correcciones de texto, tamaño, rutas, documentos y notas, sigue [edición visual y calidad](../../shared/visual-editing.md). Preserva las correcciones manuales y usa un bloque compatible por conjunto afectado.
+
+## Proyectos en paralelo
+
+Cada pestaña conserva su documento y cuenta. Usa una vinculación distinta por proyecto; identifica `sessionId`, archivo y `documentId` al leer. Envía `expectedDocumentId` junto con `expectedRevision` al editar/guardar. Si se omite, el puente utiliza el documento de la última lectura confirmada; no sustituye el destino por el de una pestaña nueva. Ante `DOCUMENT_MISMATCH` vuelve a identificar el documento y conserva el trabajo. Un archivo abierto en consulta por otra pestaña rechaza ediciones con `FILE_READ_ONLY`; pide transferir su edición mediante **Editar aquí**, sin forzarla ni desconectar la sesión original.

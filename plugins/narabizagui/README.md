@@ -1,6 +1,6 @@
 # NaraBizagui by NaraLab — plugin local
 
-La versión 0.8.1 incluye cuatro skills, scripts compartidos, nueve herramientas MCP y el contrato `visual-quality-v1`. El recorrido habitual es una consulta de preparación, un bloque de edición/presentación y una confirmación visual cuando corresponde. Conserva procesos completos, revisión obligatoria, prevalidación, idempotencia y Deshacer/Rehacer.
+La versión 0.9.0 incluye cuatro skills, scripts compartidos, nueve herramientas MCP y el contrato `visual-quality-v1`. El recorrido habitual es una consulta de preparación, un bloque de edición/presentación y una confirmación visual cuando corresponde. Conserva procesos completos, revisión obligatoria, prevalidación, idempotencia y Deshacer/Rehacer.
 
 Con web 0.9.3, `share_connection` permite compartir un tramo de llegada (`end:"target"`) o salida (`end:"source"`) entre conexiones que conservan el mismo destino u origen, respectivamente. Recibe `elementId`, `withConnectionId`, `x`, `y` y `end`; admite alias en un bloque. Cada conexión conserva ID, extremos y selección independiente. No crea compuertas ni uniones semánticas implícitas. El editor muestra el mismo recorrido en la previsualización y al soltar, conserva los ajustes manuales viables y permite acoplar segmentos cercanos sin diagonales. La ampliación es compatible con el contrato previo, pero un servidor antiguo no expone la operación nueva: comprobar el esquema real y `capabilities.batchOperations`.
 
@@ -92,3 +92,7 @@ Al actualizar, abre un chat nuevo con el plugin para cargar las nueve herramient
 ## Calidad de edición visual
 
 La web 0.9.0 permite redimensionar Task y CallActivity, ajustar texto a 16 px con espacio para iconos y marcadores, rutas ortogonales locales con anclajes persistentes, formato/borrado en bloques y compactar margen vacío de participantes. Formato/uso documental se conserva como DataState nativo; los rombos se pueden seleccionar dentro de etapas. Las notas aceptan fondos de color. La respuesta normalizada y las skills separan calidad visual, validez BPMN y aprobación del negocio. Véase [contrato visual](shared/visual-editing.md).
+
+## Proyectos en paralelo
+
+Cada pestaña conserva su documento y cuenta. Usa una vinculación distinta por proyecto; identifica `sessionId`, archivo y `documentId` al leer. Envía `expectedDocumentId` junto con `expectedRevision` al editar/guardar. Si se omite, el puente utiliza el documento de la última lectura confirmada; no sustituye el destino por el de una pestaña nueva. Ante `DOCUMENT_MISMATCH` vuelve a identificar el documento y conserva el trabajo. Un archivo abierto en consulta por otra pestaña rechaza ediciones con `FILE_READ_ONLY`; pide transferir su edición mediante **Editar aquí**, sin forzarla ni desconectar la sesión original.
