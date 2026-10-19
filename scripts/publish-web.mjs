@@ -1,18 +1,18 @@
 // Export only the public web assets, preserving the deployed origin and path.
 import { execFileSync } from 'node:child_process';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 
 const root = path.resolve(import.meta.dirname, '..');
 const targetIndex = process.argv.indexOf('--target');
 if (targetIndex < 0 || !process.argv[targetIndex + 1]) {
-  throw new Error('Usage: node scripts/publish-web.mjs --target <checkout of AdminNara/AdminNara.github.io>');
+  throw new Error('Usage: node scripts/publish-web.mjs --target <checkout of NaraConsultores/NaraConsultores.github.io>');
 }
 const target = path.resolve(process.argv[targetIndex + 1]);
 const git = (cwd, ...args) => execFileSync('git', ['-C', cwd, ...args], { maxBuffer: 16 * 1024 * 1024 });
 const remote = git(target, 'remote', 'get-url', 'origin').toString().trim();
-if (!/^https:\/\/github\.com\/AdminNara\/AdminNara\.github\.io(?:\.git)?$/.test(remote)) {
+if (!/^https:\/\/github\.com\/NaraConsultores\/NaraConsultores\.github\.io(?:\.git)?$/i.test(remote)) {
   throw new Error('The target must be the existing demos publication repository.');
 }
 if (git(target, 'status', '--porcelain').toString().trim()) {
