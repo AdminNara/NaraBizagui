@@ -10,7 +10,10 @@ Este proyecto contiene la herramienta BPMN reutilizable, su experiencia de edici
 
 ## Trabajo
 
-- Fuente web: archivos raíz y `assets/`, `vendor/`. Repo remoto público `AdminNara/NaraBizagui`; sitio `https://demo.naraconsultores.com/NaraBizagui/`.
+- Fuente canónica de la web: repositorio público `NaraConsultores/narabizagui-web`, rama `main`; archivos raíz, `assets/` y `vendor/`. Toda mejora futura de la web debe partir de este repositorio y publicarse allí.
+- Plugin canónico de distribución: repositorio privado `NaraConsultores/narabizagui`. Catálogo privado `NaraConsultores/plugins-nara`. Para mejorar el plugin, trabajar desde ese repositorio, validar y actualizar su commit en el catálogo; no volver a publicar desde fuentes personales ni mezclar instrucciones privadas con la distribución pública de la web.
+- Sitio de producción: `https://demo.naraconsultores.com/NaraBizagui/`. Se conserva este origen y ruta para mantener Microsoft/Entra, almacenamiento del navegador y conexiones MCP. `AdminNara/AdminNara.github.io` se utiliza únicamente como publicación de las demos; no es la fuente de desarrollo de NaraBizagui y contiene otros proyectos que no se deben modificar al publicar este editor.
+- Publicar los recursos web validados con `node scripts/publish-web.mjs --target <checkout de AdminNara/AdminNara.github.io>`. Revisar y confirmar solo la carpeta `NaraBizagui/` de ese checkout, subir `main` y verificar el manifest y sus hashes desde la URL pública. El exportador omite skills, MCP, pruebas, archivos locales e historial.
 - Los procesos se guardan como BPMN independientes. Un cambio de proceso no crea otro visor ni requiere publicar la herramienta.
 - Preservar IDs, asociaciones, documentación y geometría de elementos no afectados. Separar mejora de interfaz, prueba técnica y validación del proceso.
 - No incluir fuentes de clientes, credenciales, configuración del equipo, historiales privados o capturas con datos reales en un commit público. Inspeccionar archivos preparados antes de publicar.

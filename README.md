@@ -6,6 +6,8 @@ Editor de procesos BPMN en el navegador, con carriles por responsable, columnas 
 
 Web: **https://demo.naraconsultores.com/NaraBizagui/**
 
+Código y mejoras de la web: [NaraConsultores/narabizagui-web](https://github.com/NaraConsultores/narabizagui-web).
+
 También puede ejecutarse el código localmente desde esta carpeta:
 
 ```sh
