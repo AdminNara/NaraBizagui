@@ -37,6 +37,7 @@ const edit = z.discriminatedUnion('type', [
   z.object({ type: z.literal('resize'), elementId, x: finite, y: finite, width: z.number().min(20).max(100000), height: z.number().min(20).max(100000),autoResize:z.boolean().optional() }),
   z.object({ type: z.literal('delete'), elementId,cascade:z.boolean().default(false) }),
   z.object({ type: z.literal('route'), elementId, waypoints: z.array(z.object({x:finite,y:finite})).min(2).max(100) }),
+  z.object({type:z.literal('share_connection'),elementId,withConnectionId:elementId,x:finite,y:finite,end:z.enum(['source','target']).default('target')}),
   z.object({type:z.literal('route_orthogonal'),elementId,sourceSide:z.enum(['auto','top','right','bottom','left']).optional(),targetSide:z.enum(['auto','top','right','bottom','left']).optional(),sourceOffset:z.number().min(.05).max(.95).optional(),targetOffset:z.number().min(.05).max(.95).optional(),clearance:z.number().min(2).max(40).optional()}),
   z.object({type:z.literal('fit_text'),elementId,fontSize:z.number().min(9).max(32).optional(),minWidth:z.number().min(100).max(2000).optional(),maxWidth:z.number().min(100).max(2000).optional(),minHeight:z.number().min(80).max(2000).optional(),maxHeight:z.number().min(80).max(2000).optional()}),
   z.object({type:z.literal('compact_container'),elementId,padding:z.number().min(10).max(200).default(40)}),

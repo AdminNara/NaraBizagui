@@ -15,6 +15,29 @@ export function simplifyOrthogonal(points){
   }
   return output;
 }
+
+// Keep the user's endpoints and bends. Only add square elbows where a dragged
+// segment would otherwise be diagonal; this is not a full automatic reroute.
+export function orthogonalizeWaypoints(points,{sourceSide,targetSide}={}){
+  if(points.length<2)return points.map(p=>({...p}));
+  if(points.length===2&&sourceSide&&targetSide&&['left','right'].includes(sourceSide)===['left','right'].includes(targetSide)&&!same(points[0].x,points[1].x)&&!same(points[0].y,points[1].y)){
+    const [a,b]=points,horizontal=['left','right'].includes(sourceSide),middle=horizontal?(a.x+b.x)/2:(a.y+b.y)/2;
+    return simplifyOrthogonal([a,horizontal?{x:middle,y:a.y}:{x:a.x,y:middle},horizontal?{x:middle,y:b.y}:{x:b.x,y:middle},b]);
+  }
+  const output=[{...points[0]}];let horizontal=['left','right'].includes(sourceSide);
+  for(let i=1;i<points.length;i++){
+    const a=output.at(-1),b=points[i];
+    if(!same(a.x,b.x)&&!same(a.y,b.y)){
+      let firstHorizontal=horizontal;
+      if(i===points.length-1&&targetSide)firstHorizontal=['top','bottom'].includes(targetSide);
+      output.push(firstHorizontal?{x:b.x,y:a.y}:{x:a.x,y:b.y});
+    }
+    const previous=output.at(-1);if(!pointEqual(previous,b))horizontal=same(previous.y,b.y);
+    output.push({...b});
+  }
+  return simplifyOrthogonal(output);
+}
+
 export function anchorPoint(shape,side,offset=.5){
   if(!rect(shape)||!SIDES.includes(side)||!Number.isFinite(offset)||offset<.05||offset>.95)throw fail('INVALID_ANCHOR','El anclaje requiere un lado y una posición entre 0.05 y 0.95.');
   return side==='top'?{x:shape.x+shape.width*offset,y:shape.y}:side==='bottom'?{x:shape.x+shape.width*offset,y:shape.y+shape.height}:side==='left'?{x:shape.x,y:shape.y+shape.height*offset}:{x:shape.x+shape.width,y:shape.y+shape.height*offset};

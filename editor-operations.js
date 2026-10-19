@@ -65,6 +65,8 @@
           if(!visual)fail('Falta el módulo de tamaño.');visual.compactContainer(e,op);
         } else if(op.type==='route_orthogonal'){
           if(!visual||!e.waypoints)fail('Selecciona una conexión para calcular su recorrido.');visual.orthogonal(e,op);
+        } else if(op.type==='share_connection'){
+          const reference=element(op.withConnectionId);if(!visual||!e.waypoints||!reference.waypoints||![op.x,op.y].every(Number.isFinite)||!['source','target',undefined].includes(op.end))fail('Selecciona dos conexiones y un punto del tramo compartido.');visual.shareConnection(e,reference,{x:op.x,y:op.y},op.end||'target');
         } else if(op.type==='delete'){
           if(!op.cascade&&(e.incoming?.length||e.outgoing?.length||e.children?.some(child=>!child.labelTarget)))fail('La eliminación afecta conexiones o hijos. Declara cascade:true solo si todo ese conjunto está autorizado.');
           modeling.removeElements([e]);
@@ -96,7 +98,7 @@
         if (!supported.includes(operation.type)) fail('Operación no agrupable: ' + operation.type);
         if (operation.as && (!/^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(operation.as) || aliases[operation.as] || !['create','connect'].includes(operation.type))) fail('Alias inválido o repetido.');
         const op = { ...operation };
-        for (const key of ['elementId','parentId','sourceId','targetId']) if (op[key]) op[key] = resolve(op[key]);
+        for (const key of ['elementId','parentId','sourceId','targetId','withConnectionId']) if (op[key]) op[key] = resolve(op[key]);
         if (op.elementIds) op.elementIds = op.elementIds.map(resolve);
         if (op.values) op.values = Object.fromEntries(Object.entries(op.values).map(([key, v]) => [key.startsWith('condition:@') ? 'condition:' + resolve(key.slice(10)) : key, ['defaultFlow','referenceId'].includes(key) ? resolve(v) : v]));
         const e = apply(op);

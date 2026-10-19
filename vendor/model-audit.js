@@ -31,14 +31,20 @@ var NaraModelAudit = (() => {
     boxesOverlap: () => boxesOverlap,
     compareSnapshots: () => compareSnapshots,
     inferAnchor: () => inferAnchor,
+    intentionalSharedContact: () => intentionalSharedContact,
     lineHitsBox: () => lineHitsBox,
+    orthogonalizeWaypoints: () => orthogonalizeWaypoints,
     planContainerFit: () => planContainerFit,
     planOperations: () => planOperations,
+    planReconnectPreview: () => planReconnectPreview,
+    projectRoute: () => projectRoute,
     reviewVisualQuality: () => reviewVisualQuality,
     routeMetrics: () => routeMetrics,
     routeOrthogonal: () => routeOrthogonal,
     segmentContact: () => segmentContact,
     segments: () => segments,
+    shareConnectionPath: () => shareConnectionPath,
+    shareConnectionTail: () => shareConnectionTail,
     simplifyOrthogonal: () => simplifyOrthogonal,
     validateSnapshot: () => validateSnapshot
   });
@@ -47,7 +53,7 @@ var NaraModelAudit = (() => {
   var PROTOCOL_VERSION = 5;
   var TOOL_CONTRACT = "visual-quality-v1";
   var BATCH_LIMIT = 200;
-  var BATCH_OPERATIONS = ["label", "documentation", "create", "connect", "move", "resize", "move_elements", "route", "route_orthogonal", "compact_container", "fit_text", "style", "delete", "properties", "lane_split", "lane_add", "matrix", "clear"];
+  var BATCH_OPERATIONS = ["label", "documentation", "create", "connect", "move", "resize", "move_elements", "route", "route_orthogonal", "share_connection", "compact_container", "fit_text", "style", "delete", "properties", "lane_split", "lane_add", "matrix", "clear"];
   var BPMN_CREATE_TYPES = ["bpmn:Task", "bpmn:ManualTask", "bpmn:UserTask", "bpmn:ServiceTask", "bpmn:SendTask", "bpmn:ReceiveTask", "bpmn:ScriptTask", "bpmn:BusinessRuleTask", "bpmn:SubProcess", "bpmn:CallActivity", "bpmn:StartEvent", "bpmn:EndEvent", "bpmn:IntermediateCatchEvent", "bpmn:IntermediateThrowEvent", "bpmn:ExclusiveGateway", "bpmn:InclusiveGateway", "bpmn:ParallelGateway", "bpmn:ComplexGateway", "bpmn:EventBasedGateway", "bpmn:TextAnnotation", "bpmn:DataObjectReference", "bpmn:DataStoreReference", "bpmn:Participant"];
   var EVENT_KINDS = {
     "bpmn:StartEvent": ["Message", "Timer", "Conditional", "Signal"],
@@ -107,6 +113,27 @@ var NaraModelAudit = (() => {
       output.push({ x: p.x, y: p.y });
     }
     return output;
+  }
+  function orthogonalizeWaypoints(points, { sourceSide, targetSide } = {}) {
+    if (points.length < 2) return points.map((p) => ({ ...p }));
+    if (points.length === 2 && sourceSide && targetSide && ["left", "right"].includes(sourceSide) === ["left", "right"].includes(targetSide) && !same(points[0].x, points[1].x) && !same(points[0].y, points[1].y)) {
+      const [a, b] = points, horizontal2 = ["left", "right"].includes(sourceSide), middle = horizontal2 ? (a.x + b.x) / 2 : (a.y + b.y) / 2;
+      return simplifyOrthogonal([a, horizontal2 ? { x: middle, y: a.y } : { x: a.x, y: middle }, horizontal2 ? { x: middle, y: b.y } : { x: b.x, y: middle }, b]);
+    }
+    const output = [{ ...points[0] }];
+    let horizontal = ["left", "right"].includes(sourceSide);
+    for (let i = 1; i < points.length; i++) {
+      const a = output.at(-1), b = points[i];
+      if (!same(a.x, b.x) && !same(a.y, b.y)) {
+        let firstHorizontal = horizontal;
+        if (i === points.length - 1 && targetSide) firstHorizontal = ["top", "bottom"].includes(targetSide);
+        output.push(firstHorizontal ? { x: b.x, y: a.y } : { x: a.x, y: b.y });
+      }
+      const previous = output.at(-1);
+      if (!pointEqual(previous, b)) horizontal = same(previous.y, b.y);
+      output.push({ ...b });
+    }
+    return simplifyOrthogonal(output);
   }
   function anchorPoint(shape, side, offset = 0.5) {
     if (!rect(shape) || !SIDES.includes(side) || !Number.isFinite(offset) || offset < 0.05 || offset > 0.95) throw fail("INVALID_ANCHOR", "El anclaje requiere un lado y una posici\xF3n entre 0.05 y 0.95.");
@@ -356,13 +383,95 @@ var NaraModelAudit = (() => {
     return { ok: total === 0, complete: missingText.length === 0 && !snapshot.elementsTruncated && !snapshot.elementsFiltered && total <= maxIssues, scope: scope ? "affected-elements" : "active-sheet", elementIds: scope ? [...scope] : void 0, issues, totalIssues: total, coverage: { missingRenderedText: missingText }, businessApproval: false };
   }
 
+  // plugins/narabizagui/shared/connection-editing.mjs
+  var fail2 = (code, message) => Object.assign(Error(message), { code });
+  function projectRoute(points, point) {
+    let best;
+    for (let i = 1; i < points.length; i++) {
+      const a = points[i - 1], b = points[i], dx = b.x - a.x, dy = b.y - a.y, length = dx * dx + dy * dy;
+      if (!length) continue;
+      const t = Math.max(0, Math.min(1, ((point.x - a.x) * dx + (point.y - a.y) * dy) / length)), p = { x: a.x + dx * t, y: a.y + dy * t }, distance2 = Math.hypot(p.x - point.x, p.y - point.y);
+      if (!best || distance2 < best.distance) best = { point: p, index: i - 1, distance: distance2 };
+    }
+    return best;
+  }
+  function planReconnectPreview(snapshot, elementId, { sourceId, targetId, sourcePoint, targetPoint, routing } = {}) {
+    const index = new Map(snapshot.elements.map((e) => [e.id, e])), connection = index.get(elementId), source = index.get(sourceId || connection?.sourceId), target = index.get(targetId || connection?.targetId);
+    if (!connection || !source || !target) throw fail2("ROUTE_GEOMETRY_MISSING", "Faltan los extremos de la conexi\xF3n.");
+    const old = routing || connection.routing || {}, a = sourcePoint ? inferAnchor(source, sourcePoint) : old.source || inferAnchor(source, connection.waypoints[0]), b = targetPoint ? inferAnchor(target, targetPoint) : old.target || inferAnchor(target, connection.waypoints.at(-1));
+    const virtual = { ...connection, sourceId: source.id, targetId: target.id, routing: { mode: "orthogonal", source: a, target: b } };
+    if (old.manual && connection.waypoints.length > 2) {
+      const repair = (points2, shape, anchor) => {
+        const first = anchorPoint(shape, anchor.side, anchor.offset), v = { top: [0, -1], right: [1, 0], bottom: [0, 1], left: [-1, 0] }[anchor.side], next = points2[1];
+        points2[0] = first;
+        if ((next.x - first.x) * v[0] + (next.y - first.y) * v[1] > 1) {
+          if (v[0]) next.y = first.y;
+          else next.x = first.x;
+        } else {
+          const stub = { x: first.x + v[0] * 12, y: first.y + v[1] * 12 };
+          points2.splice(1, 0, stub, v[0] ? { x: stub.x, y: next.y } : { x: next.x, y: stub.y });
+        }
+        return points2;
+      };
+      let points = connection.waypoints.map((p) => ({ ...p }));
+      points = repair(points, source, a);
+      points = repair(points.reverse(), target, b).reverse();
+      points = orthogonalizeWaypoints(points, { sourceSide: a.side, targetSide: b.side });
+      if (!segments({ waypoints: points }).some(([p, q]) => lineHitsBox(p, q, source) || lineHitsBox(p, q, target))) return { waypoints: points, routing: { ...old, ...virtual.routing, manual: true } };
+    }
+    const plan = routeOrthogonal({ ...snapshot, elements: snapshot.elements.map((e) => e.id === elementId ? virtual : e) }, { elementId });
+    if (old.manual) plan.routing.manual = true;
+    return plan;
+  }
+  function shareConnectionTail(snapshot, { elementId, withConnectionId, point, sourceSide, sourceOffset } = {}) {
+    const index = new Map(snapshot.elements.map((e) => [e.id, e])), connection = index.get(elementId), reference = index.get(withConnectionId), source = index.get(connection?.sourceId), target = index.get(reference?.targetId);
+    if (!connection || !reference || connection === reference || !source || !target || connection.targetId !== reference.targetId) throw fail2("SHARED_TARGET_REQUIRED", "Las conexiones deben conservar el mismo destino para compartir un tramo.");
+    if (!routeMetrics(reference.waypoints).orthogonal) throw fail2("SHARED_ROUTE_DIAGONAL", "El recorrido de referencia debe ser ortogonal.");
+    const join = projectRoute(reference.waypoints, point);
+    if (!join) throw fail2("SHARED_ROUTE_EMPTY", "Selecciona un tramo de la conexi\xF3n.");
+    const a = reference.waypoints[join.index], b = reference.waypoints[join.index + 1], horizontal = same(a.y, b.y), positive = horizontal ? b.x > a.x : b.y > a.y, p = join.point, center = { x: source.x + source.width / 2, y: source.y + source.height / 2 };
+    const side = horizontal && Math.abs(center.y - p.y) > 8 ? center.y < p.y ? "top" : "bottom" : !horizontal && Math.abs(center.x - p.x) > 8 ? center.x < p.x ? "left" : "right" : horizontal ? positive ? "left" : "right" : positive ? "top" : "bottom";
+    const portal = { id: "__nara_route_portal", type: "bpmn:Task", parentId: target.parentId, x: p.x - (side === "left" ? 0 : side === "right" ? 2 : 1), y: p.y - (side === "top" ? 0 : side === "bottom" ? 2 : 1), width: 2, height: 2 };
+    const head = { ...connection, targetId: portal.id, routing: void 0 }, nearTarget = p.x >= target.x - 12 && p.x <= target.x + target.width + 12 && p.y >= target.y - 12 && p.y <= target.y + target.height + 12;
+    const elements = snapshot.elements.filter((e) => (e.id === elementId || e.id !== reference.id && e.routing?.sharedWith !== reference.id) && (!nearTarget || e.id !== target.id)).map((e) => e.id === elementId ? head : e);
+    elements.push(portal);
+    const sourceAnchor = connection.routing?.manual ? connection.routing.source : null, result = routeOrthogonal({ ...snapshot, elements }, { elementId, sourceSide: sourceSide || sourceAnchor?.side || "auto", sourceOffset: sourceOffset ?? sourceAnchor?.offset ?? 0.5, targetSide: side, targetOffset: 0.5 });
+    const waypoints = simplifyOrthogonal([...result.waypoints, ...reference.waypoints.slice(join.index + 1)]);
+    return { waypoints, routing: { mode: "orthogonal", manual: true, source: result.routing.source, target: inferAnchor(target, waypoints.at(-1)), sharedWith: reference.id, sharedEnd: "target", joinPoint: p } };
+  }
+  function shareConnectionPath(snapshot, options) {
+    const index = new Map(snapshot.elements.map((e) => [e.id, e]));
+    const seen = /* @__PURE__ */ new Set([options.elementId]);
+    for (let e = index.get(options.withConnectionId); e; e = index.get(e.routing?.sharedWith)) {
+      if (seen.has(e.id)) throw fail2("SHARED_ROUTE_CYCLE", "Elige una conexi\xF3n que no dependa de este mismo tramo.");
+      seen.add(e.id);
+    }
+    if (options.end !== "source") return shareConnectionTail(snapshot, options);
+    const reversed = { ...snapshot, elements: snapshot.elements.map((e) => e.waypoints ? { ...e, sourceId: e.targetId, targetId: e.sourceId, waypoints: e.waypoints.slice().reverse(), routing: e.routing ? { ...e.routing, source: e.routing.target, target: e.routing.source } : void 0 } : e) };
+    const result = shareConnectionTail(reversed, { ...options, sourceSide: options.targetSide, sourceOffset: options.targetOffset });
+    return { waypoints: result.waypoints.reverse(), routing: { ...result.routing, source: result.routing.target, target: result.routing.source, sharedEnd: "source" } };
+  }
+  function intentionalSharedContact(a, b, p, q, r, s, hit) {
+    const ar = a.routing || {}, br = b.routing || {};
+    if (!(a.targetId && a.targetId === b.targetId || a.sourceId && a.sourceId === b.sourceId && (ar.sharedEnd === "source" || br.sharedEnd === "source"))) return false;
+    if (!(ar.sharedWith === b.id || br.sharedWith === a.id || ar.sharedWith && ar.sharedWith === br.sharedWith)) return false;
+    const directed = (q.x - p.x) * (s.x - r.x) + (q.y - p.y) * (s.y - r.y) > 0;
+    if (hit.type === "overlap") return directed;
+    if (hit.type !== "contact" || !hit.point) return false;
+    if ([ar.joinPoint, br.joinPoint].some((p2) => p2 && pointEqual(p2, hit.point))) return true;
+    return segments(a).some(([u, v]) => segments(b).some(([w, z]) => {
+      const shared = segmentContact(u, v, w, z);
+      return shared?.type === "overlap" && (v.x - u.x) * (z.x - w.x) + (v.y - u.y) * (z.y - w.y) > 0 && projectRoute([u, v], hit.point)?.distance < 0.01 && projectRoute([w, z], hit.point)?.distance < 0.01;
+    }));
+  }
+
   // plugins/narabizagui/shared/layout.mjs
   function planContainerFit(snapshot, elementId, { padding = 40 } = {}) {
     const elements = snapshot.elements || [], index = new Map(elements.map((e) => [e.id, e])), container = index.get(elementId);
-    const fail2 = (message) => {
+    const fail3 = (message) => {
       throw Object.assign(Error(message), { code: "CONTAINER_FIT_UNSUPPORTED" });
     };
-    if (container?.type !== "bpmn:Participant" || !Number.isFinite(padding) || padding < 10 || padding > 200) fail2("Selecciona un participante expandido y un margen de 10 a 200.");
+    if (container?.type !== "bpmn:Participant" || !Number.isFinite(padding) || padding < 10 || padding > 200) fail3("Selecciona un participante expandido y un margen de 10 a 200.");
     const descendant = (e) => {
       const seen = /* @__PURE__ */ new Set();
       for (let p = index.get(e.parentId); p && !seen.has(p.id); p = index.get(p.parentId)) {
@@ -373,7 +482,7 @@ var NaraModelAudit = (() => {
     };
     const within = (e) => e.x >= container.x && e.y >= container.y && e.x + e.width <= container.x + container.width && e.y + e.height <= container.y + container.height;
     const children = elements.filter((e) => e.id !== elementId && !e.waypoints && (descendant(e) || e.type === "bpmn:Group" && within(e)) && e.type !== "bpmn:Lane");
-    if (!children.length) fail2("No hay figuras dentro del participante para calcular su tama\xF1o.");
+    if (!children.length) fail3("No hay figuras dentro del participante para calcular su tama\xF1o.");
     const ids = new Set(children.map((e) => e.id)), bounds = children.flatMap((e) => [{ x: e.x, y: e.y, width: e.width, height: e.height }, ...e.textLayout?.bounds ? [e.textLayout.bounds] : e.labelBounds ? [e.labelBounds] : []]);
     for (const e of elements) if (e.waypoints && ids.has(e.sourceId) && ids.has(e.targetId)) bounds.push(...e.waypoints.map((p) => ({ ...p, width: 0, height: 0 })), ...e.labelBounds ? [e.labelBounds] : []);
     const right = Math.max(...bounds.map((b) => b.x + b.width)), bottom = Math.max(...bounds.map((b) => b.y + b.height));
@@ -488,6 +597,7 @@ var NaraModelAudit = (() => {
         for (const [p, q] of segments(a)) for (const [r, s] of segments(b)) {
           const hit = segmentContact(p, q, r, s);
           if (!hit) continue;
+          if (intentionalSharedContact(a, b, p, q, r, s, hit)) continue;
           const shared = [a.sourceId, a.targetId].some((id) => id && [b.sourceId, b.targetId].includes(id));
           const endpoint = (f) => hit.point && [f.waypoints[0], f.waypoints.at(-1)].some((p2) => pointEqual(p2, hit.point));
           if (hit.type === "contact" && shared && endpoint(a) && endpoint(b)) continue;
