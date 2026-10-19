@@ -71,5 +71,5 @@
     validate(model);return {model,affectedId};
   }
   globalThis.NaraERModel=Object.freeze({empty,apply,validate,clone,height,table,field,cards,visualStyle});
-  globalThis.NaraERModdle={name:'Nara',uri:'https://naralab.io/schema/diagrams/1',prefix:'nara',xml:{tagAlias:'lowerCase'},types:[{name:'EntityRelationship',superClass:['Element'],properties:[{name:'id',isAttr:true,type:'String'},{name:'name',isAttr:true,type:'String'},{name:'version',isAttr:true,type:'String'},{name:'json',isBody:true,type:'String'}]},{name:'VisualStyle',superClass:['Element'],properties:[{name:'json',isBody:true,type:'String'}]}]};
+  globalThis.NaraERModdle={name:'Nara',uri:'https://naralab.io/schema/diagrams/1',prefix:'nara',xml:{tagAlias:'lowerCase'},types:[{name:'EntityRelationship',superClass:['Element'],properties:[{name:'id',isAttr:true,type:'String'},{name:'name',isAttr:true,type:'String'},{name:'version',isAttr:true,type:'String'},{name:'json',isBody:true,type:'String'}]},{name:'VisualStyle',superClass:['Element'],properties:[{name:'json',isBody:true,type:'String'}]},{name:'ConnectionRouting',superClass:['Element'],properties:[{name:'json',isBody:true,type:'String'}]}]};
 })();

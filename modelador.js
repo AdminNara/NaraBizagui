@@ -35,7 +35,7 @@ function DocumentPalette(palette) {
 DocumentPalette.$inject = ['palette'];
 const documentPaletteModule = {__init__: ['projectDocumentPalette'], projectDocumentPalette: ['type', DocumentPalette]};
 const modeler = new BpmnJS({
-  additionalModules: [documentPaletteModule, window.NaraEditorTools, window.NaraERModule, window.NaraSheetsModule, window.NaraStyleModule, window.NaraGridModule],
+  additionalModules: [documentPaletteModule, window.NaraVisualModule,window.NaraEditorTools, window.NaraERModule, window.NaraSheetsModule, window.NaraStyleModule, window.NaraGridModule],
   moddleExtensions: {nara:window.NaraERModdle},
   container: '#canvas',
   textRenderer: {
@@ -45,7 +45,7 @@ const modeler = new BpmnJS({
 });
 window.bpmnModeler = modeler;
 const semanticProperties = window.NaraBpmnProperties.mount(modeler, byId('semanticFields'), () => basePropertyDraftPending());
-window.NaraAppVersion = '0.8.1';
+window.NaraAppVersion = '0.9.0';
 window.NaraAppBuild = document.querySelector('meta[name=narabizagui-build]')?.content || 'unknown';
 window.diagramReady = false;
 window.diagramError = null;

@@ -29,7 +29,7 @@
     } catch { remember(null); }
   }
   const say = text => { message.textContent = text; };
-  window.NaraMcpConnectionInfo=()=>live?{serverVersion:live.serverVersion||'unknown',toolContract:live.toolContract||'legacy',compatible:live.toolContract===(window.NaraModelAudit?.TOOL_CONTRACT||'coordination-v1'),recovery:'Comprueba las herramientas cargadas; si conservan el contrato anterior, una conversación nueva carga el plugin actualizado.'}:null;
+  window.NaraMcpConnectionInfo=()=>live?{serverVersion:live.serverVersion||'unknown',toolContract:live.toolContract||'legacy',compatible:live.toolContract===(window.NaraModelAudit?.TOOL_CONTRACT||'visual-quality-v1'),recovery:'Comprueba las herramientas cargadas; si conservan el contrato anterior, una conversación nueva carga el plugin actualizado.'}:null;
   function updateContract(session,result){
     session.serverVersion=result.serverVersion||result.version||session.serverVersion;session.toolContract=result.toolContract||session.toolContract;remember(session);
     const key=(session.serverVersion||'unknown')+':'+(session.toolContract||'legacy');

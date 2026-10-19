@@ -1,6 +1,6 @@
 # NaraBizagui by NaraLab — plugin local
 
-La versión 0.7.0 incluye cuatro skills, scripts compartidos, nueve herramientas MCP y el contrato `coordination-v1`. El recorrido habitual es una consulta de preparación, un bloque de edición/presentación y una confirmación visual cuando corresponde. Conserva procesos completos, revisión obligatoria, prevalidación, idempotencia y Deshacer/Rehacer.
+La versión 0.8.0 incluye cuatro skills, scripts compartidos, nueve herramientas MCP y el contrato `visual-quality-v1`. El recorrido habitual es una consulta de preparación, un bloque de edición/presentación y una confirmación visual cuando corresponde. Conserva procesos completos, revisión obligatoria, prevalidación, idempotencia y Deshacer/Rehacer.
 
 ## Preparación y presentación en una petición
 
@@ -86,3 +86,7 @@ Cada bloque exige `requestId`. Repetir el mismo ID, contenido y revisión recupe
 Para analizar copias locales sin conexión: `node <plugin>/shared/snapshot-cli.mjs validate <snapshot.json> [--formal]`, `diff <before.json> <after.json>` o `plan <snapshot.json> <operations.json>`. Solo leen archivos y devuelven JSON; no son otro MCP. El plan elimina únicamente operaciones redundantes demostrables.
 
 Al actualizar, abre un chat nuevo con el plugin para cargar las nueve herramientas y carga la web actualizada después de conservar cualquier trabajo pendiente. Un chat o pestaña que mantenga una versión anterior debe informar sus capacidades reales; la instalación sola no demuestra conexión.
+
+## Calidad de edición visual
+
+La web 0.9.0 permite redimensionar Task y CallActivity, ajustar texto a 16 px con espacio para iconos y marcadores, rutas ortogonales locales con anclajes persistentes, formato/borrado en bloques y compactar margen vacío de participantes. Formato/uso documental se conserva como DataState nativo; los rombos se pueden seleccionar dentro de etapas. Las notas aceptan fondos de color. La respuesta normalizada y las skills separan calidad visual, validez BPMN y aprobación del negocio. Véase [contrato visual](shared/visual-editing.md).

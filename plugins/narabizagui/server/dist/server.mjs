@@ -31355,9 +31355,9 @@ import http from "node:http";
 import { randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 
 // plugins/narabizagui/shared/contract.mjs
-var TOOL_CONTRACT = "coordination-v1";
+var TOOL_CONTRACT = "visual-quality-v1";
 var BATCH_LIMIT = 200;
-var BATCH_OPERATIONS = ["label", "documentation", "create", "connect", "move", "resize", "move_elements", "route", "properties", "lane_split", "lane_add", "matrix", "clear"];
+var BATCH_OPERATIONS = ["label", "documentation", "create", "connect", "move", "resize", "move_elements", "route", "route_orthogonal", "compact_container", "fit_text", "style", "delete", "properties", "lane_split", "lane_add", "matrix", "clear"];
 var BPMN_CREATE_TYPES = ["bpmn:Task", "bpmn:ManualTask", "bpmn:UserTask", "bpmn:ServiceTask", "bpmn:SendTask", "bpmn:ReceiveTask", "bpmn:ScriptTask", "bpmn:BusinessRuleTask", "bpmn:SubProcess", "bpmn:CallActivity", "bpmn:StartEvent", "bpmn:EndEvent", "bpmn:IntermediateCatchEvent", "bpmn:IntermediateThrowEvent", "bpmn:ExclusiveGateway", "bpmn:InclusiveGateway", "bpmn:ParallelGateway", "bpmn:ComplexGateway", "bpmn:EventBasedGateway", "bpmn:TextAnnotation", "bpmn:DataObjectReference", "bpmn:DataStoreReference", "bpmn:Participant"];
 var EVENT_KINDS = {
   "bpmn:StartEvent": ["Message", "Timer", "Conditional", "Signal"],
@@ -31367,7 +31367,7 @@ var EVENT_KINDS = {
 };
 
 // plugins/narabizagui/server/bridge.mjs
-var VERSION = "0.7.0";
+var VERSION = "0.8.0";
 var token = () => randomBytes(32).toString("base64url");
 var same = (a, b) => {
   if (typeof a !== "string" || typeof b !== "string") return false;
@@ -31557,6 +31557,24 @@ async function pngArtifact(result) {
   return { content: [{ type: "image", mimeType: "image/png", data: bytes.toString("base64") }, { type: "text", text: JSON.stringify(metadata) }], structuredContent: metadata };
 }
 
+// plugins/narabizagui/shared/result.mjs
+function normalizeResult(value, { toolName = "", sessionId, requestId, isError = false } = {}) {
+  const data = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  const code = data.code || data.error?.code;
+  let outcome = "read";
+  if (isError || data.error) outcome = code === "RESULT_UNKNOWN" ? "unknown" : "error";
+  else if (data.recoveryRequired || data.reconciliationRequired) outcome = "recovery_required";
+  else if (data.dryRun && code !== "BATCH_VALIDATION_FAILED") outcome = "preview";
+  else if (data.applied === false) outcome = data.rolledBack ? "rolled_back" : "rejected";
+  else if (data.applied === true) outcome = "applied";
+  else if (data.documentReady === false) outcome = "not_ready";
+  const ok = ["read", "applied", "preview"].includes(outcome);
+  const context = { ...data.sessionId || sessionId ? { sessionId: data.sessionId || sessionId } : {}, ...data.requestId || requestId ? { requestId: data.requestId || requestId } : {} };
+  const revision = !["error", "unknown", "preview", "rejected"].includes(outcome) ? data.revision || data.state?.revision : void 0;
+  const error51 = ["error", "unknown"].includes(outcome) ? { code: code || "ERROR", message: data.message || data.error?.message || "La herramienta no confirm\xF3 el resultado.", ...Object.fromEntries(["busyReason", "retryable", "retryAfterMs", "recovery"].filter((k) => data[k] !== void 0).map((k) => [k, data[k]])) } : void 0;
+  return { ...data, ...context, ok, outcome, ...revision ? { revision } : {}, ...error51 ? { error: error51 } : {}, responseSchema: "visual-quality-v1", ...toolName ? { toolName } : {} };
+}
+
 // plugins/narabizagui/server/index.mjs
 async function startServer(bridgeOptions = {}) {
   const bridge = await startBridge(bridgeOptions);
@@ -31586,8 +31604,11 @@ async function startServer(bridgeOptions = {}) {
     external_exports.object({ type: external_exports.literal("move_elements"), elementIds: external_exports.array(elementId).min(1).max(250), parentId: elementId, dx: finite, dy: finite }),
     external_exports.object({ type: external_exports.literal("move"), elementId, dx: finite, dy: finite, parentId: elementId.optional() }),
     external_exports.object({ type: external_exports.literal("resize"), elementId, x: finite, y: finite, width: external_exports.number().min(20).max(1e5), height: external_exports.number().min(20).max(1e5), autoResize: external_exports.boolean().optional() }),
-    external_exports.object({ type: external_exports.literal("delete"), elementId }),
+    external_exports.object({ type: external_exports.literal("delete"), elementId, cascade: external_exports.boolean().default(false) }),
     external_exports.object({ type: external_exports.literal("route"), elementId, waypoints: external_exports.array(external_exports.object({ x: finite, y: finite })).min(2).max(100) }),
+    external_exports.object({ type: external_exports.literal("route_orthogonal"), elementId, sourceSide: external_exports.enum(["auto", "top", "right", "bottom", "left"]).optional(), targetSide: external_exports.enum(["auto", "top", "right", "bottom", "left"]).optional(), sourceOffset: external_exports.number().min(0.05).max(0.95).optional(), targetOffset: external_exports.number().min(0.05).max(0.95).optional(), clearance: external_exports.number().min(2).max(40).optional() }),
+    external_exports.object({ type: external_exports.literal("fit_text"), elementId, fontSize: external_exports.number().min(9).max(32).optional(), minWidth: external_exports.number().min(100).max(2e3).optional(), maxWidth: external_exports.number().min(100).max(2e3).optional(), minHeight: external_exports.number().min(80).max(2e3).optional(), maxHeight: external_exports.number().min(80).max(2e3).optional() }),
+    external_exports.object({ type: external_exports.literal("compact_container"), elementId, padding: external_exports.number().min(10).max(200).default(40) }),
     external_exports.object({ type: external_exports.literal("stage"), sourceId: elementId.optional(), direction: external_exports.enum(["left", "right"]).optional() }),
     external_exports.object({ type: external_exports.literal("stage_split"), elementId, count: external_exports.union([external_exports.literal(2), external_exports.literal(3)]) }),
     external_exports.object({ type: external_exports.literal("lane_add"), elementId, location: external_exports.enum(["top", "bottom", "left", "right"]) }),
@@ -31612,10 +31633,11 @@ async function startServer(bridgeOptions = {}) {
   function register(name, description, schema, readOnly, callback) {
     server.registerTool(name, { description, inputSchema: schema, annotations: { readOnlyHint: readOnly, destructiveHint: !readOnly, idempotentHint: readOnly, openWorldHint: false } }, async (args) => {
       try {
-        const result = await callback(args);
+        const result = normalizeResult(await callback(args), { toolName: name, sessionId: args.sessionId, requestId: args.requestId });
         return { content: [{ type: "text", text: JSON.stringify(result) }], structuredContent: result };
       } catch (error51) {
-        return { isError: true, content: [{ type: "text", text: JSON.stringify({ code: error51.code || "ERROR", message: error51.message, ...Object.fromEntries(["busyReason", "retryable", "retryAfterMs", "recovery"].filter((key) => error51[key] !== void 0).map((key) => [key, error51[key]])) }) }] };
+        const result = normalizeResult({ code: error51.code || "ERROR", message: error51.message, ...Object.fromEntries(["busyReason", "retryable", "retryAfterMs", "recovery"].filter((key) => error51[key] !== void 0).map((key) => [key, error51[key]])) }, { toolName: name, sessionId: args.sessionId, requestId: args.requestId, isError: true });
+        return { isError: true, content: [{ type: "text", text: JSON.stringify(result) }], structuredContent: result };
       }
     });
   }
@@ -31630,9 +31652,9 @@ async function startServer(bridgeOptions = {}) {
     }
     return { serverVersion: VERSION, toolContract: TOOL_CONTRACT, sessionId, ...await bridge.request(sessionId, "read", { detail: args.includeXml || args.includePropertyFields || args.elementIds ? "full" : args.detail, waitForReadyMs: args.waitForReadyMs, includeXml: args.includeXml, includePropertyFields: args.includePropertyFields, elementIds: args.elementIds }) };
   });
-  register("narabizagui_validate", "Valida la hoja activa sin editar. Devuelve incidencias con c\xF3digos e IDs, enlaces por \xE1mbito, condiciones y geometr\xEDa real. review permite representaci\xF3n explicativa; formal exige condiciones. No aprueba el negocio ni ejecuta expresiones.", { sessionId: id, expectedRevision: revision, profile: external_exports.enum(["review", "formal"]).default("review"), geometry: external_exports.boolean().default(true), maxIssues: external_exports.number().int().min(1).max(1e3).default(200) }, true, (args) => bridge.request(args.sessionId, "validate", { expectedRevision: args.expectedRevision, profile: args.profile, geometry: args.geometry, maxIssues: args.maxIssues }));
+  register("narabizagui_validate", "Valida la hoja activa sin editar. Devuelve incidencias con c\xF3digos e IDs, enlaces por \xE1mbito, condiciones y geometr\xEDa real. review permite representaci\xF3n explicativa; formal exige condiciones. Incluye quality separado de errores BPMN: texto renderizado, marcadores, carriles y recorridos. elementIds limita esa revisi\xF3n visual al conjunto y conexiones afectadas. No aprueba el negocio ni ejecuta expresiones.", { sessionId: id, expectedRevision: revision, profile: external_exports.enum(["review", "formal"]).default("review"), geometry: external_exports.boolean().default(true), maxIssues: external_exports.number().int().min(1).max(1e3).default(200), elementIds: external_exports.array(elementId).min(1).max(250).optional() }, true, (args) => bridge.request(args.sessionId, "validate", { expectedRevision: args.expectedRevision, profile: args.profile, geometry: args.geometry, maxIssues: args.maxIssues, elementIds: args.elementIds }));
   const batchOperation = external_exports.discriminatedUnion("type", edit.options.filter((schema) => BATCH_OPERATIONS.includes(schema.shape.type.value)).map((schema) => schema.extend({ as: external_exports.string().regex(/^[A-Za-z][A-Za-z0-9_-]{0,63}$/).optional() })));
-  register("narabizagui_edit_batch", "Prevalida y aplica de 1 a 200 operaciones BPMN con alias, revisi\xF3n obligatoria, un Deshacer e idempotencia. Admite procesos completos, matrix, clear de hoja activa y carriles. presentation.expandedCanvas y fit preparan la vista dentro de la misma petici\xF3n. response=summary devuelve revisi\xF3n, alias y validaci\xF3n sin las figuras; full incluye geometr\xEDa. El resultado distingue tiempo de editor, transporte y primer cuadro confirmado; no mide la espera total del usuario. dryRun no aplica ni cambia la vista; requireValid rechaza errores sin tocar el modelo. Respeta autoguardado. No incluye hojas ni ER.", { sessionId: id, expectedRevision: revision, requestId: external_exports.string().uuid(), operations: external_exports.array(batchOperation).min(1).max(BATCH_LIMIT), dryRun: external_exports.boolean().default(false), fit: external_exports.boolean().default(true), presentation: external_exports.object({ expandedCanvas: external_exports.boolean().optional() }).default({}), response: external_exports.enum(["summary", "full"]).default("summary"), requireValid: external_exports.boolean().default(false) }, false, (args) => bridge.request(args.sessionId, "editBatch", { expectedRevision: args.expectedRevision, requestId: args.requestId, operations: args.operations, dryRun: args.dryRun, fit: args.fit, presentation: args.presentation, response: args.response, requireValid: args.requireValid }));
+  register("narabizagui_edit_batch", "Prevalida y aplica de 1 a 200 operaciones BPMN con alias, revisi\xF3n obligatoria, un Deshacer e idempotencia. Admite procesos completos, matrix, clear de hoja activa, carriles, style, delete, fit_text y route_orthogonal con lados persistentes. presentation.expandedCanvas y fit preparan la vista dentro de la misma petici\xF3n. response=summary devuelve revisi\xF3n, alias y validaci\xF3n sin las figuras; full incluye geometr\xEDa. El resultado distingue tiempo de editor, transporte y primer cuadro confirmado; no mide la espera total del usuario. dryRun no aplica ni cambia la vista; requireValid rechaza errores sin tocar el modelo. Respeta autoguardado. No incluye hojas ni ER.", { sessionId: id, expectedRevision: revision, requestId: external_exports.string().uuid(), operations: external_exports.array(batchOperation).min(1).max(BATCH_LIMIT), dryRun: external_exports.boolean().default(false), fit: external_exports.boolean().default(true), presentation: external_exports.object({ expandedCanvas: external_exports.boolean().optional() }).default({}), response: external_exports.enum(["summary", "full"]).default("summary"), requireValid: external_exports.boolean().default(false) }, false, (args) => bridge.request(args.sessionId, "editBatch", { expectedRevision: args.expectedRevision, requestId: args.requestId, operations: args.operations, dryRun: args.dryRun, fit: args.fit, presentation: args.presentation, response: args.response, requireValid: args.requireValid }));
   register("narabizagui_edit", "Aplica una operaci\xF3n nativa bpmn-js, con revisi\xF3n base obligatoria y deshacer. properties edita los campos de semanticProperties seg\xFAn propertyFields de read y reutiliza la validaci\xF3n manual. create.eventDefinition configura el tipo de evento. Usa read para conocer IDs. x/y son el centro al crear; move usa desplazamiento. stage a\xF1ade una etapa al final o a izquierda/derecha de sourceId. lane_add/lane_split gestionan carriles nativos. stage_split divide columnas. style aplica formato persistente y erd_field_move reordena campos. view ampl\xEDa/restaura el lienzo sin cambiar el archivo. Las operaciones erd_ crean hojas de datos, tablas, campos y relaciones por campo; sus x/y son esquina superior izquierda. sheet_create crea otra hoja, sheet_open navega, sheet_rename renombra, subprocess_open abre el detalle y sheet_link vincula con otro proceso mediante CallActivity; no reemplaza subprocesos con contenido.", { sessionId: id, expectedRevision: revision, operation: edit }, false, (args) => bridge.request(args.sessionId, "edit", { expectedRevision: args.expectedRevision, operation: args.operation }));
   register("narabizagui_save", "Guarda en el archivo ya elegido y autorizado en el visor, conservando historial y comprobando conflictos. Si falta acceso, el usuario debe usar Guardar como en el navegador. No elige destinos ni descarga copias silenciosamente.", { sessionId: id, expectedRevision: revision }, false, (args) => bridge.request(args.sessionId, "save", { expectedRevision: args.expectedRevision }));
   server.registerTool("narabizagui_export_png", {
@@ -31641,9 +31663,12 @@ async function startServer(bridgeOptions = {}) {
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false }
   }, async (args) => {
     try {
-      return await pngArtifact(await bridge.request(args.sessionId, "exportPng", { expectedRevision: args.expectedRevision, scale: args.scale }));
+      const artifact = await pngArtifact(await bridge.request(args.sessionId, "exportPng", { expectedRevision: args.expectedRevision, scale: args.scale }));
+      const result = normalizeResult(artifact.structuredContent, { toolName: "narabizagui_export_png", sessionId: args.sessionId });
+      return { ...artifact, structuredContent: result, content: artifact.content.map((item) => item.type === "text" ? { type: "text", text: JSON.stringify(result) } : item) };
     } catch (error51) {
-      return { isError: true, content: [{ type: "text", text: JSON.stringify({ code: error51.code || "PNG_EXPORT_ERROR", message: error51.message }) }] };
+      const result = normalizeResult({ code: error51.code || "PNG_EXPORT_ERROR", message: error51.message }, { toolName: "narabizagui_export_png", sessionId: args.sessionId, isError: true });
+      return { isError: true, structuredContent: result, content: [{ type: "text", text: JSON.stringify(result) }] };
     }
   });
   register("narabizagui_disconnect", "Revoca la conexi\xF3n de una pesta\xF1a sin cerrar su diagrama ni descartar cambios.", { sessionId: id }, false, async (args) => {

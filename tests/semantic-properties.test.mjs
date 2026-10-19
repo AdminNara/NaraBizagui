@@ -42,6 +42,16 @@ async function fixture(contents) {
   return { defs, moddle, registry, stack, modeling, editor, values, apply, xml: async () => (await moddle.toXML(defs, { format: true })).xml };
 }
 
+test('document format and usage reuse native DataState without changing identity or associations, with exact undo',async()=>{
+ const f=await fixture('<bpmn:dataObject id="Book"/><bpmn:dataObjectReference id="Doc" dataObjectRef="Book" name="Shared workbook"/><bpmn:task id="Task"/><bpmn:association id="Wire" sourceRef="Task" targetRef="Doc"/>'),before=await f.xml();
+ f.apply('Doc',{documentFormat:'Excel',documentUse:'Entrada/Salida'});
+ const doc=f.registry.get('Doc').businessObject,wire=f.defs.rootElements[0].artifacts.find(a=>a.id==='Wire');
+ assert.equal(doc.dataState.name,'Excel · Entrada/Salida');assert.equal(doc.id,'Doc');assert.equal(doc.dataObjectRef.id,'Book');assert.equal(wire.targetRef,doc);
+ const after=await f.xml();const reparsed=await f.moddle.fromXML(after);assert.equal(reparsed.warnings.length,0);
+ f.stack.undo();assert.equal(await f.xml(),before);f.stack.redo();assert.equal(await f.xml(),after);
+ assert.throws(()=>f.apply('Doc',{documentFormat:'Other'}),/válidos/);assert.equal(await f.xml(),after);
+});
+
 test('manual link names round-trip, scope pairs to their container and undo the whole form once', async () => {
   const f = await fixture(`<bpmn:intermediateThrowEvent id="Send" name="Visible label"><bpmn:documentation>Preserve me</bpmn:documentation><bpmn:linkEventDefinition id="SendLink" name=""/></bpmn:intermediateThrowEvent><bpmn:intermediateCatchEvent id="Receive"><bpmn:linkEventDefinition id="ReceiveLink" name=""/></bpmn:intermediateCatchEvent><bpmn:intermediateCatchEvent id="Duplicate"><bpmn:linkEventDefinition name=""/></bpmn:intermediateCatchEvent><bpmn:subProcess id="Sub"><bpmn:intermediateCatchEvent id="Nested"><bpmn:linkEventDefinition name="A"/></bpmn:intermediateCatchEvent></bpmn:subProcess>`);
   const before = await f.xml();

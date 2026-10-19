@@ -11,7 +11,7 @@
     async function preview(xml, operations) {
       const host = document.createElement('div');
       host.style.cssText = 'position:fixed;left:-20000px;top:0;width:1200px;height:800px;visibility:hidden'; document.body.appendChild(host);
-      const draft = new BpmnJS({ container: host, moddleExtensions: window.NaraERModdle ? { nara: window.NaraERModdle } : {} });
+      const draft = new BpmnJS({ container: host,additionalModules:window.NaraVisualModule?[window.NaraVisualModule]:[],moddleExtensions: window.NaraERModdle ? { nara: window.NaraERModdle } : {} });
       try {
         const active = modeler.get('canvas').getRootElement().businessObject.id;
         const { warnings } = await draft.importXML(xml);
@@ -60,7 +60,7 @@
         timings.presentationMs=Date.now()-phase;if(rendered?.paintConfirmed)timings.firstVisibleMs=Date.now()-started;
         record.status = 'applied'; record.result = { applied: true, requestId, committedRevision, operationCount: operations.length,waitMs:waitMs||0,...(viewWarning?{viewWarning}:{}),presentation:rendered, ...context.result };
         // A concurrent manual edit during serialization must never be undone.
-        phase=Date.now();try { const after = await read(); record.result.state = after; record.result.validation = window.NaraModelAudit.validateSnapshot(after);if(after.revision!==committedRevision)record.result.reconciliationRequired=true; }
+        phase=Date.now();try { const after = await read(); record.result.state = after; record.result.validation = window.NaraModelAudit.validateSnapshot(after);if(window.NaraModelAudit.reviewVisualQuality)record.result.validation.quality=window.NaraModelAudit.reviewVisualQuality(after,{elementIds:context.result.affectedIds});if(after.revision!==committedRevision)record.result.reconciliationRequired=true; }
         catch { record.result.reconciliationRequired = true; }
         timings.confirmationMs=Date.now()-phase;timings.totalMs=Date.now()-started;record.result.timings=timings;record.result.durationMs=timings.totalMs;
         return format(record.result,response);
