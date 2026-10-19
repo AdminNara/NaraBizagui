@@ -1,6 +1,6 @@
 {
-  "index.html": "e2352c3154446fa0df33c06702c8e6bef545b395016bcaf85cc683b54504ef71",
-  "modelador.js": "12e16cd3ed9f9f71bd4c9d2f742db5ad5e300d570dc6635ade4ac9a66c32395a",
+  "index.html": "e3cac18807d346d424d05c3b6d985816e6af89445271ada9e414b83dbfa414ce",
+  "modelador.js": "67d147789c032684175ccb7e0cfa598c0d73e04495249e3a8fe5bc8bf208df10",
   "modelador.css": "c7c356cd5b1c109cbaa888ab381a453bbb78ac920928d53e44114e2d7154058d",
   "archivos.js": "283c1b72bfdaa48e849f2910eb35471c4550df0873d090fc477f4874c4edc3f6",
   "autoguardado.js": "a27420046f7dfac234d77604a9dce50d4b0b3c6dbb7f729e1ce48276afa925fa",
@@ -33,7 +33,7 @@
   "vendor/model-audit.js": "7183ea6988d5c04239a76fd12c6f3578d95e7d0e17ca063b928f63cadb1bde5c",
   "bpmn-merge.js": "1a79451bae0e236f9a3d553e277d21af8f37924aeabb0b4a0c1c6f63d09fed31",
   "editor-properties.js": "80cef0f8efc02a3ffba14f4e42dee0fca183e006dad7bb6fcf1f4764656a7fb5",
-  "microsoft-ui.js": "944cad0b671695c14b495e1ad05cd7ce1a2145861441a2e719a5afcdc770a5ed",
+  "microsoft-ui.js": "58733debd41453d9f1337d18b5570ca0a2ca94f7f0463ce3cab71784b370392a",
   "microsoft-auth.html": "23c74851714b3143fd6f3ff1a4f67d8f6a2176f123fcc6e7ea74896bea0fbb87",
   "assets/microsoft-symbol.svg": "929f48f88c8ca7f3f5d294be47ec4caf51acc28ac25340c19a903125d7ecd84a",
   "vendor/microsoft-client.js": "9245a2d6b2d339cd085e0257bb55f55df8e3997e45089d0d083f5d7cb70e07ca",
