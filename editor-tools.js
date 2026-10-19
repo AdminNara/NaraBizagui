@@ -254,6 +254,7 @@
           layer.appendChild(panel);
         }
       }
+      if(!element.waypoints&&entries.replace){const type=button('Cambiar tipo de elemento','nara-tools-type bpmn-icon-screw-wrench');type.onclick=()=>safe(()=>menu(element,'bpmn-replace',type));layer.appendChild(type);}
       const more = button('Más acciones del elemento', 'nara-tools-more', '⋯');
       more.onclick = () => safe(() => menu(element,'nara-actions',more)); layer.appendChild(more);
       layer.hidden = false; position(); chooseSide(original);
