@@ -291,6 +291,18 @@ var NaraModelAudit = (() => {
     };
     const affected = (e) => !scope || scope.has(e.id), missingText = [];
     for (const e of elements) {
+      if (e.type === "bpmn:Lane") {
+        let parent2 = index.get(e.parentId);
+        const seen2 = /* @__PURE__ */ new Set();
+        while (parent2 && !seen2.has(parent2.id)) {
+          seen2.add(parent2.id);
+          if (parent2.type === "bpmn:Participant") {
+            if (e.x < parent2.x || e.y < parent2.y || e.x + e.width > parent2.x + parent2.width + 0.1 || e.y + e.height > parent2.y + parent2.height + 0.1) add("LANE_OUTSIDE_PARTICIPANT", [e.id, parent2.id], "El carril se extiende fuera del participante; el ancho renderizado sigue siendo mayor.");
+            break;
+          }
+          parent2 = index.get(parent2.parentId);
+        }
+      }
       if (e.waypoints?.length > 1 && affected(e)) {
         const metrics = routeMetrics(e.waypoints), simple = simplifyOrthogonal(e.waypoints), first = e.waypoints[0], last = e.waypoints.at(-1), minimum = Math.abs(first.x - last.x) + Math.abs(first.y - last.y);
         if (!metrics.orthogonal) add("ROUTE_DIAGONAL", [e.id], "La conexi\xF3n contiene un tramo diagonal.");

@@ -7,6 +7,10 @@ export function reviewVisualQuality(snapshot,{elementIds,maxIssues=200}={}){
   const add=(code,ids,message,details={})=>{if(scope&&!ids.some(id=>scope.has(id)))return;total++;if(issues.length<maxIssues)issues.push({code,severity:'warning',elementIds:ids,message,...details});};
   const affected=e=>!scope||scope.has(e.id),missingText=[];
   for(const e of elements){
+    if(e.type==='bpmn:Lane'){
+      let parent=index.get(e.parentId);const seen=new Set();
+      while(parent&&!seen.has(parent.id)){seen.add(parent.id);if(parent.type==='bpmn:Participant'){if(e.x<parent.x||e.y<parent.y||e.x+e.width>parent.x+parent.width+.1||e.y+e.height>parent.y+parent.height+.1)add('LANE_OUTSIDE_PARTICIPANT',[e.id,parent.id],'El carril se extiende fuera del participante; el ancho renderizado sigue siendo mayor.');break;}parent=index.get(parent.parentId);}
+    }
     if(e.waypoints?.length>1&&affected(e)){
       const metrics=routeMetrics(e.waypoints),simple=simplifyOrthogonal(e.waypoints),first=e.waypoints[0],last=e.waypoints.at(-1),minimum=Math.abs(first.x-last.x)+Math.abs(first.y-last.y);
       if(!metrics.orthogonal)add('ROUTE_DIAGONAL',[e.id],'La conexión contiene un tramo diagonal.');

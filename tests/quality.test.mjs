@@ -2,6 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {reviewVisualQuality} from '../plugins/narabizagui/shared/quality.mjs';
 const task={id:'T',type:'bpmn:UserTask',name:'Review request',x:100,y:100,width:180,height:100,parentId:'Lane',textLayout:{rendered:true,fits:true,contentPreserved:true,fontSize:16,bounds:{x:140,y:120,width:120,height:40},markerBounds:[{x:108,y:108,width:20,height:22}]}};
+test('a narrow pool cannot hide wider lanes from incremental visual quality',()=>{
+ const r=reviewVisualQuality({elements:[{id:'P',type:'bpmn:Participant',x:0,y:0,width:500,height:300},{id:'L',type:'bpmn:Lane',parentId:'P',x:30,y:0,width:900,height:300}]},{elementIds:['P']});assert.ok(r.issues.some(i=>i.code==='LANE_OUTSIDE_PARTICIPANT'));assert.equal(r.ok,false);
+});
 test('quality uses rendered text, icon clearance and lane borders separately from business approval',()=>{
  const bad={...task,textLayout:{...task.textLayout,fits:false,bounds:{x:105,y:95,width:200,height:50}}};
  const r=reviewVisualQuality({elements:[bad,{id:'Lane',type:'bpmn:Lane',x:90,y:100,width:220,height:200}]});

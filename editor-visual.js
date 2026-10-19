@@ -131,6 +131,14 @@
     }
     if(events){
       installHistoryGuards(events,registry,modeling);
+      events.on('commandStack.shape.resize.postExecute',500,({context:c})=>{
+        const pool=c.shape;if(pool?.type!=='bpmn:Participant'||!c.oldBounds||pool.width>=c.oldBounds.width)return;
+        const right=pool.x+pool.width;
+        for(const lane of registry.getAll().filter(e=>e.type==='bpmn:Lane')){
+          let contained=false;for(let p=lane.parent;p;p=p.parent)if(p===pool){contained=true;break;}
+          if(contained&&lane.x+lane.width>right&&right-lane.x>=60)modeling.resizeShape(lane,{x:lane.x,y:lane.y,width:right-lane.x,height:lane.height},undefined,{autoResize:false});
+        }
+      });
       events.on('commandStack.shape.resize.canExecute',1600,event=>{const {shape,newBounds}=event.context;if(!activity(shape))return;return !newBounds||[newBounds.x,newBounds.y,newBounds.width,newBounds.height].every(Number.isFinite)&&newBounds.width>=100&&newBounds.height>=80;});
       events.on('commandStack.connection.updateWaypoints.preExecute',1600,event=>{
         const c=event.context,r=readRouting(c.connection);if(r?.mode!=='orthogonal'||c.hints?.naraExplicitRoute||c.newWaypoints.length<3)return;
