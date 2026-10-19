@@ -26,3 +26,5 @@ Para evitar operaciones repetidas, el [script compartido](../../shared/snapshot-
 Usa `properties` para la configuración semántica; `label` cambia el texto visible. Los enlaces necesitan nombre interno y contraparte del mismo ámbito. Las etiquetas Sí/No no equivalen a condiciones formales. Consulta `read` con `includePropertyFields:true` y `elementIds` cuando necesites las opciones de un elemento.
 
 Valida cada bloque significativo antes de acumular más detalle. Atiende incidencias relacionadas con el cambio, revisa límites reales de etiquetas después de aplicar y comprueba visualmente el PNG cuando corresponda. Conserva puntos de recuperación en el proyecto en cambios estructurales, actualizaciones de versión y entrega, sin pedir autorización de nuevo para acciones ya autorizadas. No incorpores cifras, reglas o fuentes no confirmadas.
+
+Para correcciones de texto, tamaño, rutas, documentos y notas, sigue [edición visual y calidad](../../shared/visual-editing.md). Preserva las correcciones manuales y usa un bloque compatible por conjunto afectado.

@@ -6,6 +6,7 @@
     const modeling = modeler.get('modeling'), registry = modeler.get('elementRegistry'), canvas = modeler.get('canvas'), rules = modeler.get('rules');
     const semantic = window.NaraBpmnProperties.create(modeler);
     const structure=window.NaraMcpStructure?.create(modeler);
+    const visual=window.NaraVisual?.create(modeler);
     function PositionLabel(modeling) { this.preExecute = c => { modeling.updateLabel(c.element, c.text, c.bounds); const label = c.element.label; if (label) modeling.moveShape(label, { x: c.bounds.x - label.x, y: c.bounds.y - label.y }); }; this.execute = this.revert = () => []; }
     PositionLabel.$inject = ['modeling'];
     modeler.get('commandStack').registerHandler('nara.block.label', PositionLabel);
@@ -56,6 +57,17 @@
             structure.prepareLanes(e);
             modeling.splitLane(e,op.count);
           }else{if(!['top','bottom','left','right'].includes(op.location))fail('Posición de carril inválida.');structure.prepareLanes(e);e=modeling.addLane(e,op.location);}
+        } else if(op.type==='style'){
+          if(!visual)fail('Falta el módulo de formato.');visual.applyStyle(e,op.style);
+        } else if(op.type==='fit_text'){
+          if(!visual)fail('Falta el módulo de texto.');visual.fitText(e,op);
+        } else if(op.type==='compact_container'){
+          if(!visual)fail('Falta el módulo de tamaño.');visual.compactContainer(e,op);
+        } else if(op.type==='route_orthogonal'){
+          if(!visual||!e.waypoints)fail('Selecciona una conexión para calcular su recorrido.');visual.orthogonal(e,op);
+        } else if(op.type==='delete'){
+          if(!op.cascade&&(e.incoming?.length||e.outgoing?.length||e.children?.some(child=>!child.labelTarget)))fail('La eliminación afecta conexiones o hijos. Declara cascade:true solo si todo ese conjunto está autorizado.');
+          modeling.removeElements([e]);
         } else if (op.type === 'label') {
           if (op.bounds && !(e.label || ['bpmn:StartEvent','bpmn:EndEvent','bpmn:IntermediateCatchEvent','bpmn:IntermediateThrowEvent','bpmn:ExclusiveGateway','bpmn:InclusiveGateway','bpmn:ParallelGateway','bpmn:ComplexGateway','bpmn:EventBasedGateway','bpmn:SequenceFlow','bpmn:MessageFlow','bpmn:Association','bpmn:Group','bpmn:DataObjectReference','bpmn:DataStoreReference'].includes(e.type))) fail('La posición requiere una etiqueta externa.');
           if (e.type === 'bpmn:TextAnnotation') modeling.updateProperties(e, { text: op.text });
@@ -65,7 +77,7 @@
         else if (op.type === 'properties') { const changes = propertyPlan(e, op.values); semantic.transaction(() => changes.forEach(change => change())); }
         else if (op.type === 'route') {
           if (!e.waypoints || !Array.isArray(op.waypoints) || op.waypoints.length < 2 || op.waypoints.length > 100 || op.waypoints.some(p => ![p.x,p.y].every(Number.isFinite))) fail('Recorrido inválido.');
-          modeling.updateWaypoints(e, op.waypoints.map(p => ({ x: p.x, y: p.y })));
+          if(visual)visual.manualRoute(e,op.waypoints.map(p=>({x:p.x,y:p.y})));else modeling.updateWaypoints(e, op.waypoints.map(p => ({ x: p.x, y: p.y })));
         } else if (op.type === 'move' || op.type === 'move_elements') {
           const shapes = op.elementIds ? op.elementIds.map(element) : [e], target = op.parentId ? element(op.parentId) : e.parent, delta = { x: op.dx, y: op.dy };
           if (![op.dx,op.dy].every(Number.isFinite) || shapes.some(s => !s.parent || s.waypoints) || !rules.allowed('elements.move', { shapes, delta, target })) fail('Movimiento no admitido.');

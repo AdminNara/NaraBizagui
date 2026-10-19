@@ -89,12 +89,12 @@ test('bundled plugin starts outside the checkout without npm install and serves 
   const discovered = (await client.listTools()).tools;
   assert.equal(discovered.length, 9);
   const editSchema=JSON.stringify(discovered.find(tool=>tool.name==='narabizagui_edit').inputSchema);
-  for(const operation of ['matrix','clear','fit','lane_split','lane_add'])assert.ok(editSchema.includes('"'+operation+'"'),'Missing structural operation '+operation);
+  for(const operation of ['matrix','clear','fit','lane_split','lane_add','style','delete','fit_text','route_orthogonal','compact_container'])assert.ok(editSchema.includes('"'+operation+'"'),'Missing structural operation '+operation);
   assert.ok(JSON.stringify(discovered.find(tool=>tool.name==='narabizagui_read').inputSchema).includes('summary'));
   assert.ok(discovered.some(tool=>tool.name==='narabizagui_validate'));
   assert.ok(discovered.some(tool=>tool.name==='narabizagui_edit_batch'));
   const connection = (await client.callTool({ name: 'narabizagui_connect', arguments: {} })).structuredContent;
-  assert.equal(connection.toolContract,'coordination-v1');assert.equal(connection.serverVersion,'0.7.0');
+  assert.equal(connection.toolContract,'visual-quality-v1');assert.equal(connection.serverVersion,'0.8.0');
   const [port, code] = connection.pairingCode.split('.');
   const paired = await (await post(port, '/pair', { code })).json();
   const sessions = (await client.callTool({ name: 'narabizagui_sessions', arguments: {} })).structuredContent.sessions;

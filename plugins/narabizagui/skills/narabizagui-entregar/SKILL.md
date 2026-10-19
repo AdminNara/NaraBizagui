@@ -18,3 +18,5 @@ Exporta con `narabizagui_export_png` sobre la revisión actual y confirma `sheet
 Un archivo puede contener varias hojas; el PNG incluye únicamente la activa. Exporta las solicitadas, leyendo de nuevo al cambiar de hoja. No inventes recortes por etapas ni reorganices un diagrama grande para conseguir una imagen. Si un informe requiere paginación, propón el formato respetando la preferencia del usuario.
 
 Entrega enlaces utilizables a los archivos, qué se comprobó y cualquier limitación material. No presentes XML válido, una imagen o un guardado como aprobación funcional o de negocio.
+
+Para correcciones de texto, tamaño, rutas, documentos y notas, sigue [edición visual y calidad](../../shared/visual-editing.md). Preserva las correcciones manuales y usa un bloque compatible por conjunto afectado.

@@ -92,6 +92,12 @@
         add('loopCondition', 'Condición del bucle', value(loop?.loopCondition), { multiline: true, when: ['loopMode', 'standard'] });
         add('loopCardinality', 'Cantidad de instancias (opcional)', value(loop?.loopCardinality), { when: ['loopMode', ['sequential', 'parallel']] });
       }
+      if(is(bo,'bpmn:DataObjectReference')||is(bo,'bpmn:DataStoreReference')){
+        const [format,use]=(bo.dataState?.name||'').split(' · ');
+        const formats=['Documento','Excel','Word','Manual','Datos'],uses=['Referencia','Entrada','Salida','Entrada/Salida'];
+        add('documentFormat','Formato del documento',formats.includes(format)?format:'Documento',{choices:formats.map(v=>[v,v])});
+        add('documentUse','Uso del documento',uses.includes(use)?use:'Referencia',{choices:uses.map(v=>[v,v]),help:'El formato y el uso no crean otro archivo ni otra asociación.'});
+      }
       if (is(bo, 'bpmn:DataObjectReference') && bo.dataObjectRef) add('isCollection', 'Representa una colección', Boolean(bo.dataObjectRef.isCollection), { checkbox: true });
       return { fields, notes, canChangeType: is(bo, 'bpmn:FlowNode') || is(bo, 'bpmn:SequenceFlow') || is(bo, 'bpmn:MessageFlow') || is(bo, 'bpmn:Association') };
     }
@@ -165,6 +171,10 @@
       } else if (bo.loopCharacteristics) {
         const key = values.loopMode === 'standard' ? 'loopCondition' : 'loopCardinality';
         if (changed(key)) replaceExpression(element, bo.loopCharacteristics, key, text(key), bo.loopCharacteristics[key]?.language, changes);
+      }
+      if(changed('documentFormat')||changed('documentUse')){
+        if(!['Documento','Excel','Word','Manual','Datos'].includes(values.documentFormat)||!['Referencia','Entrada','Salida','Entrada/Salida'].includes(values.documentUse))throw Error('Selecciona un formato y uso documental válidos.');
+        const state=factory.create('bpmn:DataState',{name:values.documentFormat+' · '+values.documentUse});state.$parent=bo;changes.push(update(element,bo,{dataState:state}));
       }
       if (changed('isCollection')) changes.push(update(element, bo.dataObjectRef, { isCollection: values.isCollection }));
       return changes;

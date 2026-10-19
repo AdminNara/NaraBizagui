@@ -51,3 +51,7 @@ Ejemplo mínimo:
 ```
 
 La prevalidación usa un modelador temporal con la hoja y extensiones del archivo; no sustituye al modelo vinculado. Un bloque correcto se aplica en un paso de deshacer. Si la prevalidación falla no cambia el original. Ante un fallo inesperado se intenta deshacer y se comprueba el hash anterior; el resultado distingue reversión verificada de recuperación pendiente. Comprueba siempre `applied`, `replayed`, `rolledBack` y `recoveryRequired`.
+
+## Texto, rutas y edición localizada
+
+Consulta [edición visual](visual-editing.md) para fit_text, route_orthogonal, compact_container, documentFormat/documentUse, formato agrupado y respuestas canónicas. Ninguna de estas operaciones requiere reconstruir el archivo.

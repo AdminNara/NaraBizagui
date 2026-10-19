@@ -3,34 +3,11 @@ import {BATCH_LIMIT} from './contract.mjs';
 export { PROTOCOL_VERSION, TOOL_CONTRACT, BATCH_LIMIT, BATCH_OPERATIONS, BPMN_CREATE_TYPES, EVENT_KINDS } from './contract.mjs';
 const containers = new Set(['bpmn:Participant', 'bpmn:Lane', 'bpmn:Group', 'bpmn:TextAnnotation', 'bpmn:Collaboration', 'bpmn:Process']);
 const conditional = new Set(['bpmn:ExclusiveGateway', 'bpmn:InclusiveGateway', 'bpmn:ComplexGateway']);
-const same = (a, b) => Math.abs(a - b) < .01;
-const pointEqual = (a, b) => same(a.x, b.x) && same(a.y, b.y);
-const cross = (a, b, c) => (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
-const between = (p, a, b) => Math.abs(cross(a, b, p)) < .01 && p.x >= Math.min(a.x, b.x) - .01 && p.x <= Math.max(a.x, b.x) + .01 && p.y >= Math.min(a.y, b.y) - .01 && p.y <= Math.max(a.y, b.y) + .01;
-export const segments = flow => (flow.waypoints || []).slice(1).map((p, i) => [flow.waypoints[i], p]);
-export function segmentContact(a, b, c, d) {
-  const r = { x: b.x - a.x, y: b.y - a.y }, s = { x: d.x - c.x, y: d.y - c.y }, denominator = r.x * s.y - r.y * s.x;
-  if (Math.abs(denominator) < .0001) {
-    if (Math.abs(cross(a, b, c)) > .01) return null;
-    const common = [a, b, c, d].filter(p => between(p, a, b) && between(p, c, d));
-    const unique = common.filter((p, i) => !common.slice(0, i).some(q => pointEqual(p, q)));
-    return unique.length > 1 ? { type: 'overlap' } : unique.length ? { type: 'contact', point: unique[0] } : null;
-  }
-  const t = ((c.x - a.x) * s.y - (c.y - a.y) * s.x) / denominator;
-  const u = ((c.x - a.x) * r.y - (c.y - a.y) * r.x) / denominator;
-  if (t < -.00001 || t > 1.00001 || u < -.00001 || u > 1.00001) return null;
-  return { type: t > .00001 && t < .99999 && u > .00001 && u < .99999 ? 'crossing' : 'contact', point: { x: a.x + t * r.x, y: a.y + t * r.y } };
-}
-export function lineHitsBox(a, b, box, padding = 0) {
-  const left = box.x - padding + .01, top = box.y - padding + .01, right = box.x + box.width + padding - .01, bottom = box.y + box.height + padding - .01;
-  let low = 0, high = 1;
-  for (const [origin, delta, min, max] of [[a.x, b.x - a.x, left, right], [a.y, b.y - a.y, top, bottom]]) {
-    if (Math.abs(delta) < .00001) { if (origin < min || origin > max) return false; }
-    else { const x = (min - origin) / delta, y = (max - origin) / delta; low = Math.max(low, Math.min(x, y)); high = Math.min(high, Math.max(x, y)); if (low > high) return false; }
-  }
-  return high >= 0 && low <= 1;
-}
-const boxesOverlap = (a, b) => a.x < b.x + b.width - .01 && a.x + a.width > b.x + .01 && a.y < b.y + b.height - .01 && a.y + a.height > b.y + .01;
+import {same,pointEqual,segments,segmentContact,lineHitsBox,boxesOverlap} from './geometry.mjs';
+export {segments,segmentContact,lineHitsBox,boxesOverlap} from './geometry.mjs';
+export {SIDES,anchorPoint,inferAnchor,routeMetrics,simplifyOrthogonal,routeOrthogonal} from './routing.mjs';
+import {reviewVisualQuality} from './quality.mjs';
+export {reviewVisualQuality} from './quality.mjs';
 export function validateSnapshot(snapshot, { profile = 'review', geometry = true, maxIssues = 200 } = {}) {
   if (!['review', 'formal'].includes(profile)) throw Error('profile must be review or formal');
   const issues = [], seen = new Set(); let detected = 0, errors = 0, warnings = 0;
@@ -120,11 +97,11 @@ export function validateSnapshot(snapshot, { profile = 'review', geometry = true
       for (const other of labels.slice(i + 1)) if (boxesOverlap(bounds, other.labelBounds)) add('LABEL_OVERLAP', 'warning', [e.id, other.id], 'Dos etiquetas se superponen.');
     }
   }
-  return { source, coverage, profile, valid: errors === 0, complete: !snapshot.elementsTruncated && !snapshot.elementsFiltered && detected <= maxIssues && !Object.values(coverage).some(value => Array.isArray(value) && value.length), issues, totalIssues: detected, errors, warnings, scope: 'active-sheet', businessApproval: false };
+  return { source, coverage, profile, valid: errors === 0, complete: !snapshot.elementsTruncated && !snapshot.elementsFiltered && detected <= maxIssues && !Object.values(coverage).some(value => Array.isArray(value) && value.length), issues, totalIssues: detected, errors, warnings, quality:geometry?reviewVisualQuality(snapshot,{maxIssues}):undefined,scope: 'active-sheet', businessApproval: false };
 }
 export function compareSnapshots(before, after) {
   const previous = new Map((before.elements || []).map(e => [e.id, e])), current = new Map((after.elements || []).map(e => [e.id, e]));
-  const fields = ['type', 'name', 'documentation', 'parentId', 'flowScopeId', 'sourceId', 'targetId', 'x', 'y', 'width', 'height', 'waypoints', 'labelBounds', 'semanticProperties', 'defaultFlowId', 'condition', 'eventDefinitions'];
+  const fields = ['type', 'name', 'documentation', 'parentId', 'flowScopeId', 'sourceId', 'targetId', 'x', 'y', 'width', 'height', 'waypoints', 'labelBounds', 'semanticProperties', 'defaultFlowId', 'condition', 'eventDefinitions','visualStyle','routing'];
   return { added: [...current.keys()].filter(id => !previous.has(id)), removed: [...previous.keys()].filter(id => !current.has(id)), changed: [...previous].filter(([id]) => current.has(id)).map(([id, a]) => ({ id, fields: fields.filter(key => JSON.stringify(a[key]) !== JSON.stringify(current.get(id)[key])) })).filter(e => e.fields.length) };
 }
 export function planOperations(snapshot, operations) {
@@ -148,3 +125,4 @@ export function planOperations(snapshot, operations) {
   }
   return { sourceRevision: snapshot.revision, originalCount: operations.length, operations: result, skippedIndices: skipped, batchSizeLimit: BATCH_LIMIT };
 }
+export {planContainerFit} from './layout.mjs';
