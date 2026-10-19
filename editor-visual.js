@@ -155,7 +155,7 @@
     if(preview){
       const draw=preview.drawPreview.bind(preview);
       preview.drawPreview=(context,allowed,hints={})=>{
-        if(hints.noLayout&&hints.waypoints?.length>1){
+        if(hints.noLayout&&hints.waypoints?.length>1&&context.connection?.source&&context.connection?.target){
           const connection=context.connection,source=window.NaraModelAudit.inferAnchor(connection.source,hints.waypoints[0]),target=window.NaraModelAudit.inferAnchor(connection.target,hints.waypoints.at(-1));
           hints={...hints,waypoints:orthogonalizeWaypoints(hints.waypoints,{sourceSide:source.side,targetSide:target.side})};
         }
@@ -183,7 +183,7 @@
         if(interactive||!r)putExtension(c.connection,'nara:ConnectionRouting',{mode:'orthogonal',source,target});
       });
       events.on('commandStack.connection.reconnect.postExecute',1600,event=>{
-        const c=event.context,connection=c.connection,old=readRouting(connection);if(!old)return;
+        const c=event.context,connection=c.connection,old=readRouting(connection)||{mode:'orthogonal',source:window.NaraModelAudit.inferAnchor(connection.source,connection.waypoints[0]),target:window.NaraModelAudit.inferAnchor(connection.target,connection.waypoints.at(-1))};
         const docking=c.dockingOrPoints,points=Array.isArray(docking)?docking:connection.waypoints,hints=c.hints||{},side=hints.docking;
         const source=side!=='target'?window.NaraModelAudit.inferAnchor(connection.source,hints.connectionStart||(Array.isArray(docking)?docking[0]:docking)||points[0]):old.source;
         const target=side!=='source'?window.NaraModelAudit.inferAnchor(connection.target,hints.connectionEnd||(Array.isArray(docking)?docking.at(-1):docking)||points.at(-1)):old.target;
@@ -191,7 +191,7 @@
       });
       events.on('commandStack.connection.create.postExecute',500,event=>{
         const c=event.context,connection=c.connection;if(!connection?.source||!connection?.target||connection.source===connection.target||readRouting(connection))return;
-        try{orthogonal(connection,{sourceSide:c.hints?.connectionStart?window.NaraModelAudit.inferAnchor(connection.source,c.hints.connectionStart).side:'auto'});}catch(error){if(error.code!=='ROUTE_BLOCKED')throw error;}
+        try{orthogonal(connection,{sourceSide:c.hints?.connectionStart?window.NaraModelAudit.inferAnchor(connection.source,c.hints.connectionStart).side:'auto'});}catch(error){if(error.code!=='ROUTE_BLOCKED')throw error;manualRoute(connection,connection.waypoints);}
       });
       events.on(['shape.changed','shape.added'],400,event=>decorate(event.element));
       events.on('import.done',400,()=>registry.getAll().forEach(decorate));
@@ -199,11 +199,12 @@
     if(layouter){
       const native=layouter.layoutConnection.bind(layouter);
       layouter.layoutConnection=(connection,hints={})=>{
-        const routing=readRouting(connection);if(routing?.mode!=='orthogonal')return native(connection,hints);
+        const normalize=points=>orthogonalizeWaypoints(points,{sourceSide:window.NaraModelAudit.inferAnchor(hints.source||connection.source,points[0])?.side,targetSide:window.NaraModelAudit.inferAnchor(hints.target||connection.target,points.at(-1))?.side});
+        const routing=readRouting(connection);if(routing?.mode!=='orthogonal')return normalize(native(connection,hints));
         try{return planRoute(connection).waypoints;}catch(error){
           // Keep native undo/movement intact when an imported or crowded layout
           // has no local solution. The subsequent quality audit reports it.
-          return native(connection,{...hints,connectionStart:window.NaraModelAudit.anchorPoint(connection.source,routing.source.side,routing.source.offset),connectionEnd:window.NaraModelAudit.anchorPoint(connection.target,routing.target.side,routing.target.offset)});
+          return normalize(native(connection,{...hints,connectionStart:window.NaraModelAudit.anchorPoint(connection.source,routing.source.side,routing.source.offset),connectionEnd:window.NaraModelAudit.anchorPoint(connection.target,routing.target.side,routing.target.offset)}));
         }
       };
     }

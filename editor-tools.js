@@ -6,7 +6,7 @@
     return targets.filter(target=>target!==source&&!target.waypoints&&!target.labelTarget&&!['label','bpmn:Lane','bpmn:Group','bpmn:Process','bpmn:Collaboration'].includes(target.type)&&isActive(target))
       .map(target=>({target,gap:positive?target[main]-origin:origin-target[main]-target[size],offset:Math.max(target[cross]-center,center-target[cross]-target[breadth],0)}))
       .filter(({target,gap,offset})=>gap>=0&&gap<=300&&offset<=100&&!source.outgoing?.some(flow=>flow.target===target)&&allowed(source,target))
-      .sort((a,b)=>(a.gap+a.offset*2)-(b.gap+b.offset*2)||a.target.id.localeCompare(b.target.id))[0]?.target;
+      .sort((a,b)=>Math.hypot(a.gap,a.offset)-Math.hypot(b.gap,b.offset)||a.target.id.localeCompare(b.target.id))[0]?.target;
   }
   const svg = content => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${content}</svg>`;
   window.NaraPaletteIcons = Object.freeze({
