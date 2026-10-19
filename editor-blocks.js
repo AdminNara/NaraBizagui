@@ -29,7 +29,7 @@
       } finally { draft.destroy(); host.remove(); }
     }
     const format=(result,response)=>{if(response==='full')return result;const output={...result};if(result.state)output.state=window.NaraEditorReadiness.compact(result.state);if(result.previewElements){delete output.previewElements;output.previewElementsOmitted=true;}return output;};
-    async function batch({ expectedRevision, requestId, operations, dryRun = false,fit:shouldFit=false,requireValid=false,presentation={},response='full' }) {
+    async function batch({ expectedRevision, expectedDocumentId, requestId, operations, dryRun = false,fit:shouldFit=false,requireValid=false,presentation={},response='full' }) {
       const started=Date.now();
       if(!['full','summary'].includes(response)||!presentation||Array.isArray(presentation)||typeof presentation!=='object'||presentation.expandedCanvas!==undefined&&typeof presentation.expandedCanvas!=='boolean')throw fail('INVALID_BATCH','Opciones de respuesta o presentación inválidas.');
       const timings={};
@@ -42,9 +42,9 @@
         if (previous.fingerprint !== fingerprint) throw fail('REQUEST_ID_REUSED', 'El identificador ya pertenece a otro bloque o revisión.');
         return format({ ...(previous.result || { applied:false, requestId, reconciliationRequired:true, status:previous.status }), replayed: true, state: await read() },response);
       }
-      const waitMs=await waitReady(expectedRevision);guard(expectedRevision);timings.readinessMs=Date.now()-started;let phase=Date.now();const before = await read({ includeXml: true }); guard(expectedRevision);timings.readMs=Date.now()-phase;
+      const waitMs=await waitReady(expectedRevision,expectedDocumentId);guard(expectedRevision,expectedDocumentId);timings.readinessMs=Date.now()-started;let phase=Date.now();const before = await read({ includeXml: true }); guard(expectedRevision,expectedDocumentId);timings.readMs=Date.now()-phase;
       if (before.diagramType !== 'bpmn' || before.elementsTruncated) throw fail('BATCH_SCOPE_UNAVAILABLE', 'Agrupar requiere una hoja BPMN con lectura completa.');
-      phase=Date.now();const planned = await preview(before.xml, operations);timings.prevalidationMs=Date.now()-phase;await waitReady(expectedRevision); guard(expectedRevision);
+      phase=Date.now();const planned = await preview(before.xml, operations);timings.prevalidationMs=Date.now()-phase;await waitReady(expectedRevision,expectedDocumentId); guard(expectedRevision,expectedDocumentId);
       if (dryRun||requireValid&&!planned.validation.valid) return format({ applied: false, dryRun, ...(requireValid&&!planned.validation.valid?{code:'BATCH_VALIDATION_FAILED',message:'La prevalidación encontró errores; el lienzo no fue modificado.'}:{}),sourceRevision: expectedRevision, operationCount: operations.length, previewAliases: planned.aliases,previewElements:planned.previewElements,diff: planned.diff, validation: planned.validation,timings:{...timings,totalMs:Date.now()-started} },response);
       const record = { fingerprint, beforeRevision: expectedRevision, count: operations.length, status: 'applying' }; remember(requestId, record);
       // bpmn-js 18.16: retain history/redo and unwind a failed native command.

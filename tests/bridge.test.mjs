@@ -114,3 +114,23 @@ test('bundled plugin starts outside the checkout without npm install and serves 
   const bad = await client.callTool({ name: 'narabizagui_edit', arguments: { sessionId: paired.sessionId, operation: { type: 'delete', elementId: 'x' } } });
   assert.equal(bad.isError, true, 'An edit without a base revision must be rejected by the MCP schema');
 });
+
+test('resuming rotates the credential; a copied old credential cannot disconnect the restored tab',async t=>{
+ const b=await startBridge();t.after(()=>b.close());const code=b.pair().pairingCode.split('.')[1];
+ const paired=await (await post(b.port,'/pair',{code,name:'Generic'})).json();
+ const resumed=await (await post(b.port,'/sessions/'+paired.sessionId+'/resume',{generation:1},paired.sessionToken)).json();
+ assert.equal(resumed.generation,2);assert.notEqual(resumed.sessionToken,paired.sessionToken);
+ assert.equal((await post(b.port,'/sessions/'+paired.sessionId+'/disconnect',{},paired.sessionToken)).status,401);
+ assert.equal(b.list().length,1);
+});
+test('abandoned sessions expire without increasing the per-server session limit',async t=>{
+ let now=10000;const b=await startBridge({now:()=>now,sessionTtlMs:1000});t.after(()=>b.close());
+ const code=b.pair().pairingCode.split('.')[1];await post(b.port,'/pair',{code,name:'Generic'});assert.equal(b.list().length,1);now+=1001;assert.equal(b.list().length,0);
+});
+test('a mutation inherits the document of the confirmed read, not a different file advertised by polling',async t=>{
+ const b=await startBridge();t.after(()=>b.close());const code=b.pair().pairingCode.split('.')[1];const p=await(await post(b.port,'/pair',{code,name:'A'})).json();const route='/sessions/'+p.sessionId;
+ const reading=b.request(p.sessionId,'read',{});const cmd=await(await post(b.port,route+'/poll',{documentId:'doc-A'},p.sessionToken)).json();
+ await post(b.port,route+'/result',{commandId:cmd.command.id,result:{documentId:'doc-A'}},p.sessionToken);await reading;
+ const editing=b.request(p.sessionId,'edit',{expectedRevision:'r1'});const rejected=assert.rejects(editing,{code:'DOCUMENT_MISMATCH'});const next=await(await post(b.port,route+'/poll',{documentId:'doc-B'},p.sessionToken)).json();
+ assert.equal(next.command.args.expectedDocumentId,'doc-A');await post(b.port,route+'/result',{commandId:next.command.id,error:{code:'DOCUMENT_MISMATCH',message:'Wrong file'}},p.sessionToken);await rejected;
+});

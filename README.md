@@ -149,3 +149,11 @@ La licencia de bpmn-js exige conservar visible el distintivo bpmn.io; se muestra
 ## Alcance de la web pública
 
 El código y la herramienta son públicos. No hay registro de usuarios, permisos por repositorio ni almacenamiento de documentos de clientes en GitHub Pages. Publicar un archivo BPMN en este repositorio lo haría público: los documentos de trabajo deben permanecer fuera del repositorio.
+
+## Proyectos en pestañas distintas
+
+Archivo → **Nuevo proyecto en otra pestaña** abre un editor independiente. Cada pestaña conserva el archivo autorizado y su cuenta Microsoft; los recientes siguen disponibles sin sustituir el documento de otra pestaña. La recuperación local requiere que el navegador conserve el permiso del archivo.
+
+Una segunda apertura del mismo archivo queda en consulta. **Editar aquí** solicita transferir la edición: la pestaña anterior debe haber guardado y terminado sus ediciones pendientes. Los vínculos MCP son independientes; una copia de una pestaña no hereda su autorización. El plugin 0.9.0 identifica el documento esperado además de su revisión. **Desconectar esta pestaña** conserva las demás conexiones Microsoft; **Cerrar todas las conexiones** las invalida en esta aplicación.
+
+El aislamiento de edición utiliza Web Locks y funciona dentro del mismo perfil y origen del navegador. Las revisiones y protecciones de guardado existentes siguen comprobando cambios de otros navegadores o equipos.

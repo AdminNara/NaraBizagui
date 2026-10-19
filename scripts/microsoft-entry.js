@@ -13,7 +13,7 @@ window.NaraMicrosoft = { create() {
     });
     const auth = new MicrosoftAccount(client, {
       interactionRequired: error => error instanceof InteractionRequiredAuthError,
-      accountChanged: EventType.ACTIVE_ACCOUNT_CHANGED
+      accountChanged: EventType.ACCOUNT_REMOVED
     });
     window.addEventListener('focus', () => auth.synchronize());
     window.addEventListener('pageshow', () => auth.synchronize());

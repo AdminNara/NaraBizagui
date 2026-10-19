@@ -15,7 +15,7 @@
     byId('msAccount').textContent = auth.account?.username || '';
     byId('connectMicrosoft').textContent = restoring ? 'Recuperando Microsoft…' : connected ? 'Microsoft conectado' : 'Conectar Microsoft';
     byId('connectMicrosoft').disabled = restoring;
-    for (const key of ['msConnect','msSwitch','msDisconnect','msOneDrive','msSharePointTab','msRecent','msClearRecent','msSiteOpen','msFileName']) byId(key).disabled = busy;
+    for (const key of ['msConnect','msSwitch','msDisconnect','msDisconnectAll','msOneDrive','msSharePointTab','msRecent','msClearRecent','msSiteOpen','msFileName']) byId(key).disabled = busy;
     byId('msClose').disabled = byId('msCancel').disabled = saving;
     byId('msUp').disabled = busy || recentView || !parents.length;
     byId('msMore').hidden = !nextLink; byId('msMore').disabled = busy;
@@ -46,7 +46,7 @@
   }
   function detachCloud() {
     if (!isCloud()) return;
-    browserFiles.handle = null; browserFiles.hash = null;
+    if(browserFiles.detach)browserFiles.detach();else browserFiles.handle = null; browserFiles.hash = null;
     browserFileContext(browserFiles.name); setDirty(true);
     status('La conexión al archivo se cerró. El diagrama sigue abierto como copia sin guardar.');
   }
@@ -178,9 +178,10 @@
   dialog.addEventListener('close', () => { reset(); window.NaraMicrosoftDialogOpen = false; });
   byId('msConnect').onclick = byId('msSwitch').onclick = () => run(connect, 'Conectando con Microsoft…');
   byId('msDisconnect').onclick = () => run(async () => {
-    workspace.forget();
-    await auth.disconnect(); reset(); byId('msAccountMenu').open = false; message('Cuenta desconectada en este navegador.');
+    workspace.clearCurrent?.();
+    await auth.disconnect(); reset(); byId('msAccountMenu').open = false; message('Cuenta desconectada en esta pestaña.');
   });
+  byId('msDisconnectAll').onclick = () => run(async () => { workspace.clearCurrent?.();await auth.disconnect({all:true});reset();byId('msAccountMenu').open=false;message('Conexiones cerradas en todas las pestañas de esta aplicación.'); });
   byId('msOneDrive').onclick = () => run(oneDrive);
   byId('msRecent').onclick = () => { if (!busy) recentFiles(); };
   byId('msClearRecent').onclick = () => { if (!busy) { workspace.clearRecent(); recentFiles(); } };
@@ -217,7 +218,7 @@
       byId('externalChange').hidden = true; dialog.close(); status('BPMN guardado en Microsoft · Contenido comprobado.');
     } finally { saving = false; window.naraAutoSave?.refresh(); }
   }, 'Guardando y comprobando…');
-  window.NaraMicrosoftUI = { restoring:()=>restoring,saveAs: () => open('save'), open, recents:()=>{open();if(dialog.open&&auth.account)recentFiles();},
+  window.NaraMicrosoftUI = { clearCurrent:()=>workspace.clearCurrent(),accountName:()=>auth.account?.username||'',restoring:()=>restoring,saveAs: () => open('save'), open, recents:()=>{open();if(dialog.open&&auth.account)recentFiles();},
     navigation:()=>({connected:Boolean(auth.account),busy,favorites:workspace.favorites(),canFavorite:!busy&&Boolean(folder)&&!recentView,isFavorite:Boolean(folder&&workspace.favorites().some(value=>value.id===folder.id&&value.driveId===folder.driveId))}),
     toggleFavorite:()=>{if(!busy&&folder)workspace.toggleFavorite({...folder,...context()});window.NaraWorkspaceUI?.refreshMicrosoft();},
     openFavorite:index=>{const value=workspace.favorites()[index];if(!value||busy)return;provider=value.provider;byId('msSiteUrl').value=value.siteUrl||'';recentView=false;run(()=>showFolder(value,{trail:[]}));},
@@ -231,9 +232,13 @@
   });
   Promise.all([auth.initialized, window.NaraStartup]).then(async () => {
     // An explicit new-document link must never resume an existing cloud file.
-    if(new URLSearchParams(location.search).get('nuevo')==='1')return;
+    if(new URLSearchParams(location.search).get('nuevo')==='1'){
+      workspace.clearCurrent?.();
+      if(typeof history!=='undefined'){const params=new URLSearchParams(location.search);params.delete('nuevo');history.replaceState(null,'',location.pathname+(params.size?'?'+params:'')+location.hash);}
+      return;
+    }
     const canApply = () => !resumeCancelled && auth.account && window.projectReady && standalone && ready && !dirty && !saving && !loadingDiagram && !filePolling && !browserFiles.handle && browserDocumentVersion === window.NaraInitialDocumentVersion && !window.NaraPropertyDraftPending();
-    const last = workspace.read().last, stamp = workspace.stamp();
+    const last = workspace.currentFile?.(), stamp = workspace.stamp();
     let recoveredHandle = null;
     try {
       const recovered = await workspace.resume(canApply, async (source, guard) => {
@@ -241,7 +246,7 @@
         if (applied !== false) recoveredHandle = source.handle;
         return applied;
       });
-      if (recovered) status('Último BPMN recuperado desde Microsoft. Los cambios aplicados se guardan automáticamente.');
+      if (recovered) status('Archivo de esta pestaña recuperado desde Microsoft.');
     } catch (error) {
       if (error.code === 'ACCOUNT_CHANGED') { if (recoveredHandle && browserFiles.handle === recoveredHandle) detachCloud(); return; }
       if (last && ['FILE_NOT_FOUND','MICROSOFT_PERMISSION','INVALID_TARGET'].includes(error.code)) workspace.removeFile(last, stamp);

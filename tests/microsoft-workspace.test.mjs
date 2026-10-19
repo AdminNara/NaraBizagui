@@ -217,3 +217,15 @@ test('an explicit new-document link never reads or resumes a remembered Microsof
  vm.runInNewContext(await readFile(new URL('../microsoft-ui.js',import.meta.url),'utf8'),context);await new Promise(resolve=>setImmediate(resolve));
  assert.equal(resumes,0);assert.equal(f.reads.length,0);assert.equal(f.workspace.read().last.id,ref.id);assert.equal(context.window.NaraMicrosoftUI.restoring(),false);
 });
+
+function memoryStorage(){const values=new Map();return{getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v),removeItem:k=>values.delete(k)};}
+test('two tabs restore their own document after recents change; a fresh tab never resumes the global last',async()=>{
+ const f=fixture(),sa=memoryStorage(),sb=memoryStorage();
+ const a=new MicrosoftWorkspace(f.auth,f.files,()=>f.storage,()=>sa),b=new MicrosoftWorkspace(f.auth,f.files,()=>f.storage,()=>sb);
+ a.rememberFile(f.handle,ref);const rb={...ref,id:'file-B',name:'B.bpmn'};b.rememberFile(f.files.handle(rb),rb);
+ assert.equal(a.read().last.id,'file-B');
+ let opened;await a.resume(()=>true,async x=>{opened=x.handle.itemId;});assert.equal(opened,'file-1');
+ const reloaded=new MicrosoftWorkspace(f.auth,f.files,()=>f.storage,()=>sa);assert.equal(reloaded.currentFile().id,'file-1');
+ const fresh=new MicrosoftWorkspace(f.auth,f.files,()=>f.storage,()=>memoryStorage());assert.equal(await fresh.resume(()=>true,()=>assert.fail('must stay empty')),false);
+ b.clearRecent();assert.equal(a.currentFile().id,'file-1');
+});
