@@ -898,7 +898,7 @@ window.addEventListener('focus', () => pollFile());
 document.addEventListener('visibilitychange', () => {if(document.visibilityState==='visible')pollFile();});
 let autoSavePointer=false;
 window.naraAutoSave=new window.NaraAutoSave({
-  state:()=>({target:browserFiles.readOnly?null:(standalone||detached)?browserFiles.handle:activeDiagram,document:browserDocumentVersion,dirty,saving,pending:Boolean(window.NaraPropertyDraftPending?.()||autoSavePointer||modeler.get('directEditing').isActive()),busy:!ready||loadingDiagram||filePolling||Boolean(window.NaraMicrosoftDialogOpen)}),
+  state:()=>({target:browserFiles.readOnly?null:(standalone||detached)?browserFiles.handle:activeDiagram,document:browserDocumentVersion,dirty,saving,uncertain:!!browserFiles.handle&&(browserFiles.uncertain===browserFiles.handle||!!browserFiles.handle.uncertain),pending:Boolean(window.NaraPropertyDraftPending?.()||autoSavePointer||modeler.get('directEditing').isActive()),busy:!ready||loadingDiagram||filePolling||Boolean(window.NaraMicrosoftDialogOpen)}),
   save:()=>saveBpmn(true),
   render:(kind,message,detail)=>{byId('dirtyState').textContent=browserFiles.readOnly?'Solo consulta':message;byId('dirtyState').dataset.saveState=browserFiles.readOnly?'readonly':kind;byId('dirtyState').title=detail||'El guardado automático conserva los cambios aplicados en el archivo elegido.';}
 });

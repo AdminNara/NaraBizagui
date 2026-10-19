@@ -57,6 +57,13 @@
       const padding={left:icon?30:10,right:10,top:8,bottom:marker?28:10};
       return{box:{width:size.width,height:Math.max(1,size.height-padding.top-padding.bottom)},padding,align:(style.align||'center')+'-middle',style:{...textRenderer.getDefaultStyle(),fontFamily:'Arial',fontSize:style.fontSize??16,fontWeight:style.bold?'bold':'normal',fill:style.fontColor||element.di?.stroke||'#213e53'}};
     }
+    const labelEditor=get('labelEditingProvider');
+    if(labelEditor){const native=labelEditor.getEditingBBox.bind(labelEditor);labelEditor.getEditingBBox=element=>{
+      const result=native(element);if(!activity(element))return result;
+      const {padding,style}=textOptions(element),box=canvas.getAbsoluteBBox(element),zoom=canvas.zoom();
+      result.bounds={x:box.x+padding.left*zoom,y:box.y+padding.top*zoom,width:(element.width-padding.left-padding.right)*zoom,height:(element.height-padding.top-padding.bottom)*zoom};
+      Object.assign(result.style,{fontFamily:style.fontFamily,fontSize:style.fontSize*zoom+'px',fontWeight:style.fontWeight,lineHeight:style.lineHeight||1.2,textAlign:readStyle(element).align||'center',paddingTop:0,paddingBottom:0,paddingLeft:0,paddingRight:0});return result;
+    };}
     function decorate(element){
       if(element.type==='bpmn:TextAnnotation'){
         const visual=registry.getGraphics?.(element)?.querySelector('.djs-visual'),fill=readStyle(element).fill;if(!visual)return;
@@ -77,7 +84,10 @@
       const owner=element.labelTarget||element,shape=external(owner)?owner.label:owner,gfx=shape&&registry.getGraphics?.(shape);
       const text=gfx?.querySelector('.djs-visual text.djs-label');if(!text)return null;
       try{
-        const b=text.getBBox(),bounds={x:shape.x+b.x,y:shape.y+b.y+Number(text.dataset.naraTextOffsetY||0),width:b.width,height:b.height},style=readStyle(owner),fontSize=style.fontSize??(external(owner)?14:16);
+        const b=text.getBBox(),matrix=text.getCTM(),shapeMatrix=gfx.getCTM();let bounds;
+        if(matrix&&shapeMatrix){const relative=shapeMatrix.inverse().multiply(matrix),corners=[[b.x,b.y],[b.x+b.width,b.y],[b.x,b.y+b.height],[b.x+b.width,b.y+b.height]].map(([x,y])=>({x:relative.a*x+relative.c*y+relative.e,y:relative.b*x+relative.d*y+relative.f}));const xs=corners.map(p=>p.x),ys=corners.map(p=>p.y);bounds={x:shape.x+Math.min(...xs),y:shape.y+Math.min(...ys),width:Math.max(...xs)-Math.min(...xs),height:Math.max(...ys)-Math.min(...ys)};}
+        else bounds={x:shape.x+b.x,y:shape.y+b.y+Number(text.dataset.naraTextOffsetY||0),width:b.width,height:b.height};
+        const style=readStyle(owner),fontSize=style.fontSize??(external(owner)?14:16);
         const output={rendered:true,bounds,fontSize,lineCount:text.querySelectorAll('tspan').length,contentPreserved:(text.textContent||'').replace(/\s/g,'')===(owner.businessObject.name||'').replace(/\s/g,'')};
         if(activity(owner)){
           const {padding}=textOptions(owner),available={x:owner.x+padding.left,y:owner.y+padding.top,width:owner.width-padding.left-padding.right,height:owner.height-padding.top-padding.bottom};
@@ -127,9 +137,9 @@
       const data=cachedSnapshot?{...cachedSnapshot,elements:cachedSnapshot.elements.slice()}:snapshot(),source=end==='source'?reference.source:connection.source,target=end==='target'?reference.target:connection.target;
       const virtual={id:connection.id||'__nara_shared_preview',type:connection.type,sourceId:source.id,targetId:target.id,flowScopeId:connection.businessObject?.$parent?.id||source.businessObject?.$parent?.id,parentId:source.parent?.id,waypoints:connection.waypoints||[{x:source.x+source.width/2,y:source.y+source.height/2},{x:target.x+target.width/2,y:target.y+target.height/2}],routing:connection.businessObject?readRouting(connection):undefined};
       data.elements=data.elements.filter(e=>e.id!==virtual.id);data.elements.push(virtual);
-      let anchor=sourcePoint&&window.NaraModelAudit.inferAnchor(source,sourcePoint);
-      if(anchor){const edge=window.NaraModelAudit.anchorPoint(source,anchor.side,anchor.offset);if(Math.hypot(edge.x-sourcePoint.x,edge.y-sourcePoint.y)>2)anchor=null;}
-      return window.NaraModelAudit.shareConnectionPath(data,{elementId:virtual.id,withConnectionId:reference.id,point,end,...(anchor?{sourceSide:anchor.side,sourceOffset:anchor.offset}:{})});
+      const freeShape=end==='source'?target:source;let anchor=sourcePoint&&window.NaraModelAudit.inferAnchor(freeShape,sourcePoint);
+      if(anchor){const edge=window.NaraModelAudit.anchorPoint(freeShape,anchor.side,anchor.offset);if(Math.hypot(edge.x-sourcePoint.x,edge.y-sourcePoint.y)>2)anchor=null;}
+      return window.NaraModelAudit.shareConnectionPath(data,{elementId:virtual.id,withConnectionId:reference.id,point,end,...(anchor?(end==='source'?{targetSide:anchor.side,targetOffset:anchor.offset}:{sourceSide:anchor.side,sourceOffset:anchor.offset}):{})});
     }
     stack.registerHandler('nara.visual.share',function(){
       this.preExecute=c=>{
@@ -151,27 +161,74 @@
       else{const stub={x:first.x+v[0]*12,y:first.y+v[1]*12},bend=v[0]?{x:stub.x,y:next.y}:{x:next.x,y:stub.y};points.splice(1,0,stub,bend);}
       return points;
     }
+    const reconnectPlans=new WeakMap();
+    function reconnectPlan(connection,{sourceId,targetId,sourcePoint,targetPoint}={},data=snapshot()){
+      let routing=readRouting(connection);const movedEnd=sourcePoint?'source':targetPoint?'target':null;
+      if(routing?.sharedWith&&movedEnd){
+        const end=routing.sharedEnd||'target',reference=registry.get(routing.sharedWith);
+        if(end!==movedEnd&&reference){const virtual={...connection,source:sourceId?registry.get(sourceId):connection.source,target:targetId?registry.get(targetId):connection.target};return sharedPlan(virtual,reference,routing.joinPoint,end,sourcePoint||targetPoint,data);}
+        routing={...routing};delete routing.sharedWith;delete routing.sharedEnd;delete routing.joinPoint;
+      }
+      return window.NaraModelAudit.planReconnectPreview(data,connection.id,{sourceId,targetId,sourcePoint,targetPoint,routing});
+    }
     const preview=get('connectionPreview');
+    const roundPoints=points=>points.map(p=>({x:Math.round(p.x),y:Math.round(p.y)}));
+    function interactivePlan(connection,points,snap){
+      if(snap){const end=connection.target===snap.reference.target?'target':'source';try{return sharedPlan(connection,snap.reference,snap.point,end);}catch(error){if(!['ROUTE_BLOCKED','SHARED_ROUTE_CYCLE'].includes(error.code))throw error;}}
+      const source=window.NaraModelAudit.inferAnchor(connection.source,points[0]),target=window.NaraModelAudit.inferAnchor(connection.target,points.at(-1));
+      return {waypoints:orthogonalizeWaypoints(roundPoints(points),{sourceSide:source.side,targetSide:target.side}),routing:{mode:'orthogonal',manual:true,source,target}};
+    }
     if(preview){
       const draw=preview.drawPreview.bind(preview);
       preview.drawPreview=(context,allowed,hints={})=>{
         if(context.naraSharedPlan){hints={...hints,source:context.source,target:context.target,waypoints:context.naraSharedPlan.waypoints,noLayout:true,noCropping:true};allowed=context.naraSharedAllowed;}
         else if(allowed&&context.hover&&!context.hover.waypoints&&['reconnectStart','reconnectEnd'].includes(context.type)){
           try{
-            const rounded=p=>p&&({x:Math.round(p.x),y:Math.round(p.y)}),plan=window.NaraModelAudit.planReconnectPreview(context.naraRouteSnapshot||(context.naraRouteSnapshot=snapshot()),context.connection.id,{sourceId:hints.source?.id,targetId:hints.target?.id,sourcePoint:rounded(hints.connectionStart),targetPoint:rounded(hints.connectionEnd),routing:readRouting(context.connection)});
+            const rounded=p=>p&&({x:Math.round(p.x),y:Math.round(p.y)}),plan=reconnectPlan(context.connection,{sourceId:hints.source?.id,targetId:hints.target?.id,sourcePoint:rounded(hints.connectionStart),targetPoint:rounded(hints.connectionEnd)},context.naraRouteSnapshot||(context.naraRouteSnapshot=snapshot()));
             hints={...hints,waypoints:plan.waypoints,noLayout:true,noCropping:true};
           }catch(error){if(!['ROUTE_BLOCKED','ROUTE_SELF_LOOP','ROUTE_GEOMETRY_MISSING'].includes(error.code))throw error;}
         }else if(hints.noLayout&&hints.waypoints?.length>1&&context.connection?.source&&context.connection?.target){
-          const connection=context.connection,source=window.NaraModelAudit.inferAnchor(connection.source,hints.waypoints[0]),target=window.NaraModelAudit.inferAnchor(connection.target,hints.waypoints.at(-1));
-          hints={...hints,waypoints:orthogonalizeWaypoints(hints.waypoints,{sourceSide:source.side,targetSide:target.side})};
+          const plan=context.naraCommitPlan=interactivePlan(context.connection,hints.waypoints,context.naraSnap);
+          hints={...hints,waypoints:plan.waypoints,noCropping:true};
+        }else if(!allowed&&context.connection&&['reconnectStart','reconnectEnd'].includes(context.type)&&(!context.hover||!context.hover.parent)){
+          // Empty canvas is an unfinished gesture, not a forbidden BPMN target.
+          // Show the actual orthogonal outline without the misleading red icon.
+          const connection=context.connection,sourceEnd=context.type==='reconnectStart',point=sourceEnd?hints.connectionStart:hints.connectionEnd;
+          if(point){const fixed=sourceEnd?connection.waypoints.at(-1):connection.waypoints[0],anchor=window.NaraModelAudit.inferAnchor(sourceEnd?connection.target:connection.source,fixed),points=sourceEnd?[point,fixed]:[fixed,point];hints={...hints,source:connection.source,target:connection.target,waypoints:orthogonalizeWaypoints(roundPoints(points),sourceEnd?{targetSide:anchor.side}:{sourceSide:anchor.side}),noLayout:true,noCropping:true};allowed={type:connection.type};}
         }
         return draw(context,allowed,hints);
       };
     }
     if(events){
       installHistoryGuards(events,registry,modeling);
+      events.on('commandStack.connection.reconnect.preExecute',1800,({context:c})=>{
+        const points=c.dockingOrPoints,hints=c.hints||{},end=hints.docking||(c.newSource&&!c.newTarget?'source':'target'),point=Array.isArray(points)?(end==='source'?points[0]:points.at(-1)):points;
+        try{c.naraReconnectPlan=reconnectPlan(c.connection,{sourceId:c.newSource?.id,targetId:c.newTarget?.id,sourcePoint:hints.connectionStart||(end==='source'?point:undefined),targetPoint:hints.connectionEnd||(end==='target'?point:undefined)});}catch(error){if(!['ROUTE_BLOCKED','ROUTE_SELF_LOOP','ROUTE_GEOMETRY_MISSING'].includes(error.code))throw error;}
+      });
+      // Preserve the sheet title and metadata when the native modeler replaces
+      // an empty Process with a Collaboration to host its first participant.
+      events.on('commandStack.canvas.updateRoot.preExecute',1800,({context:c})=>{
+        const previous=canvas.getRootElement()?.businessObject,next=c.newRoot?.businessObject;
+        if(previous?.$type!=='bpmn:Process'||next?.$type!=='bpmn:Collaboration')return;
+        if(!next.name&&previous.name)next.name=previous.name;
+        const copied=get('moddleCopy')?.copyElement(previous,get('bpmnFactory').create('bpmn:Collaboration'),['documentation','extensionElements']);
+        for(const key of ['documentation','extensionElements'])if(!next[key]&&copied?.[key]){next[key]=copied[key];if(Array.isArray(next[key]))for(const value of next[key])value.$parent=next;else next[key].$parent=next;}
+      });
       events.on('commandStack.connection.delete.preExecute',1600,({context:c})=>{for(const e of registry.getAll().filter(e=>e.waypoints&&readRouting(e)?.sharedWith===c.connection.id)){const routing={...readRouting(e)};delete routing.sharedWith;delete routing.sharedEnd;delete routing.joinPoint;putExtension(e,'nara:ConnectionRouting',routing);}});
-      const pendingSnap=new WeakMap();
+      const pendingSnap=new WeakMap(),pendingInteractive=new WeakMap();
+      function nearbyEndpoint(event){
+        const c=event.context,connection=c.connection;if(!connection||!['reconnectStart','reconnectEnd'].includes(c.type)||![event.x,event.y].every(Number.isFinite))return;
+        if(c.naraNearby){canvas.removeMarker(c.naraNearby,'connect-ok');canvas.removeMarker(c.naraNearby,'connect-hover');if(c.hover===c.naraNearby){c.hover=null;c.allowed=false;c.source=c.target=null;}c.naraNearby=null;}
+        if(c.hover?.parent||event.originalEvent?.altKey)return;
+        const start=c.type==='reconnectStart',point={x:event.x,y:event.y};let nearest;
+        for(const shape of registry.getAll().filter(e=>e.parent&&!e.labelTarget&&!e.waypoints&&e.width>0&&e.height>0&&!['bpmn:Lane','bpmn:Participant','bpmn:Group'].includes(e.type)&&canvas.findRoot(e)===canvas.getRootElement())){
+          const anchor=window.NaraModelAudit.inferAnchor(shape,point),edge=window.NaraModelAudit.anchorPoint(shape,anchor.side,anchor.offset),distance=Math.hypot(edge.x-point.x,edge.y-point.y);if(distance>18/canvas.zoom()||nearest&&nearest.distance<=distance)continue;
+          const source=start?shape:connection.source,target=start?connection.target:shape,allowed=rules.allowed('connection.reconnect',{connection,source,target});if(source===target||!allowed)continue;nearest={shape,distance,source,target,allowed};
+        }
+        if(nearest){c.naraNearby=c.hover=nearest.shape;c.source=nearest.source;c.target=nearest.target;c.allowed=nearest.allowed;canvas.addMarker(nearest.shape,'connect-ok');canvas.addMarker(nearest.shape,'connect-hover');}
+      }
+      events.on(['bendpoint.move.move','bendpoint.move.end'],1700,nearbyEndpoint);
+      events.on('bendpoint.move.cleanup',500,event=>{if(event.context.naraNearby){canvas.removeMarker(event.context.naraNearby,'connect-ok');canvas.removeMarker(event.context.naraNearby,'connect-hover');}});
       function snapShared(event){
         const c=event.context,connection=c.connection;
         if(c.naraSnap)canvas.removeMarker(c.naraSnap.reference,'nara-snap-target');c.naraSnap=null;
@@ -189,8 +246,14 @@
         if(nearest){const axis=segment?c.axis:null,p=nearest.point;if(!axis||axis==='x'){event.dx+=p.x-event.x;event.x=p.x;}if(!axis||axis==='y'){event.dy+=p.y-event.y;event.y=p.y;}c.naraSnap=nearest;canvas.addMarker(nearest.reference,'nara-snap-target');}
       }
       events.on(['connectionSegment.move.move','connectionSegment.move.end','bendpoint.move.move','bendpoint.move.end'],1400,snapShared);
+      events.on('connectionSegment.move.move',500,event=>{
+        const c=event.context;if(!c.newWaypoints?.length)return;
+        const plan=c.naraCommitPlan=interactivePlan(c.connection,c.newWaypoints,c.naraSnap);c.newWaypoints=plan.waypoints;c.connection.waypoints=plan.waypoints;
+        get('graphicsFactory').update('connection',c.connection,event.connectionGfx||registry.getGraphics(c.connection));
+      });
+      events.on(['connectionSegment.move.end','bendpoint.move.end'],1250,event=>{if(event.context.naraCommitPlan)pendingInteractive.set(event.context.connection,event.context.naraCommitPlan);});
       events.on(['connectionSegment.move.end','bendpoint.move.end'],1300,event=>{if(event.context.naraSnap)pendingSnap.set(event.context.connection,event.context.naraSnap);});
-      events.on(['connectionSegment.move.cleanup','bendpoint.move.cleanup'],500,event=>{const snap=event.context.naraSnap;if(snap)canvas.removeMarker(snap.reference,'nara-snap-target');pendingSnap.delete(event.context.connection);});
+      events.on(['connectionSegment.move.cleanup','bendpoint.move.cleanup'],500,event=>{const snap=event.context.naraSnap;if(snap)canvas.removeMarker(snap.reference,'nara-snap-target');pendingSnap.delete(event.context.connection);pendingInteractive.delete(event.context.connection);});
       function prepareShare(event){
         const c=event.context,reference=c.hover||event.hover,connection=c.connection,isNew=!!c.start,end=c.type==='reconnectStart'?'source':'target';
         c.naraSharedPlan=null;
@@ -222,6 +285,8 @@
       events.on('commandStack.shape.resize.canExecute',1600,event=>{const {shape,newBounds}=event.context;if(!activity(shape))return;return !newBounds||[newBounds.x,newBounds.y,newBounds.width,newBounds.height].every(Number.isFinite)&&newBounds.width>=100&&newBounds.height>=80;});
       events.on('commandStack.connection.updateWaypoints.preExecute',1600,event=>{
         const c=event.context,r=readRouting(c.connection);if(c.hints?.naraExplicitRoute||c.newWaypoints.length<2)return;
+        const previewPlan=pendingInteractive.get(c.connection);pendingInteractive.delete(c.connection);
+        if(previewPlan&&(c.hints?.segmentMove||c.hints?.bendpointMove)){pendingSnap.delete(c.connection);c.newWaypoints=previewPlan.waypoints;putExtension(c.connection,'nara:ConnectionRouting',previewPlan.routing);return;}
         const snap=pendingSnap.get(c.connection);pendingSnap.delete(c.connection);
         if(snap){const end=c.connection.target===snap.reference.target?'target':'source';try{const plan=sharedPlan(c.connection,snap.reference,snap.point,end);putExtension(c.connection,'nara:ConnectionRouting',plan.routing);c.newWaypoints=plan.waypoints;return;}catch(error){if(!['ROUTE_BLOCKED','SHARED_ROUTE_CYCLE'].includes(error.code))throw error;}}
         const interactive=c.hints?.segmentMove||c.hints?.bendpointMove;
@@ -241,11 +306,13 @@
       });
       events.on('commandStack.connection.reconnect.postExecute',1600,event=>{
         const c=event.context,connection=c.connection,old=readRouting(connection)||{mode:'orthogonal',source:window.NaraModelAudit.inferAnchor(connection.source,connection.waypoints[0]),target:window.NaraModelAudit.inferAnchor(connection.target,connection.waypoints.at(-1))};
+        if(c.naraReconnectPlan){putExtension(connection,'nara:ConnectionRouting',c.naraReconnectPlan.routing);reconnectPlans.set(connection,c.naraReconnectPlan);return;}
         const docking=c.dockingOrPoints,points=Array.isArray(docking)?docking:connection.waypoints,hints=c.hints||{},side=hints.docking;
         const source=side!=='target'?window.NaraModelAudit.inferAnchor(connection.source,hints.connectionStart||(Array.isArray(docking)?docking[0]:docking)||points[0]):old.source;
         const target=side!=='source'?window.NaraModelAudit.inferAnchor(connection.target,hints.connectionEnd||(Array.isArray(docking)?docking.at(-1):docking)||points.at(-1)):old.target;
         putExtension(connection,'nara:ConnectionRouting',{...old,source,target});
       });
+      events.on('commandStack.connection.reconnect.postExecute',400,({context:c})=>reconnectPlans.delete(c.connection));
       events.on('commandStack.connection.create.postExecute',500,event=>{
         const c=event.context,connection=c.connection;if(!connection?.source||!connection?.target||connection.source===connection.target||readRouting(connection))return;
         try{orthogonal(connection,{sourceSide:c.hints?.connectionStart?window.NaraModelAudit.inferAnchor(connection.source,c.hints.connectionStart).side:'auto'});}catch(error){if(error.code!=='ROUTE_BLOCKED')throw error;manualRoute(connection,connection.waypoints);}
@@ -256,6 +323,7 @@
     if(layouter){
       const native=layouter.layoutConnection.bind(layouter);
       layouter.layoutConnection=(connection,hints={})=>{
+        if(reconnectPlans.has(connection))return reconnectPlans.get(connection).waypoints;
         const normalize=points=>orthogonalizeWaypoints(points,{sourceSide:window.NaraModelAudit.inferAnchor(hints.source||connection.source,points[0])?.side,targetSide:window.NaraModelAudit.inferAnchor(hints.target||connection.target,points.at(-1))?.side});
         const routing=readRouting(connection);if(routing?.mode!=='orthogonal')return normalize(native(connection,hints));
         if(routing.sharedWith){const reference=registry.get(routing.sharedWith);if(reference&&connection[routing.sharedEnd||'target']===reference[routing.sharedEnd||'target'])try{return sharedPlan(connection,reference,routing.joinPoint,routing.sharedEnd).waypoints;}catch(error){if(!['ROUTE_BLOCKED','SHARED_ROUTE_DIAGONAL'].includes(error.code))throw error;}}

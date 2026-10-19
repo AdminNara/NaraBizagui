@@ -47,6 +47,15 @@
       selectedId=selectionId||null;render();return selectionId;
     }
     function createSheet(name){const model=M.empty(name);commit(model,{create:true});return model.id;}
+    function duplicateSheet(id,name){
+      const model=M.duplicate(read(id),name);
+      commit(model,{create:true});return model.id;
+    }
+    function removeSheet(id){
+      extension(id);if(pending())throw fail('FORM_PENDING','Termina la edición de la celda antes de eliminar una hoja.');
+      const values=extensions().filter(e=>e.$type!=='nara:EntityRelationship'||e.id!==id),next=moddle.create('bpmn:ExtensionElements',{values});
+      commandStack.execute('nara.erd.update',{previous:defs().extensionElements,next:values.length?next:undefined,previousActive:activeId,nextActive:activeId===id?null:activeId});
+    }
     function rename(id,name){const model=read(id);model.name=name.trim();commit(model);}
     function edit(operation){
       if(operation.type==='erd_sheet_create')return createSheet(operation.name);
@@ -241,7 +250,7 @@
     eventBus.on('commandStack.changed',()=>{if(activeId)safe(render);});
     window.addEventListener('resize',setView);
     function exportSvg(){const model=read(),root=node('svg',{xmlns:NS});let minX=0,minY=0,width=800,height=500;if(model.tables.length){minX=Math.min(...model.tables.map(t=>t.x))-35;minY=Math.min(...model.tables.map(t=>t.y))-35;width=Math.max(...model.tables.map(t=>t.x+t.width))-minX+100;height=Math.max(...model.tables.map(t=>t.y+M.height(t)))-minY+35;}root.setAttribute('width',width);root.setAttribute('height',height);root.setAttribute('viewBox',`${minX} ${minY} ${width} ${height}`);root.appendChild(node('rect',{x:minX,y:minY,width,height,fill:'#fff'}));root.appendChild(draw(model,{controls:false}));return new XMLSerializer().serializeToString(root);}
-    const api={list,read,open,close,rename,create:createSheet,edit,active:()=>activeId,selected:()=>selectedId,selectedField:()=>selectedField,pending,render,resize:setView,renderProperties,fit,zoom,scale:()=>activeId?view().scale:1,view:()=>activeId?{...view()}:null,restoreView:value=>{if(activeId&&value){views.set(activeId,{...value});setView();}},deleteSelection:removeSelected,exportSvg};
+    const api={list,read,open,close,rename,create:createSheet,duplicateSheet,removeSheet,edit,active:()=>activeId,selected:()=>selectedId,selectedField:()=>selectedField,pending,render,resize:setView,renderProperties,fit,zoom,scale:()=>activeId?view().scale:1,view:()=>activeId?{...view()}:null,restoreView:value=>{if(activeId&&value){views.set(activeId,{...value});setView();}},deleteSelection:removeSelected,exportSvg};
     Object.assign(this,api);window.NaraER=api;
   }
   EntityRelationshipEditor.$inject=['bpmnjs','canvas','commandStack','eventBus','moddle','selection'];

@@ -138,6 +138,10 @@ La herramienta `narabizagui_export_png` devuelve la hoja activa completa como im
 
 ## Recursos
 
+Cada pestaña de hoja tiene un menú **⋯** (también con clic derecho o Mayús+F10) para cambiar nombre, duplicar o eliminar. Duplicar conserva contenido y geometría con IDs nuevos, incluidas hojas de datos y detalles de subprocesos. Eliminar pide confirmación y se recupera con Deshacer; una hoja llamada desde otra actividad debe desvincularse primero. El archivo conserva al menos una hoja BPMN.
+
+Al editar flechas, los extremos cercanos se acoplan al borde y la vista previa usa el recorrido final sin diagonales. Mover el extremo común de una flecha con un tramo compartido la independiza para respetar la nueva entrada o salida elegida. Alt evita el acople automático.
+
 `index.html`, `modelador.js`, `editor-tools.js`, `sheets.js`, `erd-model.js`, `erd-editor.js`, `editor-style.js`, `archivos.js`, `mcp-editor.js`, `mcp-bridge.js`, `modelador.css` y `assets/` forman la aplicación. `manifest.json` registra sus hashes al empaquetar. Las dependencias y su licencia se conservan en `vendor/`. El servidor MCP y la skill viven en `plugins/narabizagui/`; la web estática no ejecuta el servidor.
 
 Para desarrollar el plugin: `npm ci`, `npm run build`, `npm test`. El build incluye sus dependencias y licencias en el paquete y actualiza el manifiesto web.
