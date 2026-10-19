@@ -1,5 +1,27 @@
 'use strict';
 (() => {
+  const sameCoordinate=(a,b)=>Math.abs(a-b)<.01,samePoint=(a,b)=>sameCoordinate(a.x,b.x)&&sameCoordinate(a.y,b.y);
+  // Keep the user's endpoints and bends. Only add square elbows where a dragged
+  // segment would otherwise be diagonal; this is not a full automatic reroute.
+  function orthogonalizeWaypoints(points,{sourceSide,targetSide}={}){
+    if(points.length<2)return points.map(p=>({...p}));
+    if(points.length===2&&sourceSide&&targetSide&&['left','right'].includes(sourceSide)===['left','right'].includes(targetSide)&&!sameCoordinate(points[0].x,points[1].x)&&!sameCoordinate(points[0].y,points[1].y)){
+      const [a,b]=points,horizontal=['left','right'].includes(sourceSide),middle=horizontal?(a.x+b.x)/2:(a.y+b.y)/2;
+      return window.NaraModelAudit.simplifyOrthogonal([a,horizontal?{x:middle,y:a.y}:{x:a.x,y:middle},horizontal?{x:middle,y:b.y}:{x:b.x,y:middle},b]);
+    }
+    const output=[{...points[0]}];let horizontal=['left','right'].includes(sourceSide);
+    for(let i=1;i<points.length;i++){
+      const a=output.at(-1),b=points[i];
+      if(!sameCoordinate(a.x,b.x)&&!sameCoordinate(a.y,b.y)){
+        let firstHorizontal=horizontal;
+        if(i===points.length-1&&targetSide)firstHorizontal=['top','bottom'].includes(targetSide);
+        output.push(firstHorizontal?{x:b.x,y:a.y}:{x:a.x,y:b.y});
+      }
+      const previous=output.at(-1);if(!samePoint(previous,b))horizontal=sameCoordinate(previous.y,b.y);
+      output.push({...b});
+    }
+    return window.NaraModelAudit.simplifyOrthogonal(output);
+  }
   const instances=new WeakMap(),fail=(code,message)=>Object.assign(Error(message),{code});
   const activity=e=>!!e?.businessObject&&(e.businessObject.$instanceOf?.('bpmn:Task')||e.type==='bpmn:CallActivity'||e.type==='bpmn:SubProcess'&&e.di?.isExpanded===false);
   const external=e=>e.type==='label'||/(?:Event|Gateway|Flow|Reference)$/.test(e.type);
@@ -114,7 +136,7 @@
       this.preExecute=c=>{
         const connection=c.element;
         let result=c.plan;
-        if(c.waypoints){const metrics=window.NaraModelAudit.routeMetrics(c.waypoints);result={waypoints:c.waypoints,routing:{mode:metrics.orthogonal?'orthogonal':'manual',source:window.NaraModelAudit.inferAnchor(connection.source,c.waypoints[0]),target:window.NaraModelAudit.inferAnchor(connection.target,c.waypoints.at(-1))}};}
+        if(c.waypoints){const source=window.NaraModelAudit.inferAnchor(connection.source,c.waypoints[0]),target=window.NaraModelAudit.inferAnchor(connection.target,c.waypoints.at(-1));result={waypoints:orthogonalizeWaypoints(c.waypoints,{sourceSide:source.side,targetSide:target.side}),routing:{mode:'orthogonal',source,target}};}
         else if(!result)result=planRoute(connection,c.options);
         putExtension(connection,'nara:ConnectionRouting',result.routing);modeling.updateWaypoints(connection,result.waypoints,{naraExplicitRoute:true});c.result=result;
       };this.execute=this.revert=c=>[c.element];
@@ -129,6 +151,17 @@
       else{const stub={x:first.x+v[0]*12,y:first.y+v[1]*12},bend=v[0]?{x:stub.x,y:next.y}:{x:next.x,y:stub.y};points.splice(1,0,stub,bend);}
       return points;
     }
+    const preview=get('connectionPreview');
+    if(preview){
+      const draw=preview.drawPreview.bind(preview);
+      preview.drawPreview=(context,allowed,hints={})=>{
+        if(hints.noLayout&&hints.waypoints?.length>1){
+          const connection=context.connection,source=window.NaraModelAudit.inferAnchor(connection.source,hints.waypoints[0]),target=window.NaraModelAudit.inferAnchor(connection.target,hints.waypoints.at(-1));
+          hints={...hints,waypoints:orthogonalizeWaypoints(hints.waypoints,{sourceSide:source.side,targetSide:target.side})};
+        }
+        return draw(context,allowed,hints);
+      };
+    }
     if(events){
       installHistoryGuards(events,registry,modeling);
       events.on('commandStack.shape.resize.postExecute',500,({context:c})=>{
@@ -141,8 +174,13 @@
       });
       events.on('commandStack.shape.resize.canExecute',1600,event=>{const {shape,newBounds}=event.context;if(!activity(shape))return;return !newBounds||[newBounds.x,newBounds.y,newBounds.width,newBounds.height].every(Number.isFinite)&&newBounds.width>=100&&newBounds.height>=80;});
       events.on('commandStack.connection.updateWaypoints.preExecute',1600,event=>{
-        const c=event.context,r=readRouting(c.connection);if(r?.mode!=='orthogonal'||c.hints?.naraExplicitRoute||c.newWaypoints.length<3)return;
-        let points=c.newWaypoints.map(p=>({...p}));points=repairEndpoint(points,c.connection.source,r.source);points=repairEndpoint(points.reverse(),c.connection.target,r.target).reverse();c.newWaypoints=window.NaraModelAudit.simplifyOrthogonal(points);
+        const c=event.context,r=readRouting(c.connection);if(c.hints?.naraExplicitRoute||c.newWaypoints.length<2)return;
+        const interactive=c.hints?.segmentMove||c.hints?.bendpointMove;
+        let points=c.newWaypoints.map(p=>({...p}));
+        if(r?.mode==='orthogonal'&&!interactive){points=repairEndpoint(points,c.connection.source,r.source);points=repairEndpoint(points.reverse(),c.connection.target,r.target).reverse();}
+        const source=interactive||!r?window.NaraModelAudit.inferAnchor(c.connection.source,points[0]):r.source,target=interactive||!r?window.NaraModelAudit.inferAnchor(c.connection.target,points.at(-1)):r.target;
+        c.newWaypoints=orthogonalizeWaypoints(points,{sourceSide:source.side,targetSide:target.side});
+        if(interactive||!r)putExtension(c.connection,'nara:ConnectionRouting',{mode:'orthogonal',source,target});
       });
       events.on('commandStack.connection.reconnect.postExecute',1600,event=>{
         const c=event.context,connection=c.connection,old=readRouting(connection);if(!old)return;
@@ -181,6 +219,6 @@
   }
   function create(modeler){const existing=modeler.get('naraVisual',false);if(existing)return existing;if(!instances.has(modeler))instances.set(modeler,build(modeler));return instances.get(modeler);}
   function Service(injector){return build({get:(name,strict)=>injector.get(name,strict)});}Service.$inject=['injector'];
-  window.NaraVisual={create,activity,installHistoryGuards};
+  window.NaraVisual={create,activity,installHistoryGuards,orthogonalizeWaypoints};
   window.NaraVisualModule={__init__:['naraVisual'],naraVisual:['type',Service]};
 })();
