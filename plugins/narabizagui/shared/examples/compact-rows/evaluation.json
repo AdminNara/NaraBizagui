@@ -1,0 +1,353 @@
+{
+  "ok": true,
+  "checks": [
+    {
+      "check": "unique IDs in both snapshots",
+      "pass": true
+    },
+    {
+      "check": "same IDs, semantic fields, lane responsibility and connection endpoints",
+      "pass": true
+    },
+    {
+      "check": "nine activities retain 260x100 and all text/style",
+      "pass": true
+    },
+    {
+      "check": "same active sheet",
+      "pass": true
+    },
+    {
+      "check": "unaffected start, first task and input document retain geometry",
+      "pass": true
+    },
+    {
+      "check": "two aligned activity columns",
+      "pass": true
+    },
+    {
+      "check": "right-to-left flow preserves Task_3 -> Task_4",
+      "pass": true
+    },
+    {
+      "check": "busy role retains one lane and several rows",
+      "pass": true
+    },
+    {
+      "check": "no invented stages, notes or second process",
+      "pass": true
+    },
+    {
+      "check": "all figures and external label bounds fit their assigned lane",
+      "pass": true
+    },
+    {
+      "check": "all connection segments are orthogonal",
+      "pass": true
+    },
+    {
+      "check": "static geometry has no errors, warnings or route quality findings",
+      "pass": true
+    }
+  ],
+  "semanticSha256": {
+    "before": "3b4d525305f83e059386b64366dd50c96d26edb9cec865f2cfefa041d215e2b4",
+    "after": "3b4d525305f83e059386b64366dd50c96d26edb9cec865f2cfefa041d215e2b4"
+  },
+  "diff": {
+    "added": [],
+    "removed": [],
+    "changed": [
+      {
+        "id": "Pool_Generic",
+        "fields": [
+          "width",
+          "height"
+        ]
+      },
+      {
+        "id": "Lane_1",
+        "fields": [
+          "width"
+        ]
+      },
+      {
+        "id": "Lane_2",
+        "fields": [
+          "width"
+        ]
+      },
+      {
+        "id": "Lane_3",
+        "fields": [
+          "width",
+          "height"
+        ]
+      },
+      {
+        "id": "Task_2",
+        "fields": [
+          "x"
+        ]
+      },
+      {
+        "id": "Task_3",
+        "fields": [
+          "x"
+        ]
+      },
+      {
+        "id": "Task_4",
+        "fields": [
+          "x"
+        ]
+      },
+      {
+        "id": "Task_5",
+        "fields": [
+          "x",
+          "y"
+        ]
+      },
+      {
+        "id": "Task_6",
+        "fields": [
+          "x",
+          "y"
+        ]
+      },
+      {
+        "id": "Task_7",
+        "fields": [
+          "x",
+          "y"
+        ]
+      },
+      {
+        "id": "Task_8",
+        "fields": [
+          "x",
+          "y"
+        ]
+      },
+      {
+        "id": "Task_9",
+        "fields": [
+          "x",
+          "y"
+        ]
+      },
+      {
+        "id": "End_Generic",
+        "fields": [
+          "x",
+          "y",
+          "labelBounds"
+        ]
+      },
+      {
+        "id": "Doc_2",
+        "fields": [
+          "x",
+          "labelBounds"
+        ]
+      },
+      {
+        "id": "Doc_3",
+        "fields": [
+          "x",
+          "y",
+          "labelBounds"
+        ]
+      },
+      {
+        "id": "Doc_4",
+        "fields": [
+          "x",
+          "y",
+          "labelBounds"
+        ]
+      },
+      {
+        "id": "Flow_2",
+        "fields": [
+          "waypoints"
+        ]
+      },
+      {
+        "id": "Flow_3",
+        "fields": [
+          "waypoints",
+          "routing"
+        ]
+      },
+      {
+        "id": "Flow_4",
+        "fields": [
+          "waypoints",
+          "routing"
+        ]
+      },
+      {
+        "id": "Flow_5",
+        "fields": [
+          "waypoints",
+          "routing"
+        ]
+      },
+      {
+        "id": "Flow_6",
+        "fields": [
+          "waypoints",
+          "routing"
+        ]
+      },
+      {
+        "id": "Flow_7",
+        "fields": [
+          "waypoints",
+          "routing"
+        ]
+      },
+      {
+        "id": "Flow_8",
+        "fields": [
+          "waypoints"
+        ]
+      },
+      {
+        "id": "Flow_9",
+        "fields": [
+          "waypoints",
+          "routing"
+        ]
+      },
+      {
+        "id": "Flow_10",
+        "fields": [
+          "waypoints",
+          "routing"
+        ]
+      },
+      {
+        "id": "Data_2",
+        "fields": [
+          "waypoints",
+          "routing"
+        ]
+      },
+      {
+        "id": "Data_3",
+        "fields": [
+          "waypoints"
+        ]
+      },
+      {
+        "id": "Data_4",
+        "fields": [
+          "waypoints",
+          "routing"
+        ]
+      },
+      {
+        "id": "Data_5",
+        "fields": [
+          "waypoints",
+          "routing"
+        ]
+      },
+      {
+        "id": "Data_6",
+        "fields": [
+          "waypoints"
+        ]
+      }
+    ]
+  },
+  "sizes": {
+    "before": {
+      "width": 1900,
+      "height": 960,
+      "area": 1824000,
+      "aspect": 1.9791666666666667
+    },
+    "after": {
+      "width": 906,
+      "height": 1280,
+      "area": 1159680,
+      "aspect": 0.7078125
+    }
+  },
+  "changePct": {
+    "width": -52.315789473684205,
+    "height": 33.33333333333333,
+    "area": -36.421052631578945
+  },
+  "audits": {
+    "before": {
+      "valid": true,
+      "complete": true,
+      "errors": 0,
+      "warnings": 0,
+      "issues": [],
+      "quality": {
+        "ok": true,
+        "complete": false,
+        "scope": "active-sheet",
+        "issues": [],
+        "totalIssues": 0,
+        "coverage": {
+          "missingRenderedText": [
+            "Task_1",
+            "Task_2",
+            "Task_3",
+            "Task_4",
+            "Task_5",
+            "Task_6",
+            "Task_7",
+            "Task_8",
+            "Task_9"
+          ]
+        },
+        "businessApproval": false
+      }
+    },
+    "after": {
+      "valid": true,
+      "complete": true,
+      "errors": 0,
+      "warnings": 0,
+      "issues": [],
+      "quality": {
+        "ok": true,
+        "complete": false,
+        "scope": "active-sheet",
+        "issues": [],
+        "totalIssues": 0,
+        "coverage": {
+          "missingRenderedText": [
+            "Task_1",
+            "Task_2",
+            "Task_3",
+            "Task_4",
+            "Task_5",
+            "Task_6",
+            "Task_7",
+            "Task_8",
+            "Task_9"
+          ]
+        },
+        "businessApproval": false
+      }
+    }
+  },
+  "limits": {
+    "synthetic": true,
+    "editorConnected": false,
+    "mcpRuntimeVerified": false,
+    "renderedEditorTextVerified": false,
+    "nativeSaveVerified": false,
+    "businessApproval": false,
+    "decisionCoverage": "No gateways in this example; decision preservation requires a separate case."
+  }
+}

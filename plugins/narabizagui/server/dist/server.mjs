@@ -12,9 +12,9 @@ var __commonJS = (cb, mod) => function __require() {
     throw mod = 0, e;
   }
 };
-var __export = (target, all) => {
+var __export = (target2, all) => {
   for (var name in all)
-    __defProp(target, name, { get: all[name], enumerable: true });
+    __defProp(target2, name, { get: all[name], enumerable: true });
 };
 var __copyProps = (to, from, except, desc) => {
   if (from && typeof from === "object" || typeof from === "function") {
@@ -24,12 +24,12 @@ var __copyProps = (to, from, except, desc) => {
   }
   return to;
 };
-var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+var __toESM = (mod, isNodeMode, target2) => (target2 = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
   // If the importer is in node compatibility mode or this is not an ESM
   // file that has been converted to a CommonJS file using a Babel-
   // compatible transform (i.e. "__esModule" has not been set), then set
   // "default" to the CommonJS "module.exports" for node compatibility.
-  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target2, "default", { value: mod, enumerable: true }) : target2,
   mod
 ));
 
@@ -1067,52 +1067,52 @@ var require_util = __commonJS({
       return hash2;
     }
     exports.toHash = toHash;
-    function alwaysValidSchema(it, schema) {
-      if (typeof schema == "boolean")
-        return schema;
-      if (Object.keys(schema).length === 0)
+    function alwaysValidSchema(it, schema2) {
+      if (typeof schema2 == "boolean")
+        return schema2;
+      if (Object.keys(schema2).length === 0)
         return true;
-      checkUnknownRules(it, schema);
-      return !schemaHasRules(schema, it.self.RULES.all);
+      checkUnknownRules(it, schema2);
+      return !schemaHasRules(schema2, it.self.RULES.all);
     }
     exports.alwaysValidSchema = alwaysValidSchema;
-    function checkUnknownRules(it, schema = it.schema) {
+    function checkUnknownRules(it, schema2 = it.schema) {
       const { opts, self } = it;
       if (!opts.strictSchema)
         return;
-      if (typeof schema === "boolean")
+      if (typeof schema2 === "boolean")
         return;
       const rules = self.RULES.keywords;
-      for (const key in schema) {
+      for (const key in schema2) {
         if (!rules[key])
           checkStrictMode(it, `unknown keyword: "${key}"`);
       }
     }
     exports.checkUnknownRules = checkUnknownRules;
-    function schemaHasRules(schema, rules) {
-      if (typeof schema == "boolean")
-        return !schema;
-      for (const key in schema)
+    function schemaHasRules(schema2, rules) {
+      if (typeof schema2 == "boolean")
+        return !schema2;
+      for (const key in schema2)
         if (rules[key])
           return true;
       return false;
     }
     exports.schemaHasRules = schemaHasRules;
-    function schemaHasRulesButRef(schema, RULES) {
-      if (typeof schema == "boolean")
-        return !schema;
-      for (const key in schema)
+    function schemaHasRulesButRef(schema2, RULES) {
+      if (typeof schema2 == "boolean")
+        return !schema2;
+      for (const key in schema2)
         if (key !== "$ref" && RULES.all[key])
           return true;
       return false;
     }
     exports.schemaHasRulesButRef = schemaHasRulesButRef;
-    function schemaRefOrVal({ topSchemaRef, schemaPath }, schema, keyword, $data) {
+    function schemaRefOrVal({ topSchemaRef, schemaPath }, schema2, keyword, $data) {
       if (!$data) {
-        if (typeof schema == "number" || typeof schema == "boolean")
-          return schema;
-        if (typeof schema == "string")
-          return (0, codegen_1._)`${schema}`;
+        if (typeof schema2 == "number" || typeof schema2 == "boolean")
+          return schema2;
+        if (typeof schema2 == "string")
+          return (0, codegen_1._)`${schema2}`;
       }
       return (0, codegen_1._)`${topSchemaRef}${schemaPath}${(0, codegen_1.getProperty)(keyword)}`;
     }
@@ -1393,10 +1393,10 @@ var require_boolSchema = __commonJS({
       message: "boolean schema is false"
     };
     function topBoolOrEmptySchema(it) {
-      const { gen, schema, validateName } = it;
-      if (schema === false) {
+      const { gen, schema: schema2, validateName } = it;
+      if (schema2 === false) {
         falseSchemaError(it, false);
-      } else if (typeof schema == "object" && schema.$async === true) {
+      } else if (typeof schema2 == "object" && schema2.$async === true) {
         gen.return(names_1.default.data);
       } else {
         gen.assign((0, codegen_1._)`${validateName}.errors`, null);
@@ -1405,8 +1405,8 @@ var require_boolSchema = __commonJS({
     }
     exports.topBoolOrEmptySchema = topBoolOrEmptySchema;
     function boolOrEmptySchema(it, valid) {
-      const { gen, schema } = it;
-      if (schema === false) {
+      const { gen, schema: schema2 } = it;
+      if (schema2 === false) {
         gen.var(valid, false);
         falseSchemaError(it);
       } else {
@@ -1468,18 +1468,18 @@ var require_applicability = __commonJS({
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.shouldUseRule = exports.shouldUseGroup = exports.schemaHasRulesForType = void 0;
-    function schemaHasRulesForType({ schema, self }, type) {
+    function schemaHasRulesForType({ schema: schema2, self }, type) {
       const group = self.RULES.types[type];
-      return group && group !== true && shouldUseGroup(schema, group);
+      return group && group !== true && shouldUseGroup(schema2, group);
     }
     exports.schemaHasRulesForType = schemaHasRulesForType;
-    function shouldUseGroup(schema, group) {
-      return group.rules.some((rule) => shouldUseRule(schema, rule));
+    function shouldUseGroup(schema2, group) {
+      return group.rules.some((rule) => shouldUseRule(schema2, rule));
     }
     exports.shouldUseGroup = shouldUseGroup;
-    function shouldUseRule(schema, rule) {
+    function shouldUseRule(schema2, rule) {
       var _a3;
-      return schema[rule.keyword] !== void 0 || ((_a3 = rule.definition.implements) === null || _a3 === void 0 ? void 0 : _a3.some((kwd) => schema[kwd] !== void 0));
+      return schema2[rule.keyword] !== void 0 || ((_a3 = rule.definition.implements) === null || _a3 === void 0 ? void 0 : _a3.some((kwd) => schema2[kwd] !== void 0));
     }
     exports.shouldUseRule = shouldUseRule;
   }
@@ -1501,17 +1501,17 @@ var require_dataType = __commonJS({
       DataType2[DataType2["Correct"] = 0] = "Correct";
       DataType2[DataType2["Wrong"] = 1] = "Wrong";
     })(DataType || (exports.DataType = DataType = {}));
-    function getSchemaTypes(schema) {
-      const types = getJSONTypes(schema.type);
+    function getSchemaTypes(schema2) {
+      const types = getJSONTypes(schema2.type);
       const hasNull = types.includes("null");
       if (hasNull) {
-        if (schema.nullable === false)
+        if (schema2.nullable === false)
           throw new Error("type: null contradicts nullable: false");
       } else {
-        if (!types.length && schema.nullable !== void 0) {
+        if (!types.length && schema2.nullable !== void 0) {
           throw new Error('"nullable" cannot be used without "type"');
         }
-        if (schema.nullable === true)
+        if (schema2.nullable === true)
           types.push("null");
       }
       return types;
@@ -1643,8 +1643,8 @@ var require_dataType = __commonJS({
     }
     exports.checkDataTypes = checkDataTypes;
     var typeError = {
-      message: ({ schema }) => `must be ${schema}`,
-      params: ({ schema, schemaValue }) => typeof schema == "string" ? (0, codegen_1._)`{type: ${schema}}` : (0, codegen_1._)`{type: ${schemaValue}}`
+      message: ({ schema: schema2 }) => `must be ${schema2}`,
+      params: ({ schema: schema2, schemaValue }) => typeof schema2 == "string" ? (0, codegen_1._)`{type: ${schema2}}` : (0, codegen_1._)`{type: ${schemaValue}}`
     };
     function reportTypeError(it) {
       const cxt = getTypeErrorContext(it);
@@ -1652,16 +1652,16 @@ var require_dataType = __commonJS({
     }
     exports.reportTypeError = reportTypeError;
     function getTypeErrorContext(it) {
-      const { gen, data, schema } = it;
-      const schemaCode = (0, util_1.schemaRefOrVal)(it, schema, "type");
+      const { gen, data, schema: schema2 } = it;
+      const schemaCode = (0, util_1.schemaRefOrVal)(it, schema2, "type");
       return {
         gen,
         keyword: "type",
         data,
-        schema: schema.type,
+        schema: schema2.type,
         schemaCode,
         schemaValue: schemaCode,
-        parentSchema: schema,
+        parentSchema: schema2,
         params: {},
         it
       };
@@ -1814,15 +1814,15 @@ var require_code2 = __commonJS({
     }
     exports.validateArray = validateArray;
     function validateUnion(cxt) {
-      const { gen, schema, keyword, it } = cxt;
-      if (!Array.isArray(schema))
+      const { gen, schema: schema2, keyword, it } = cxt;
+      if (!Array.isArray(schema2))
         throw new Error("ajv implementation error");
-      const alwaysValid = schema.some((sch) => (0, util_1.alwaysValidSchema)(it, sch));
+      const alwaysValid = schema2.some((sch) => (0, util_1.alwaysValidSchema)(it, sch));
       if (alwaysValid && !it.opts.unevaluated)
         return;
       const valid = gen.let("valid", false);
       const schValid = gen.name("_valid");
-      gen.block(() => schema.forEach((_sch, i) => {
+      gen.block(() => schema2.forEach((_sch, i) => {
         const schCxt = cxt.subschema({
           keyword,
           schemaProp: i,
@@ -1850,8 +1850,8 @@ var require_keyword = __commonJS({
     var code_1 = require_code2();
     var errors_1 = require_errors();
     function macroKeywordCode(cxt, def) {
-      const { gen, keyword, schema, parentSchema, it } = cxt;
-      const macroSchema = def.macro.call(it.self, schema, parentSchema, it);
+      const { gen, keyword, schema: schema2, parentSchema, it } = cxt;
+      const macroSchema = def.macro.call(it.self, schema2, parentSchema, it);
       const schemaRef = useKeyword(gen, keyword, macroSchema);
       if (it.opts.validateSchema !== false)
         it.self.validateSchema(macroSchema, true);
@@ -1868,9 +1868,9 @@ var require_keyword = __commonJS({
     exports.macroKeywordCode = macroKeywordCode;
     function funcKeywordCode(cxt, def) {
       var _a3;
-      const { gen, keyword, schema, parentSchema, $data, it } = cxt;
+      const { gen, keyword, schema: schema2, parentSchema, $data, it } = cxt;
       checkAsyncKeyword(it, def);
-      const validate = !$data && def.compile ? def.compile.call(it.self, schema, parentSchema, it) : def.validate;
+      const validate = !$data && def.compile ? def.compile.call(it.self, schema2, parentSchema, it) : def.validate;
       const validateRef = useKeyword(gen, keyword, validate);
       const valid = gen.let("valid");
       cxt.block$data(valid, validateKeyword);
@@ -1930,20 +1930,20 @@ var require_keyword = __commonJS({
         throw new Error(`keyword "${keyword}" failed to compile`);
       return gen.scopeValue("keyword", typeof result == "function" ? { ref: result } : { ref: result, code: (0, codegen_1.stringify)(result) });
     }
-    function validSchemaType(schema, schemaType, allowUndefined = false) {
-      return !schemaType.length || schemaType.some((st) => st === "array" ? Array.isArray(schema) : st === "object" ? schema && typeof schema == "object" && !Array.isArray(schema) : typeof schema == st || allowUndefined && typeof schema == "undefined");
+    function validSchemaType(schema2, schemaType, allowUndefined = false) {
+      return !schemaType.length || schemaType.some((st) => st === "array" ? Array.isArray(schema2) : st === "object" ? schema2 && typeof schema2 == "object" && !Array.isArray(schema2) : typeof schema2 == st || allowUndefined && typeof schema2 == "undefined");
     }
     exports.validSchemaType = validSchemaType;
-    function validateKeywordUsage({ schema, opts, self, errSchemaPath }, def, keyword) {
+    function validateKeywordUsage({ schema: schema2, opts, self, errSchemaPath }, def, keyword) {
       if (Array.isArray(def.keyword) ? !def.keyword.includes(keyword) : def.keyword !== keyword) {
         throw new Error("ajv implementation error");
       }
       const deps = def.dependencies;
-      if (deps === null || deps === void 0 ? void 0 : deps.some((kwd) => !Object.prototype.hasOwnProperty.call(schema, kwd))) {
+      if (deps === null || deps === void 0 ? void 0 : deps.some((kwd) => !Object.prototype.hasOwnProperty.call(schema2, kwd))) {
         throw new Error(`parent schema must have dependencies of ${keyword}: ${deps.join(",")}`);
       }
       if (def.validateSchema) {
-        const valid = def.validateSchema(schema[keyword]);
+        const valid = def.validateSchema(schema2[keyword]);
         if (!valid) {
           const msg = `keyword "${keyword}" value is invalid at path "${errSchemaPath}": ` + self.errorsText(def.validateSchema.errors);
           if (opts.validateSchema === "log")
@@ -1965,8 +1965,8 @@ var require_subschema = __commonJS({
     exports.extendSubschemaMode = exports.extendSubschemaData = exports.getSubschema = void 0;
     var codegen_1 = require_codegen();
     var util_1 = require_util();
-    function getSubschema(it, { keyword, schemaProp, schema, schemaPath, errSchemaPath, topSchemaRef }) {
-      if (keyword !== void 0 && schema !== void 0) {
+    function getSubschema(it, { keyword, schemaProp, schema: schema2, schemaPath, errSchemaPath, topSchemaRef }) {
+      if (keyword !== void 0 && schema2 !== void 0) {
         throw new Error('both "keyword" and "schema" passed, only one allowed');
       }
       if (keyword !== void 0) {
@@ -1981,12 +1981,12 @@ var require_subschema = __commonJS({
           errSchemaPath: `${it.errSchemaPath}/${keyword}/${(0, util_1.escapeFragment)(schemaProp)}`
         };
       }
-      if (schema !== void 0) {
+      if (schema2 !== void 0) {
         if (schemaPath === void 0 || errSchemaPath === void 0 || topSchemaRef === void 0) {
           throw new Error('"schemaPath", "errSchemaPath" and "topSchemaRef" are required with "schema"');
         }
         return {
-          schema,
+          schema: schema2,
           schemaPath,
           topSchemaRef,
           errSchemaPath
@@ -2079,7 +2079,7 @@ var require_fast_deep_equal = __commonJS({
 var require_json_schema_traverse = __commonJS({
   "node_modules/json-schema-traverse/index.js"(exports, module) {
     "use strict";
-    var traverse = module.exports = function(schema, opts, cb) {
+    var traverse = module.exports = function(schema2, opts, cb) {
       if (typeof opts == "function") {
         cb = opts;
         opts = {};
@@ -2089,7 +2089,7 @@ var require_json_schema_traverse = __commonJS({
       };
       var post = cb.post || function() {
       };
-      _traverse(opts, pre, post, schema, "", schema);
+      _traverse(opts, pre, post, schema2, "", schema2);
     };
     traverse.keywords = {
       additionalItems: true,
@@ -2135,26 +2135,26 @@ var require_json_schema_traverse = __commonJS({
       maxProperties: true,
       minProperties: true
     };
-    function _traverse(opts, pre, post, schema, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex) {
-      if (schema && typeof schema == "object" && !Array.isArray(schema)) {
-        pre(schema, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex);
-        for (var key in schema) {
-          var sch = schema[key];
+    function _traverse(opts, pre, post, schema2, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex) {
+      if (schema2 && typeof schema2 == "object" && !Array.isArray(schema2)) {
+        pre(schema2, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex);
+        for (var key in schema2) {
+          var sch = schema2[key];
           if (Array.isArray(sch)) {
             if (key in traverse.arrayKeywords) {
               for (var i = 0; i < sch.length; i++)
-                _traverse(opts, pre, post, sch[i], jsonPtr + "/" + key + "/" + i, rootSchema, jsonPtr, key, schema, i);
+                _traverse(opts, pre, post, sch[i], jsonPtr + "/" + key + "/" + i, rootSchema, jsonPtr, key, schema2, i);
             }
           } else if (key in traverse.propsKeywords) {
             if (sch && typeof sch == "object") {
               for (var prop in sch)
-                _traverse(opts, pre, post, sch[prop], jsonPtr + "/" + key + "/" + escapeJsonPtr(prop), rootSchema, jsonPtr, key, schema, prop);
+                _traverse(opts, pre, post, sch[prop], jsonPtr + "/" + key + "/" + escapeJsonPtr(prop), rootSchema, jsonPtr, key, schema2, prop);
             }
           } else if (key in traverse.keywords || opts.allKeys && !(key in traverse.skipKeywords)) {
-            _traverse(opts, pre, post, sch, jsonPtr + "/" + key, rootSchema, jsonPtr, key, schema);
+            _traverse(opts, pre, post, sch, jsonPtr + "/" + key, rootSchema, jsonPtr, key, schema2);
           }
         }
-        post(schema, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex);
+        post(schema2, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex);
       }
     }
     function escapeJsonPtr(str) {
@@ -2190,14 +2190,14 @@ var require_resolve = __commonJS({
       "enum",
       "const"
     ]);
-    function inlineRef(schema, limit = true) {
-      if (typeof schema == "boolean")
+    function inlineRef(schema2, limit = true) {
+      if (typeof schema2 == "boolean")
         return true;
       if (limit === true)
-        return !hasRef(schema);
+        return !hasRef(schema2);
       if (!limit)
         return false;
-      return countKeys(schema) <= limit;
+      return countKeys(schema2) <= limit;
     }
     exports.inlineRef = inlineRef;
     var REF_KEYWORDS = /* @__PURE__ */ new Set([
@@ -2207,11 +2207,11 @@ var require_resolve = __commonJS({
       "$dynamicRef",
       "$dynamicAnchor"
     ]);
-    function hasRef(schema) {
-      for (const key in schema) {
+    function hasRef(schema2) {
+      for (const key in schema2) {
         if (REF_KEYWORDS.has(key))
           return true;
-        const sch = schema[key];
+        const sch = schema2[key];
         if (Array.isArray(sch) && sch.some(hasRef))
           return true;
         if (typeof sch == "object" && hasRef(sch))
@@ -2219,26 +2219,26 @@ var require_resolve = __commonJS({
       }
       return false;
     }
-    function countKeys(schema) {
+    function countKeys(schema2) {
       let count = 0;
-      for (const key in schema) {
+      for (const key in schema2) {
         if (key === "$ref")
           return Infinity;
         count++;
         if (SIMPLE_INLINED.has(key))
           continue;
-        if (typeof schema[key] == "object") {
-          (0, util_1.eachItem)(schema[key], (sch) => count += countKeys(sch));
+        if (typeof schema2[key] == "object") {
+          (0, util_1.eachItem)(schema2[key], (sch) => count += countKeys(sch));
         }
         if (count === Infinity)
           return Infinity;
       }
       return count;
     }
-    function getFullPath(resolver, id = "", normalize) {
+    function getFullPath(resolver, id2 = "", normalize) {
       if (normalize !== false)
-        id = normalizeId(id);
-      const p = resolver.parse(id);
+        id2 = normalizeId(id2);
+      const p = resolver.parse(id2);
       return _getFullPath(resolver, p);
     }
     exports.getFullPath = getFullPath;
@@ -2248,26 +2248,26 @@ var require_resolve = __commonJS({
     }
     exports._getFullPath = _getFullPath;
     var TRAILING_SLASH_HASH = /#\/?$/;
-    function normalizeId(id) {
-      return id ? id.replace(TRAILING_SLASH_HASH, "") : "";
+    function normalizeId(id2) {
+      return id2 ? id2.replace(TRAILING_SLASH_HASH, "") : "";
     }
     exports.normalizeId = normalizeId;
-    function resolveUrl(resolver, baseId, id) {
-      id = normalizeId(id);
-      return resolver.resolve(baseId, id);
+    function resolveUrl(resolver, baseId, id2) {
+      id2 = normalizeId(id2);
+      return resolver.resolve(baseId, id2);
     }
     exports.resolveUrl = resolveUrl;
     var ANCHOR = /^[a-z_][-a-z0-9._]*$/i;
-    function getSchemaRefs(schema, baseId) {
-      if (typeof schema == "boolean")
+    function getSchemaRefs(schema2, baseId) {
+      if (typeof schema2 == "boolean")
         return {};
       const { schemaId, uriResolver } = this.opts;
-      const schId = normalizeId(schema[schemaId] || baseId);
+      const schId = normalizeId(schema2[schemaId] || baseId);
       const baseIds = { "": schId };
       const pathPrefix = getFullPath(uriResolver, schId, false);
       const localRefs = {};
       const schemaRefs = /* @__PURE__ */ new Set();
-      traverse(schema, { allKeys: true }, (sch, jsonPtr, _, parentJsonPtr) => {
+      traverse(schema2, { allKeys: true }, (sch, jsonPtr, _, parentJsonPtr) => {
         if (parentJsonPtr === void 0)
           return;
         const fullPath = pathPrefix + jsonPtr;
@@ -2348,15 +2348,15 @@ var require_validate = __commonJS({
       validateFunction(it, () => (0, boolSchema_1.topBoolOrEmptySchema)(it));
     }
     exports.validateFunctionCode = validateFunctionCode;
-    function validateFunction({ gen, validateName, schema, schemaEnv, opts }, body) {
+    function validateFunction({ gen, validateName, schema: schema2, schemaEnv, opts }, body) {
       if (opts.code.es5) {
         gen.func(validateName, (0, codegen_1._)`${names_1.default.data}, ${names_1.default.valCxt}`, schemaEnv.$async, () => {
-          gen.code((0, codegen_1._)`"use strict"; ${funcSourceUrl(schema, opts)}`);
+          gen.code((0, codegen_1._)`"use strict"; ${funcSourceUrl(schema2, opts)}`);
           destructureValCxtES5(gen, opts);
           gen.code(body);
         });
       } else {
-        gen.func(validateName, (0, codegen_1._)`${names_1.default.data}, ${destructureValCxt(opts)}`, schemaEnv.$async, () => gen.code(funcSourceUrl(schema, opts)).code(body));
+        gen.func(validateName, (0, codegen_1._)`${names_1.default.data}, ${destructureValCxt(opts)}`, schemaEnv.$async, () => gen.code(funcSourceUrl(schema2, opts)).code(body));
       }
     }
     function destructureValCxt(opts) {
@@ -2380,9 +2380,9 @@ var require_validate = __commonJS({
       });
     }
     function topSchemaObjCode(it) {
-      const { schema, opts, gen } = it;
+      const { schema: schema2, opts, gen } = it;
       validateFunction(it, () => {
-        if (opts.$comment && schema.$comment)
+        if (opts.$comment && schema2.$comment)
           commentKeyword(it);
         checkNoDefault(it);
         gen.let(names_1.default.vErrors, null);
@@ -2400,8 +2400,8 @@ var require_validate = __commonJS({
       gen.if((0, codegen_1._)`${it.evaluated}.dynamicProps`, () => gen.assign((0, codegen_1._)`${it.evaluated}.props`, (0, codegen_1._)`undefined`));
       gen.if((0, codegen_1._)`${it.evaluated}.dynamicItems`, () => gen.assign((0, codegen_1._)`${it.evaluated}.items`, (0, codegen_1._)`undefined`));
     }
-    function funcSourceUrl(schema, opts) {
-      const schId = typeof schema == "object" && schema[opts.schemaId];
+    function funcSourceUrl(schema2, opts) {
+      const schId = typeof schema2 == "object" && schema2[opts.schemaId];
       return schId && (opts.code.source || opts.code.process) ? (0, codegen_1._)`/*# sourceURL=${schId} */` : codegen_1.nil;
     }
     function subschemaCode(it, valid) {
@@ -2414,10 +2414,10 @@ var require_validate = __commonJS({
       }
       (0, boolSchema_1.boolOrEmptySchema)(it, valid);
     }
-    function schemaCxtHasRules({ schema, self }) {
-      if (typeof schema == "boolean")
-        return !schema;
-      for (const key in schema)
+    function schemaCxtHasRules({ schema: schema2, self }) {
+      if (typeof schema2 == "boolean")
+        return !schema2;
+      for (const key in schema2)
         if (self.RULES.all[key])
           return true;
       return false;
@@ -2426,8 +2426,8 @@ var require_validate = __commonJS({
       return typeof it.schema != "boolean";
     }
     function subSchemaObjCode(it, valid) {
-      const { schema, gen, opts } = it;
-      if (opts.$comment && schema.$comment)
+      const { schema: schema2, gen, opts } = it;
+      if (opts.$comment && schema2.$comment)
         commentKeyword(it);
       updateContext(it);
       checkAsyncSchema(it);
@@ -2447,14 +2447,14 @@ var require_validate = __commonJS({
       schemaKeywords(it, types, !checkedTypes, errsCount);
     }
     function checkRefsAndKeywords(it) {
-      const { schema, errSchemaPath, opts, self } = it;
-      if (schema.$ref && opts.ignoreKeywordsWithRef && (0, util_1.schemaHasRulesButRef)(schema, self.RULES)) {
+      const { schema: schema2, errSchemaPath, opts, self } = it;
+      if (schema2.$ref && opts.ignoreKeywordsWithRef && (0, util_1.schemaHasRulesButRef)(schema2, self.RULES)) {
         self.logger.warn(`$ref: keywords ignored in schema at path "${errSchemaPath}"`);
       }
     }
     function checkNoDefault(it) {
-      const { schema, opts } = it;
-      if (schema.default !== void 0 && opts.useDefaults && opts.strictSchema) {
+      const { schema: schema2, opts } = it;
+      if (schema2.default !== void 0 && opts.useDefaults && opts.strictSchema) {
         (0, util_1.checkStrictMode)(it, "default is ignored in the schema root");
       }
     }
@@ -2467,8 +2467,8 @@ var require_validate = __commonJS({
       if (it.schema.$async && !it.schemaEnv.$async)
         throw new Error("async schema in sync schema");
     }
-    function commentKeyword({ gen, schemaEnv, schema, errSchemaPath, opts }) {
-      const msg = schema.$comment;
+    function commentKeyword({ gen, schemaEnv, schema: schema2, errSchemaPath, opts }) {
+      const msg = schema2.$comment;
       if (opts.$comment === true) {
         gen.code((0, codegen_1._)`${names_1.default.self}.logger.log(${msg})`);
       } else if (typeof opts.$comment == "function") {
@@ -2495,9 +2495,9 @@ var require_validate = __commonJS({
         gen.assign((0, codegen_1._)`${evaluated}.items`, items);
     }
     function schemaKeywords(it, types, typeErrors, errsCount) {
-      const { gen, schema, data, allErrors, opts, self } = it;
+      const { gen, schema: schema2, data, allErrors, opts, self } = it;
       const { RULES } = self;
-      if (schema.$ref && (opts.ignoreKeywordsWithRef || !(0, util_1.schemaHasRulesButRef)(schema, RULES))) {
+      if (schema2.$ref && (opts.ignoreKeywordsWithRef || !(0, util_1.schemaHasRulesButRef)(schema2, RULES))) {
         gen.block(() => keywordCode(it, "$ref", RULES.all.$ref.definition));
         return;
       }
@@ -2509,7 +2509,7 @@ var require_validate = __commonJS({
         groupKeywords(RULES.post);
       });
       function groupKeywords(group) {
-        if (!(0, applicability_1.shouldUseGroup)(schema, group))
+        if (!(0, applicability_1.shouldUseGroup)(schema2, group))
           return;
         if (group.type) {
           gen.if((0, dataType_2.checkDataType)(group.type, data, opts.strictNumbers));
@@ -2527,12 +2527,12 @@ var require_validate = __commonJS({
       }
     }
     function iterateKeywords(it, group) {
-      const { gen, schema, opts: { useDefaults } } = it;
+      const { gen, schema: schema2, opts: { useDefaults } } = it;
       if (useDefaults)
         (0, defaults_1.assignDefaults)(it, group.type);
       gen.block(() => {
         for (const rule of group.rules) {
-          if ((0, applicability_1.shouldUseRule)(schema, rule)) {
+          if ((0, applicability_1.shouldUseRule)(schema2, rule)) {
             keywordCode(it, rule.keyword, rule.definition, group.type);
           }
         }
@@ -2877,17 +2877,17 @@ var require_compile = __commonJS({
         var _a3;
         this.refs = {};
         this.dynamicAnchors = {};
-        let schema;
+        let schema2;
         if (typeof env.schema == "object")
-          schema = env.schema;
+          schema2 = env.schema;
         this.schema = env.schema;
         this.schemaId = env.schemaId;
         this.root = env.root || this;
-        this.baseId = (_a3 = env.baseId) !== null && _a3 !== void 0 ? _a3 : (0, resolve_1.normalizeId)(schema === null || schema === void 0 ? void 0 : schema[env.schemaId || "$id"]);
+        this.baseId = (_a3 = env.baseId) !== null && _a3 !== void 0 ? _a3 : (0, resolve_1.normalizeId)(schema2 === null || schema2 === void 0 ? void 0 : schema2[env.schemaId || "$id"]);
         this.schemaPath = env.schemaPath;
         this.localRefs = env.localRefs;
         this.meta = env.meta;
-        this.$async = schema === null || schema === void 0 ? void 0 : schema.$async;
+        this.$async = schema2 === null || schema2 === void 0 ? void 0 : schema2.$async;
         this.refs = {};
       }
     };
@@ -2986,10 +2986,10 @@ var require_compile = __commonJS({
         return schOrFunc;
       let _sch = resolve.call(this, root, ref);
       if (_sch === void 0) {
-        const schema = (_a3 = root.localRefs) === null || _a3 === void 0 ? void 0 : _a3[ref];
+        const schema2 = (_a3 = root.localRefs) === null || _a3 === void 0 ? void 0 : _a3[ref];
         const { schemaId } = this.opts;
-        if (schema)
-          _sch = new SchemaEnv({ schema, schemaId, root, baseId });
+        if (schema2)
+          _sch = new SchemaEnv({ schema: schema2, schemaId, root, baseId });
       }
       if (_sch === void 0)
         return;
@@ -3024,8 +3024,8 @@ var require_compile = __commonJS({
       if (Object.keys(root.schema).length > 0 && refPath === baseId) {
         return getJsonPointer.call(this, p, root);
       }
-      const id = (0, resolve_1.normalizeId)(refPath);
-      const schOrRef = this.refs[id] || this.schemas[id];
+      const id2 = (0, resolve_1.normalizeId)(refPath);
+      const schOrRef = this.refs[id2] || this.schemas[id2];
       if (typeof schOrRef == "string") {
         const sch = resolveSchema.call(this, root, schOrRef);
         if (typeof (sch === null || sch === void 0 ? void 0 : sch.schema) !== "object")
@@ -3036,13 +3036,13 @@ var require_compile = __commonJS({
         return;
       if (!schOrRef.validate)
         compileSchema.call(this, schOrRef);
-      if (id === (0, resolve_1.normalizeId)(ref)) {
-        const { schema } = schOrRef;
+      if (id2 === (0, resolve_1.normalizeId)(ref)) {
+        const { schema: schema2 } = schOrRef;
         const { schemaId } = this.opts;
-        const schId = schema[schemaId];
+        const schId = schema2[schemaId];
         if (schId)
           baseId = (0, resolve_1.resolveUrl)(this.opts.uriResolver, baseId, schId);
-        return new SchemaEnv({ schema, schemaId, root, baseId });
+        return new SchemaEnv({ schema: schema2, schemaId, root, baseId });
       }
       return getJsonPointer.call(this, p, schOrRef);
     }
@@ -3054,29 +3054,29 @@ var require_compile = __commonJS({
       "dependencies",
       "definitions"
     ]);
-    function getJsonPointer(parsedRef, { baseId, schema, root }) {
+    function getJsonPointer(parsedRef, { baseId, schema: schema2, root }) {
       var _a3;
       if (((_a3 = parsedRef.fragment) === null || _a3 === void 0 ? void 0 : _a3[0]) !== "/")
         return;
       for (const part of parsedRef.fragment.slice(1).split("/")) {
-        if (typeof schema === "boolean")
+        if (typeof schema2 === "boolean")
           return;
-        const partSchema = schema[(0, util_1.unescapeFragment)(part)];
+        const partSchema = schema2[(0, util_1.unescapeFragment)(part)];
         if (partSchema === void 0)
           return;
-        schema = partSchema;
-        const schId = typeof schema === "object" && schema[this.opts.schemaId];
+        schema2 = partSchema;
+        const schId = typeof schema2 === "object" && schema2[this.opts.schemaId];
         if (!PREVENT_SCOPE_CHANGE.has(part) && schId) {
           baseId = (0, resolve_1.resolveUrl)(this.opts.uriResolver, baseId, schId);
         }
       }
       let env;
-      if (typeof schema != "boolean" && schema.$ref && !(0, util_1.schemaHasRulesButRef)(schema, this.RULES)) {
-        const $ref = (0, resolve_1.resolveUrl)(this.opts.uriResolver, baseId, schema.$ref);
+      if (typeof schema2 != "boolean" && schema2.$ref && !(0, util_1.schemaHasRulesButRef)(schema2, this.RULES)) {
+        const $ref = (0, resolve_1.resolveUrl)(this.opts.uriResolver, baseId, schema2.$ref);
         env = resolveSchema.call(this, root, $ref);
       }
       const { schemaId } = this.opts;
-      env = env || new SchemaEnv({ schema, schemaId, root, baseId });
+      env = env || new SchemaEnv({ schema: schema2, schemaId, root, baseId });
       if (env.schema !== env.root.schema)
         return env;
       return void 0;
@@ -3875,57 +3875,57 @@ var require_fast_uri = __commonJS({
       return serialize(resolved, schemelessOptions);
     }
     function resolveComponent(base, relative, options, skipNormalization) {
-      const target = {};
+      const target2 = {};
       if (!skipNormalization) {
         base = parse3(serialize(base, options), options);
         relative = parse3(serialize(relative, options), options);
       }
       options = options || {};
       if (!options.tolerant && relative.scheme) {
-        target.scheme = relative.scheme;
-        target.userinfo = relative.userinfo;
-        target.host = relative.host;
-        target.port = relative.port;
-        target.path = removeDotSegments(relative.path || "");
-        target.query = relative.query;
+        target2.scheme = relative.scheme;
+        target2.userinfo = relative.userinfo;
+        target2.host = relative.host;
+        target2.port = relative.port;
+        target2.path = removeDotSegments(relative.path || "");
+        target2.query = relative.query;
       } else {
         if (relative.userinfo !== void 0 || relative.host !== void 0 || relative.port !== void 0) {
-          target.userinfo = relative.userinfo;
-          target.host = relative.host;
-          target.port = relative.port;
-          target.path = removeDotSegments(relative.path || "");
-          target.query = relative.query;
+          target2.userinfo = relative.userinfo;
+          target2.host = relative.host;
+          target2.port = relative.port;
+          target2.path = removeDotSegments(relative.path || "");
+          target2.query = relative.query;
         } else {
           if (!relative.path) {
-            target.path = base.path;
+            target2.path = base.path;
             if (relative.query !== void 0) {
-              target.query = relative.query;
+              target2.query = relative.query;
             } else {
-              target.query = base.query;
+              target2.query = base.query;
             }
           } else {
             if (relative.path[0] === "/") {
-              target.path = removeDotSegments(relative.path);
+              target2.path = removeDotSegments(relative.path);
             } else {
               if ((base.userinfo !== void 0 || base.host !== void 0 || base.port !== void 0) && !base.path) {
-                target.path = "/" + relative.path;
+                target2.path = "/" + relative.path;
               } else if (!base.path) {
-                target.path = relative.path;
+                target2.path = relative.path;
               } else {
-                target.path = base.path.slice(0, base.path.lastIndexOf("/") + 1) + relative.path;
+                target2.path = base.path.slice(0, base.path.lastIndexOf("/") + 1) + relative.path;
               }
-              target.path = removeDotSegments(target.path);
+              target2.path = removeDotSegments(target2.path);
             }
-            target.query = relative.query;
+            target2.query = relative.query;
           }
-          target.userinfo = base.userinfo;
-          target.host = base.host;
-          target.port = base.port;
+          target2.userinfo = base.userinfo;
+          target2.host = base.host;
+          target2.port = base.port;
         }
-        target.scheme = base.scheme;
+        target2.scheme = base.scheme;
       }
-      target.fragment = relative.fragment;
-      return target;
+      target2.fragment = relative.fragment;
+      return target2;
     }
     function equal(uriA, uriB, options) {
       const normalizedA = normalizeComparableURI(uriA, options);
@@ -4402,16 +4402,16 @@ var require_core = __commonJS({
           this.errors = v.errors;
         return valid;
       }
-      compile(schema, _meta) {
-        const sch = this._addSchema(schema, _meta);
+      compile(schema2, _meta) {
+        const sch = this._addSchema(schema2, _meta);
         return sch.validate || this._compileSchemaEnv(sch);
       }
-      compileAsync(schema, meta3) {
+      compileAsync(schema2, meta3) {
         if (typeof this.opts.loadSchema != "function") {
           throw new Error("options.loadSchema should be a function");
         }
         const { loadSchema } = this.opts;
-        return runCompileAsync.call(this, schema, meta3);
+        return runCompileAsync.call(this, schema2, meta3);
         async function runCompileAsync(_schema, _meta) {
           await loadMetaSchema.call(this, _schema.$schema);
           const sch = this._addSchema(_schema, _meta);
@@ -4457,37 +4457,37 @@ var require_core = __commonJS({
         }
       }
       // Adds schema to the instance
-      addSchema(schema, key, _meta, _validateSchema = this.opts.validateSchema) {
-        if (Array.isArray(schema)) {
-          for (const sch of schema)
+      addSchema(schema2, key, _meta, _validateSchema = this.opts.validateSchema) {
+        if (Array.isArray(schema2)) {
+          for (const sch of schema2)
             this.addSchema(sch, void 0, _meta, _validateSchema);
           return this;
         }
-        let id;
-        if (typeof schema === "object") {
+        let id2;
+        if (typeof schema2 === "object") {
           const { schemaId } = this.opts;
-          id = schema[schemaId];
-          if (id !== void 0 && typeof id != "string") {
+          id2 = schema2[schemaId];
+          if (id2 !== void 0 && typeof id2 != "string") {
             throw new Error(`schema ${schemaId} must be string`);
           }
         }
-        key = (0, resolve_1.normalizeId)(key || id);
+        key = (0, resolve_1.normalizeId)(key || id2);
         this._checkUnique(key);
-        this.schemas[key] = this._addSchema(schema, _meta, key, _validateSchema, true);
+        this.schemas[key] = this._addSchema(schema2, _meta, key, _validateSchema, true);
         return this;
       }
       // Add schema that will be used to validate other schemas
       // options in META_IGNORE_OPTIONS are alway set to false
-      addMetaSchema(schema, key, _validateSchema = this.opts.validateSchema) {
-        this.addSchema(schema, key, true, _validateSchema);
+      addMetaSchema(schema2, key, _validateSchema = this.opts.validateSchema) {
+        this.addSchema(schema2, key, true, _validateSchema);
         return this;
       }
       //  Validate schema against its meta-schema
-      validateSchema(schema, throwOrLogError) {
-        if (typeof schema == "boolean")
+      validateSchema(schema2, throwOrLogError) {
+        if (typeof schema2 == "boolean")
           return true;
         let $schema;
-        $schema = schema.$schema;
+        $schema = schema2.$schema;
         if ($schema !== void 0 && typeof $schema != "string") {
           throw new Error("$schema must be a string");
         }
@@ -4497,7 +4497,7 @@ var require_core = __commonJS({
           this.errors = null;
           return true;
         }
-        const valid = this.validate($schema, schema);
+        const valid = this.validate($schema, schema2);
         if (!valid && throwOrLogError) {
           const message = "schema is invalid: " + this.errorsText();
           if (this.opts.validateSchema === "log")
@@ -4550,11 +4550,11 @@ var require_core = __commonJS({
           case "object": {
             const cacheKey = schemaKeyRef;
             this._cache.delete(cacheKey);
-            let id = schemaKeyRef[this.opts.schemaId];
-            if (id) {
-              id = (0, resolve_1.normalizeId)(id);
-              delete this.schemas[id];
-              delete this.refs[id];
+            let id2 = schemaKeyRef[this.opts.schemaId];
+            if (id2) {
+              id2 = (0, resolve_1.normalizeId)(id2);
+              delete this.schemas[id2];
+              delete this.refs[id2];
             }
             return this;
           }
@@ -4640,9 +4640,9 @@ var require_core = __commonJS({
             if (typeof rule != "object")
               continue;
             const { $data } = rule.definition;
-            const schema = keywords[key];
-            if ($data && schema)
-              keywords[key] = schemaOrData(schema);
+            const schema2 = keywords[key];
+            if ($data && schema2)
+              keywords[key] = schemaOrData(schema2);
           }
         }
         return metaSchema;
@@ -4660,23 +4660,23 @@ var require_core = __commonJS({
           }
         }
       }
-      _addSchema(schema, meta3, baseId, validateSchema = this.opts.validateSchema, addSchema = this.opts.addUsedSchema) {
-        let id;
+      _addSchema(schema2, meta3, baseId, validateSchema = this.opts.validateSchema, addSchema = this.opts.addUsedSchema) {
+        let id2;
         const { schemaId } = this.opts;
-        if (typeof schema == "object") {
-          id = schema[schemaId];
+        if (typeof schema2 == "object") {
+          id2 = schema2[schemaId];
         } else {
           if (this.opts.jtd)
             throw new Error("schema must be object");
-          else if (typeof schema != "boolean")
+          else if (typeof schema2 != "boolean")
             throw new Error("schema must be object or boolean");
         }
-        let sch = this._cache.get(schema);
+        let sch = this._cache.get(schema2);
         if (sch !== void 0)
           return sch;
-        baseId = (0, resolve_1.normalizeId)(id || baseId);
-        const localRefs = resolve_1.getSchemaRefs.call(this, schema, baseId);
-        sch = new compile_1.SchemaEnv({ schema, schemaId, meta: meta3, baseId, localRefs });
+        baseId = (0, resolve_1.normalizeId)(id2 || baseId);
+        const localRefs = resolve_1.getSchemaRefs.call(this, schema2, baseId);
+        sch = new compile_1.SchemaEnv({ schema: schema2, schemaId, meta: meta3, baseId, localRefs });
         this._cache.set(sch.schema, sch);
         if (addSchema && !baseId.startsWith("#")) {
           if (baseId)
@@ -4684,12 +4684,12 @@ var require_core = __commonJS({
           this.refs[baseId] = sch;
         }
         if (validateSchema)
-          this.validateSchema(schema, true);
+          this.validateSchema(schema2, true);
         return sch;
       }
-      _checkUnique(id) {
-        if (this.schemas[id] || this.refs[id]) {
-          throw new Error(`schema with key or id "${id}" already exists`);
+      _checkUnique(id2) {
+        if (this.schemas[id2] || this.refs[id2]) {
+          throw new Error(`schema with key or id "${id2}" already exists`);
         }
       }
       _compileSchemaEnv(sch) {
@@ -4838,8 +4838,8 @@ var require_core = __commonJS({
     var $dataRef = {
       $ref: "https://raw.githubusercontent.com/ajv-validator/ajv/master/lib/refs/data.json#"
     };
-    function schemaOrData(schema) {
-      return { anyOf: [schema, $dataRef] };
+    function schemaOrData(schema2) {
+      return { anyOf: [schema2, $dataRef] };
     }
   }
 });
@@ -5139,7 +5139,7 @@ var require_pattern = __commonJS({
       $data: true,
       error: error51,
       code(cxt) {
-        const { gen, data, $data, schema, schemaCode, it } = cxt;
+        const { gen, data, $data, schema: schema2, schemaCode, it } = cxt;
         const u = it.opts.unicodeRegExp ? "u" : "";
         if ($data) {
           const { regExp } = it.opts.code;
@@ -5148,7 +5148,7 @@ var require_pattern = __commonJS({
           gen.try(() => gen.assign(valid, (0, codegen_1._)`${regExpCode}(${schemaCode}, ${u}).test(${data})`), () => gen.assign(valid, false));
           cxt.fail$data((0, codegen_1._)`!${valid}`);
         } else {
-          const regExp = (0, code_1.usePattern)(cxt, schema);
+          const regExp = (0, code_1.usePattern)(cxt, schema2);
           cxt.fail$data((0, codegen_1._)`!${regExp}.test(${data})`);
         }
       }
@@ -5205,11 +5205,11 @@ var require_required = __commonJS({
       $data: true,
       error: error51,
       code(cxt) {
-        const { gen, schema, schemaCode, data, $data, it } = cxt;
+        const { gen, schema: schema2, schemaCode, data, $data, it } = cxt;
         const { opts } = it;
-        if (!$data && schema.length === 0)
+        if (!$data && schema2.length === 0)
           return;
-        const useLoop = schema.length >= opts.loopRequired;
+        const useLoop = schema2.length >= opts.loopRequired;
         if (it.allErrors)
           allErrorsMode();
         else
@@ -5217,7 +5217,7 @@ var require_required = __commonJS({
         if (opts.strictRequired) {
           const props = cxt.parentSchema.properties;
           const { definedProperties } = cxt.it;
-          for (const requiredKey of schema) {
+          for (const requiredKey of schema2) {
             if ((props === null || props === void 0 ? void 0 : props[requiredKey]) === void 0 && !definedProperties.has(requiredKey)) {
               const schemaPath = it.schemaEnv.baseId + it.errSchemaPath;
               const msg = `required property "${requiredKey}" is not defined at "${schemaPath}" (strictRequired)`;
@@ -5229,7 +5229,7 @@ var require_required = __commonJS({
           if (useLoop || $data) {
             cxt.block$data(codegen_1.nil, loopAllRequired);
           } else {
-            for (const prop of schema) {
+            for (const prop of schema2) {
               (0, code_1.checkReportMissingProp)(cxt, prop);
             }
           }
@@ -5241,7 +5241,7 @@ var require_required = __commonJS({
             cxt.block$data(valid, () => loopUntilMissing(missing, valid));
             cxt.ok(valid);
           } else {
-            gen.if((0, code_1.checkMissingProp)(cxt, schema, missing));
+            gen.if((0, code_1.checkMissingProp)(cxt, schema2, missing));
             (0, code_1.reportMissingProp)(cxt, missing);
             gen.else();
           }
@@ -5328,8 +5328,8 @@ var require_uniqueItems = __commonJS({
       $data: true,
       error: error51,
       code(cxt) {
-        const { gen, data, $data, schema, parentSchema, schemaCode, it } = cxt;
-        if (!$data && !schema)
+        const { gen, data, $data, schema: schema2, parentSchema, schemaCode, it } = cxt;
+        if (!$data && !schema2)
           return;
         const valid = gen.let("valid");
         const itemTypes = parentSchema.items ? (0, dataType_1.getSchemaTypes)(parentSchema.items) : [];
@@ -5392,11 +5392,11 @@ var require_const = __commonJS({
       $data: true,
       error: error51,
       code(cxt) {
-        const { gen, data, $data, schemaCode, schema } = cxt;
-        if ($data || schema && typeof schema == "object") {
+        const { gen, data, $data, schemaCode, schema: schema2 } = cxt;
+        if ($data || schema2 && typeof schema2 == "object") {
           cxt.fail$data((0, codegen_1._)`!${(0, util_1.useFunc)(gen, equal_1.default)}(${data}, ${schemaCode})`);
         } else {
-          cxt.fail((0, codegen_1._)`${schema} !== ${data}`);
+          cxt.fail((0, codegen_1._)`${schema2} !== ${data}`);
         }
       }
     };
@@ -5422,10 +5422,10 @@ var require_enum = __commonJS({
       $data: true,
       error: error51,
       code(cxt) {
-        const { gen, data, $data, schema, schemaCode, it } = cxt;
-        if (!$data && schema.length === 0)
+        const { gen, data, $data, schema: schema2, schemaCode, it } = cxt;
+        if (!$data && schema2.length === 0)
           throw new Error("enum must have non-empty array");
-        const useLoop = schema.length >= it.opts.loopEnum;
+        const useLoop = schema2.length >= it.opts.loopEnum;
         let eql;
         const getEql = () => eql !== null && eql !== void 0 ? eql : eql = (0, util_1.useFunc)(gen, equal_1.default);
         let valid;
@@ -5433,10 +5433,10 @@ var require_enum = __commonJS({
           valid = gen.let("valid");
           cxt.block$data(valid, loopEnum);
         } else {
-          if (!Array.isArray(schema))
+          if (!Array.isArray(schema2))
             throw new Error("ajv implementation error");
           const vSchema = gen.const("vSchema", schemaCode);
-          valid = (0, codegen_1.or)(...schema.map((_x, i) => equalCode(vSchema, i)));
+          valid = (0, codegen_1.or)(...schema2.map((_x, i) => equalCode(vSchema, i)));
         }
         cxt.pass(valid);
         function loopEnum() {
@@ -5444,7 +5444,7 @@ var require_enum = __commonJS({
           gen.forOf("v", schemaCode, (v) => gen.if((0, codegen_1._)`${getEql()}(${data}, ${v})`, () => gen.assign(valid, true).break()));
         }
         function equalCode(vSchema, i) {
-          const sch = schema[i];
+          const sch = schema2[i];
           return typeof sch === "object" && sch !== null ? (0, codegen_1._)`${getEql()}(${data}, ${vSchema}[${i}])` : (0, codegen_1._)`${data} === ${sch}`;
         }
       }
@@ -5520,13 +5520,13 @@ var require_additionalItems = __commonJS({
       }
     };
     function validateAdditionalItems(cxt, items) {
-      const { gen, schema, data, keyword, it } = cxt;
+      const { gen, schema: schema2, data, keyword, it } = cxt;
       it.items = true;
       const len = gen.const("len", (0, codegen_1._)`${data}.length`);
-      if (schema === false) {
+      if (schema2 === false) {
         cxt.setParams({ len: items.length });
         cxt.pass((0, codegen_1._)`${len} <= ${items.length}`);
-      } else if (typeof schema == "object" && !(0, util_1.alwaysValidSchema)(it, schema)) {
+      } else if (typeof schema2 == "object" && !(0, util_1.alwaysValidSchema)(it, schema2)) {
         const valid = gen.var("valid", (0, codegen_1._)`${len} <= ${items.length}`);
         gen.if((0, codegen_1.not)(valid), () => validateItems(valid));
         cxt.ok(valid);
@@ -5559,11 +5559,11 @@ var require_items = __commonJS({
       schemaType: ["object", "array", "boolean"],
       before: "uniqueItems",
       code(cxt) {
-        const { schema, it } = cxt;
-        if (Array.isArray(schema))
-          return validateTuple(cxt, "additionalItems", schema);
+        const { schema: schema2, it } = cxt;
+        if (Array.isArray(schema2))
+          return validateTuple(cxt, "additionalItems", schema2);
         it.items = true;
-        if ((0, util_1.alwaysValidSchema)(it, schema))
+        if ((0, util_1.alwaysValidSchema)(it, schema2))
           return;
         cxt.ok((0, code_1.validateArray)(cxt));
       }
@@ -5638,10 +5638,10 @@ var require_items2020 = __commonJS({
       before: "uniqueItems",
       error: error51,
       code(cxt) {
-        const { schema, parentSchema, it } = cxt;
+        const { schema: schema2, parentSchema, it } = cxt;
         const { prefixItems } = parentSchema;
         it.items = true;
-        if ((0, util_1.alwaysValidSchema)(it, schema))
+        if ((0, util_1.alwaysValidSchema)(it, schema2))
           return;
         if (prefixItems)
           (0, additionalItems_1.validateAdditionalItems)(cxt, prefixItems);
@@ -5672,7 +5672,7 @@ var require_contains = __commonJS({
       trackErrors: true,
       error: error51,
       code(cxt) {
-        const { gen, schema, parentSchema, data, it } = cxt;
+        const { gen, schema: schema2, parentSchema, data, it } = cxt;
         let min;
         let max;
         const { minContains, maxContains } = parentSchema;
@@ -5693,7 +5693,7 @@ var require_contains = __commonJS({
           cxt.fail();
           return;
         }
-        if ((0, util_1.alwaysValidSchema)(it, schema)) {
+        if ((0, util_1.alwaysValidSchema)(it, schema2)) {
           let cond = (0, codegen_1._)`${len} >= ${min}`;
           if (max !== void 0)
             cond = (0, codegen_1._)`${cond} && ${len} <= ${max}`;
@@ -5778,14 +5778,14 @@ var require_dependencies = __commonJS({
         validateSchemaDeps(cxt, schDeps);
       }
     };
-    function splitDependencies({ schema }) {
+    function splitDependencies({ schema: schema2 }) {
       const propertyDeps = {};
       const schemaDeps = {};
-      for (const key in schema) {
+      for (const key in schema2) {
         if (key === "__proto__")
           continue;
-        const deps = Array.isArray(schema[key]) ? propertyDeps : schemaDeps;
-        deps[key] = schema[key];
+        const deps = Array.isArray(schema2[key]) ? propertyDeps : schemaDeps;
+        deps[key] = schema2[key];
       }
       return [propertyDeps, schemaDeps];
     }
@@ -5858,8 +5858,8 @@ var require_propertyNames = __commonJS({
       schemaType: ["object", "boolean"],
       error: error51,
       code(cxt) {
-        const { gen, schema, data, it } = cxt;
-        if ((0, util_1.alwaysValidSchema)(it, schema))
+        const { gen, schema: schema2, data, it } = cxt;
+        if ((0, util_1.alwaysValidSchema)(it, schema2))
           return;
         const valid = gen.name("valid");
         gen.forIn("key", data, (key) => {
@@ -5905,12 +5905,12 @@ var require_additionalProperties = __commonJS({
       trackErrors: true,
       error: error51,
       code(cxt) {
-        const { gen, schema, parentSchema, data, errsCount, it } = cxt;
+        const { gen, schema: schema2, parentSchema, data, errsCount, it } = cxt;
         if (!errsCount)
           throw new Error("ajv implementation error");
         const { allErrors, opts } = it;
         it.props = true;
-        if (opts.removeAdditional !== "all" && (0, util_1.alwaysValidSchema)(it, schema))
+        if (opts.removeAdditional !== "all" && (0, util_1.alwaysValidSchema)(it, schema2))
           return;
         const props = (0, code_1.allSchemaProperties)(parentSchema.properties);
         const patProps = (0, code_1.allSchemaProperties)(parentSchema.patternProperties);
@@ -5943,18 +5943,18 @@ var require_additionalProperties = __commonJS({
           gen.code((0, codegen_1._)`delete ${data}[${key}]`);
         }
         function additionalPropertyCode(key) {
-          if (opts.removeAdditional === "all" || opts.removeAdditional && schema === false) {
+          if (opts.removeAdditional === "all" || opts.removeAdditional && schema2 === false) {
             deleteAdditional(key);
             return;
           }
-          if (schema === false) {
+          if (schema2 === false) {
             cxt.setParams({ additionalProperty: key });
             cxt.error();
             if (!allErrors)
               gen.break();
             return;
           }
-          if (typeof schema == "object" && !(0, util_1.alwaysValidSchema)(it, schema)) {
+          if (typeof schema2 == "object" && !(0, util_1.alwaysValidSchema)(it, schema2)) {
             const valid = gen.name("valid");
             if (opts.removeAdditional === "failing") {
               applyAdditionalSchema(key, valid, false);
@@ -6004,18 +6004,18 @@ var require_properties = __commonJS({
       type: "object",
       schemaType: "object",
       code(cxt) {
-        const { gen, schema, parentSchema, data, it } = cxt;
+        const { gen, schema: schema2, parentSchema, data, it } = cxt;
         if (it.opts.removeAdditional === "all" && parentSchema.additionalProperties === void 0) {
           additionalProperties_1.default.code(new validate_1.KeywordCxt(it, additionalProperties_1.default, "additionalProperties"));
         }
-        const allProps = (0, code_1.allSchemaProperties)(schema);
+        const allProps = (0, code_1.allSchemaProperties)(schema2);
         for (const prop of allProps) {
           it.definedProperties.add(prop);
         }
         if (it.opts.unevaluated && allProps.length && it.props !== true) {
           it.props = util_1.mergeEvaluated.props(gen, (0, util_1.toHash)(allProps), it.props);
         }
-        const properties = allProps.filter((p) => !(0, util_1.alwaysValidSchema)(it, schema[p]));
+        const properties = allProps.filter((p) => !(0, util_1.alwaysValidSchema)(it, schema2[p]));
         if (properties.length === 0)
           return;
         const valid = gen.name("valid");
@@ -6033,7 +6033,7 @@ var require_properties = __commonJS({
           cxt.ok(valid);
         }
         function hasDefault(prop) {
-          return it.opts.useDefaults && !it.compositeRule && schema[prop].default !== void 0;
+          return it.opts.useDefaults && !it.compositeRule && schema2[prop].default !== void 0;
         }
         function applyPropertySchema(prop) {
           cxt.subschema({
@@ -6062,10 +6062,10 @@ var require_patternProperties = __commonJS({
       type: "object",
       schemaType: "object",
       code(cxt) {
-        const { gen, schema, data, parentSchema, it } = cxt;
+        const { gen, schema: schema2, data, parentSchema, it } = cxt;
         const { opts } = it;
-        const patterns = (0, code_1.allSchemaProperties)(schema);
-        const alwaysValidPatterns = patterns.filter((p) => (0, util_1.alwaysValidSchema)(it, schema[p]));
+        const patterns = (0, code_1.allSchemaProperties)(schema2);
+        const alwaysValidPatterns = patterns.filter((p) => (0, util_1.alwaysValidSchema)(it, schema2[p]));
         if (patterns.length === 0 || alwaysValidPatterns.length === patterns.length && (!it.opts.unevaluated || it.props === true)) {
           return;
         }
@@ -6133,8 +6133,8 @@ var require_not = __commonJS({
       schemaType: ["object", "boolean"],
       trackErrors: true,
       code(cxt) {
-        const { gen, schema, it } = cxt;
-        if ((0, util_1.alwaysValidSchema)(it, schema)) {
+        const { gen, schema: schema2, it } = cxt;
+        if ((0, util_1.alwaysValidSchema)(it, schema2)) {
           cxt.fail();
           return;
         }
@@ -6187,12 +6187,12 @@ var require_oneOf = __commonJS({
       trackErrors: true,
       error: error51,
       code(cxt) {
-        const { gen, schema, parentSchema, it } = cxt;
-        if (!Array.isArray(schema))
+        const { gen, schema: schema2, parentSchema, it } = cxt;
+        if (!Array.isArray(schema2))
           throw new Error("ajv implementation error");
         if (it.opts.discriminator && parentSchema.discriminator)
           return;
-        const schArr = schema;
+        const schArr = schema2;
         const valid = gen.let("valid", false);
         const passing = gen.let("passing", null);
         const schValid = gen.name("_valid");
@@ -6238,11 +6238,11 @@ var require_allOf = __commonJS({
       keyword: "allOf",
       schemaType: "array",
       code(cxt) {
-        const { gen, schema, it } = cxt;
-        if (!Array.isArray(schema))
+        const { gen, schema: schema2, it } = cxt;
+        if (!Array.isArray(schema2))
           throw new Error("ajv implementation error");
         const valid = gen.name("valid");
-        schema.forEach((sch, i) => {
+        schema2.forEach((sch, i) => {
           if ((0, util_1.alwaysValidSchema)(it, sch))
             return;
           const schCxt = cxt.subschema({ keyword: "allOf", schemaProp: i }, valid);
@@ -6317,8 +6317,8 @@ var require_if = __commonJS({
       }
     };
     function hasSchema(it, keyword) {
-      const schema = it.schema[keyword];
-      return schema !== void 0 && !(0, util_1.alwaysValidSchema)(it, schema);
+      const schema2 = it.schema[keyword];
+      return schema2 !== void 0 && !(0, util_1.alwaysValidSchema)(it, schema2);
     }
     exports.default = def;
   }
@@ -6407,7 +6407,7 @@ var require_format = __commonJS({
       $data: true,
       error: error51,
       code(cxt, ruleType) {
-        const { gen, data, $data, schema, schemaCode, it } = cxt;
+        const { gen, data, $data, schema: schema2, schemaCode, it } = cxt;
         const { opts, errSchemaPath, schemaEnv, self } = it;
         if (!opts.validateFormats)
           return;
@@ -6437,7 +6437,7 @@ var require_format = __commonJS({
           }
         }
         function validateFormat() {
-          const formatDef = self.formats[schema];
+          const formatDef = self.formats[schema2];
           if (!formatDef) {
             unknownFormat();
             return;
@@ -6454,12 +6454,12 @@ var require_format = __commonJS({
             }
             throw new Error(unknownMsg());
             function unknownMsg() {
-              return `unknown format "${schema}" ignored in schema at path "${errSchemaPath}"`;
+              return `unknown format "${schema2}" ignored in schema at path "${errSchemaPath}"`;
             }
           }
           function getFormat(fmtDef) {
-            const code = fmtDef instanceof RegExp ? (0, codegen_1.regexpCode)(fmtDef) : opts.code.formats ? (0, codegen_1._)`${opts.code.formats}${(0, codegen_1.getProperty)(schema)}` : void 0;
-            const fmt = gen.scopeValue("formats", { key: schema, ref: fmtDef, code });
+            const code = fmtDef instanceof RegExp ? (0, codegen_1.regexpCode)(fmtDef) : opts.code.formats ? (0, codegen_1._)`${opts.code.formats}${(0, codegen_1.getProperty)(schema2)}` : void 0;
+            const fmt = gen.scopeValue("formats", { key: schema2, ref: fmtDef, code });
             if (typeof fmtDef == "object" && !(fmtDef instanceof RegExp)) {
               return [fmtDef.type || "string", fmtDef.validate, (0, codegen_1._)`${fmt}.validate`];
             }
@@ -6570,15 +6570,15 @@ var require_discriminator = __commonJS({
       schemaType: "object",
       error: error51,
       code(cxt) {
-        const { gen, data, schema, parentSchema, it } = cxt;
+        const { gen, data, schema: schema2, parentSchema, it } = cxt;
         const { oneOf } = parentSchema;
         if (!it.opts.discriminator) {
           throw new Error("discriminator: requires discriminator option");
         }
-        const tagName = schema.propertyName;
+        const tagName = schema2.propertyName;
         if (typeof tagName != "string")
           throw new Error("discriminator: requires propertyName");
-        if (schema.mapping)
+        if (schema2.mapping)
           throw new Error("discriminator: mapping is not supported");
         if (!oneOf)
           throw new Error("discriminator: requires oneOf keyword");
@@ -8004,8 +8004,8 @@ var ZodType = class {
       description
     });
   }
-  pipe(target) {
-    return ZodPipeline.create(this, target);
+  pipe(target2) {
+    return ZodPipeline.create(this, target2);
   }
   readonly() {
     return ZodReadonly.create(this);
@@ -9411,9 +9411,9 @@ var ZodArray = class _ZodArray extends ZodType {
     return this.min(1, message);
   }
 };
-ZodArray.create = (schema, params) => {
+ZodArray.create = (schema2, params) => {
   return new ZodArray({
-    type: schema,
+    type: schema2,
     minLength: null,
     maxLength: null,
     exactLength: null,
@@ -9421,30 +9421,30 @@ ZodArray.create = (schema, params) => {
     ...processCreateParams(params)
   });
 };
-function deepPartialify(schema) {
-  if (schema instanceof ZodObject) {
+function deepPartialify(schema2) {
+  if (schema2 instanceof ZodObject) {
     const newShape = {};
-    for (const key in schema.shape) {
-      const fieldSchema = schema.shape[key];
+    for (const key in schema2.shape) {
+      const fieldSchema = schema2.shape[key];
       newShape[key] = ZodOptional.create(deepPartialify(fieldSchema));
     }
     return new ZodObject({
-      ...schema._def,
+      ...schema2._def,
       shape: () => newShape
     });
-  } else if (schema instanceof ZodArray) {
+  } else if (schema2 instanceof ZodArray) {
     return new ZodArray({
-      ...schema._def,
-      type: deepPartialify(schema.element)
+      ...schema2._def,
+      type: deepPartialify(schema2.element)
     });
-  } else if (schema instanceof ZodOptional) {
-    return ZodOptional.create(deepPartialify(schema.unwrap()));
-  } else if (schema instanceof ZodNullable) {
-    return ZodNullable.create(deepPartialify(schema.unwrap()));
-  } else if (schema instanceof ZodTuple) {
-    return ZodTuple.create(schema.items.map((item) => deepPartialify(item)));
+  } else if (schema2 instanceof ZodOptional) {
+    return ZodOptional.create(deepPartialify(schema2.unwrap()));
+  } else if (schema2 instanceof ZodNullable) {
+    return ZodNullable.create(deepPartialify(schema2.unwrap()));
+  } else if (schema2 instanceof ZodTuple) {
+    return ZodTuple.create(schema2.items.map((item) => deepPartialify(item)));
   } else {
-    return schema;
+    return schema2;
   }
 }
 var ZodObject = class _ZodObject extends ZodType {
@@ -9660,8 +9660,8 @@ var ZodObject = class _ZodObject extends ZodType {
   //   }) as any;
   //   return merged;
   // }
-  setKey(key, schema) {
-    return this.augment({ [key]: schema });
+  setKey(key, schema2) {
+    return this.augment({ [key]: schema2 });
   }
   // merge<Incoming extends AnyZodObject>(
   //   merging: Incoming
@@ -10107,10 +10107,10 @@ var ZodTuple = class _ZodTuple extends ZodType {
       status.dirty();
     }
     const items = [...ctx.data].map((item, itemIndex) => {
-      const schema = this._def.items[itemIndex] || this._def.rest;
-      if (!schema)
+      const schema2 = this._def.items[itemIndex] || this._def.rest;
+      if (!schema2)
         return null;
-      return schema._parse(new ParseInputLazyPath(ctx, item, ctx.path, itemIndex));
+      return schema2._parse(new ParseInputLazyPath(ctx, item, ctx.path, itemIndex));
     }).filter((x) => !!x);
     if (ctx.common.async) {
       return Promise.all(items).then((results) => {
@@ -10624,9 +10624,9 @@ var ZodPromise = class extends ZodType {
     }));
   }
 };
-ZodPromise.create = (schema, params) => {
+ZodPromise.create = (schema2, params) => {
   return new ZodPromise({
-    type: schema,
+    type: schema2,
     typeName: ZodFirstPartyTypeKind.ZodPromise,
     ...processCreateParams(params)
   });
@@ -10754,17 +10754,17 @@ var ZodEffects = class extends ZodType {
     util.assertNever(effect);
   }
 };
-ZodEffects.create = (schema, effect, params) => {
+ZodEffects.create = (schema2, effect, params) => {
   return new ZodEffects({
-    schema,
+    schema: schema2,
     typeName: ZodFirstPartyTypeKind.ZodEffects,
     effect,
     ...processCreateParams(params)
   });
 };
-ZodEffects.createWithPreprocess = (preprocess2, schema, params) => {
+ZodEffects.createWithPreprocess = (preprocess2, schema2, params) => {
   return new ZodEffects({
-    schema,
+    schema: schema2,
     effect: { type: "preprocess", transform: preprocess2 },
     typeName: ZodFirstPartyTypeKind.ZodEffects,
     ...processCreateParams(params)
@@ -11579,8 +11579,8 @@ function defineLazy(object3, key, getter) {
 function objectClone(obj) {
   return Object.create(Object.getPrototypeOf(obj), Object.getOwnPropertyDescriptors(obj));
 }
-function assignProp(target, prop, value) {
-  Object.defineProperty(target, prop, {
+function assignProp(target2, prop, value) {
+  Object.defineProperty(target2, prop, {
     value,
     writable: true,
     enumerable: true,
@@ -11595,8 +11595,8 @@ function mergeDefs(...defs) {
   }
   return Object.defineProperties({}, mergedDescriptors);
 }
-function cloneDef(schema) {
-  return mergeDefs(schema._zod.def);
+function cloneDef(schema2) {
+  return mergeDefs(schema2._zod.def);
 }
 function getElementAtPath(obj, path2) {
   if (!path2)
@@ -11763,35 +11763,35 @@ function normalizeParams(_params) {
   return params;
 }
 function createTransparentProxy(getter) {
-  let target;
+  let target2;
   return new Proxy({}, {
     get(_, prop, receiver) {
-      target ?? (target = getter());
-      return Reflect.get(target, prop, receiver);
+      target2 ?? (target2 = getter());
+      return Reflect.get(target2, prop, receiver);
     },
     set(_, prop, value, receiver) {
-      target ?? (target = getter());
-      return Reflect.set(target, prop, value, receiver);
+      target2 ?? (target2 = getter());
+      return Reflect.set(target2, prop, value, receiver);
     },
     has(_, prop) {
-      target ?? (target = getter());
-      return Reflect.has(target, prop);
+      target2 ?? (target2 = getter());
+      return Reflect.has(target2, prop);
     },
     deleteProperty(_, prop) {
-      target ?? (target = getter());
-      return Reflect.deleteProperty(target, prop);
+      target2 ?? (target2 = getter());
+      return Reflect.deleteProperty(target2, prop);
     },
     ownKeys(_) {
-      target ?? (target = getter());
-      return Reflect.ownKeys(target);
+      target2 ?? (target2 = getter());
+      return Reflect.ownKeys(target2);
     },
     getOwnPropertyDescriptor(_, prop) {
-      target ?? (target = getter());
-      return Reflect.getOwnPropertyDescriptor(target, prop);
+      target2 ?? (target2 = getter());
+      return Reflect.getOwnPropertyDescriptor(target2, prop);
     },
     defineProperty(_, prop, descriptor) {
-      target ?? (target = getter());
-      return Reflect.defineProperty(target, prop, descriptor);
+      target2 ?? (target2 = getter());
+      return Reflect.defineProperty(target2, prop, descriptor);
     }
   });
 }
@@ -11818,14 +11818,14 @@ var BIGINT_FORMAT_RANGES = {
   int64: [/* @__PURE__ */ BigInt("-9223372036854775808"), /* @__PURE__ */ BigInt("9223372036854775807")],
   uint64: [/* @__PURE__ */ BigInt(0), /* @__PURE__ */ BigInt("18446744073709551615")]
 };
-function pick(schema, mask) {
-  const currDef = schema._zod.def;
+function pick(schema2, mask) {
+  const currDef = schema2._zod.def;
   const checks = currDef.checks;
   const hasChecks = checks && checks.length > 0;
   if (hasChecks) {
     throw new Error(".pick() cannot be used on object schemas containing refinements");
   }
-  const def = mergeDefs(schema._zod.def, {
+  const def = mergeDefs(schema2._zod.def, {
     get shape() {
       const newShape = {};
       for (const key in mask) {
@@ -11841,18 +11841,18 @@ function pick(schema, mask) {
     },
     checks: []
   });
-  return clone(schema, def);
+  return clone(schema2, def);
 }
-function omit(schema, mask) {
-  const currDef = schema._zod.def;
+function omit(schema2, mask) {
+  const currDef = schema2._zod.def;
   const checks = currDef.checks;
   const hasChecks = checks && checks.length > 0;
   if (hasChecks) {
     throw new Error(".omit() cannot be used on object schemas containing refinements");
   }
-  const def = mergeDefs(schema._zod.def, {
+  const def = mergeDefs(schema2._zod.def, {
     get shape() {
-      const newShape = { ...schema._zod.def.shape };
+      const newShape = { ...schema2._zod.def.shape };
       for (const key in mask) {
         if (!(key in currDef.shape)) {
           throw new Error(`Unrecognized key: "${key}"`);
@@ -11866,43 +11866,43 @@ function omit(schema, mask) {
     },
     checks: []
   });
-  return clone(schema, def);
+  return clone(schema2, def);
 }
-function extend(schema, shape) {
+function extend(schema2, shape) {
   if (!isPlainObject(shape)) {
     throw new Error("Invalid input to extend: expected a plain object");
   }
-  const checks = schema._zod.def.checks;
+  const checks = schema2._zod.def.checks;
   const hasChecks = checks && checks.length > 0;
   if (hasChecks) {
-    const existingShape = schema._zod.def.shape;
+    const existingShape = schema2._zod.def.shape;
     for (const key in shape) {
       if (Object.getOwnPropertyDescriptor(existingShape, key) !== void 0) {
         throw new Error("Cannot overwrite keys on object schemas containing refinements. Use `.safeExtend()` instead.");
       }
     }
   }
-  const def = mergeDefs(schema._zod.def, {
+  const def = mergeDefs(schema2._zod.def, {
     get shape() {
-      const _shape = { ...schema._zod.def.shape, ...shape };
+      const _shape = { ...schema2._zod.def.shape, ...shape };
       assignProp(this, "shape", _shape);
       return _shape;
     }
   });
-  return clone(schema, def);
+  return clone(schema2, def);
 }
-function safeExtend(schema, shape) {
+function safeExtend(schema2, shape) {
   if (!isPlainObject(shape)) {
     throw new Error("Invalid input to safeExtend: expected a plain object");
   }
-  const def = mergeDefs(schema._zod.def, {
+  const def = mergeDefs(schema2._zod.def, {
     get shape() {
-      const _shape = { ...schema._zod.def.shape, ...shape };
+      const _shape = { ...schema2._zod.def.shape, ...shape };
       assignProp(this, "shape", _shape);
       return _shape;
     }
   });
-  return clone(schema, def);
+  return clone(schema2, def);
 }
 function merge(a, b) {
   if (a._zod.def.checks?.length) {
@@ -11921,16 +11921,16 @@ function merge(a, b) {
   });
   return clone(a, def);
 }
-function partial(Class2, schema, mask) {
-  const currDef = schema._zod.def;
+function partial(Class2, schema2, mask) {
+  const currDef = schema2._zod.def;
   const checks = currDef.checks;
   const hasChecks = checks && checks.length > 0;
   if (hasChecks) {
     throw new Error(".partial() cannot be used on object schemas containing refinements");
   }
-  const def = mergeDefs(schema._zod.def, {
+  const def = mergeDefs(schema2._zod.def, {
     get shape() {
-      const oldShape = schema._zod.def.shape;
+      const oldShape = schema2._zod.def.shape;
       const shape = { ...oldShape };
       if (mask) {
         for (const key in mask) {
@@ -11957,12 +11957,12 @@ function partial(Class2, schema, mask) {
     },
     checks: []
   });
-  return clone(schema, def);
+  return clone(schema2, def);
 }
-function required(Class2, schema, mask) {
-  const def = mergeDefs(schema._zod.def, {
+function required(Class2, schema2, mask) {
+  const def = mergeDefs(schema2._zod.def, {
     get shape() {
-      const oldShape = schema._zod.def.shape;
+      const oldShape = schema2._zod.def.shape;
       const shape = { ...oldShape };
       if (mask) {
         for (const key in mask) {
@@ -11988,7 +11988,7 @@ function required(Class2, schema, mask) {
       return shape;
     }
   });
-  return clone(schema, def);
+  return clone(schema2, def);
 }
 function aborted(x, startIndex = 0) {
   if (x.aborted === true)
@@ -12267,9 +12267,9 @@ function prettifyError(error51) {
 }
 
 // node_modules/zod/v4/core/parse.js
-var _parse = (_Err) => (schema, value, _ctx, _params) => {
+var _parse = (_Err) => (schema2, value, _ctx, _params) => {
   const ctx = _ctx ? { ..._ctx, async: false } : { async: false };
-  const result = schema._zod.run({ value, issues: [] }, ctx);
+  const result = schema2._zod.run({ value, issues: [] }, ctx);
   if (result instanceof Promise) {
     throw new $ZodAsyncError();
   }
@@ -12281,9 +12281,9 @@ var _parse = (_Err) => (schema, value, _ctx, _params) => {
   return result.value;
 };
 var parse = /* @__PURE__ */ _parse($ZodRealError);
-var _parseAsync = (_Err) => async (schema, value, _ctx, params) => {
+var _parseAsync = (_Err) => async (schema2, value, _ctx, params) => {
   const ctx = _ctx ? { ..._ctx, async: true } : { async: true };
-  let result = schema._zod.run({ value, issues: [] }, ctx);
+  let result = schema2._zod.run({ value, issues: [] }, ctx);
   if (result instanceof Promise)
     result = await result;
   if (result.issues.length) {
@@ -12294,9 +12294,9 @@ var _parseAsync = (_Err) => async (schema, value, _ctx, params) => {
   return result.value;
 };
 var parseAsync = /* @__PURE__ */ _parseAsync($ZodRealError);
-var _safeParse = (_Err) => (schema, value, _ctx) => {
+var _safeParse = (_Err) => (schema2, value, _ctx) => {
   const ctx = _ctx ? { ..._ctx, async: false } : { async: false };
-  const result = schema._zod.run({ value, issues: [] }, ctx);
+  const result = schema2._zod.run({ value, issues: [] }, ctx);
   if (result instanceof Promise) {
     throw new $ZodAsyncError();
   }
@@ -12306,9 +12306,9 @@ var _safeParse = (_Err) => (schema, value, _ctx) => {
   } : { success: true, data: result.value };
 };
 var safeParse = /* @__PURE__ */ _safeParse($ZodRealError);
-var _safeParseAsync = (_Err) => async (schema, value, _ctx) => {
+var _safeParseAsync = (_Err) => async (schema2, value, _ctx) => {
   const ctx = _ctx ? { ..._ctx, async: true } : { async: true };
-  let result = schema._zod.run({ value, issues: [] }, ctx);
+  let result = schema2._zod.run({ value, issues: [] }, ctx);
   if (result instanceof Promise)
     result = await result;
   return result.issues.length ? {
@@ -12317,40 +12317,40 @@ var _safeParseAsync = (_Err) => async (schema, value, _ctx) => {
   } : { success: true, data: result.value };
 };
 var safeParseAsync = /* @__PURE__ */ _safeParseAsync($ZodRealError);
-var _encode = (_Err) => (schema, value, _ctx) => {
+var _encode = (_Err) => (schema2, value, _ctx) => {
   const ctx = _ctx ? { ..._ctx, direction: "backward" } : { direction: "backward" };
-  return _parse(_Err)(schema, value, ctx);
+  return _parse(_Err)(schema2, value, ctx);
 };
 var encode = /* @__PURE__ */ _encode($ZodRealError);
-var _decode = (_Err) => (schema, value, _ctx) => {
-  return _parse(_Err)(schema, value, _ctx);
+var _decode = (_Err) => (schema2, value, _ctx) => {
+  return _parse(_Err)(schema2, value, _ctx);
 };
 var decode = /* @__PURE__ */ _decode($ZodRealError);
-var _encodeAsync = (_Err) => async (schema, value, _ctx) => {
+var _encodeAsync = (_Err) => async (schema2, value, _ctx) => {
   const ctx = _ctx ? { ..._ctx, direction: "backward" } : { direction: "backward" };
-  return _parseAsync(_Err)(schema, value, ctx);
+  return _parseAsync(_Err)(schema2, value, ctx);
 };
 var encodeAsync = /* @__PURE__ */ _encodeAsync($ZodRealError);
-var _decodeAsync = (_Err) => async (schema, value, _ctx) => {
-  return _parseAsync(_Err)(schema, value, _ctx);
+var _decodeAsync = (_Err) => async (schema2, value, _ctx) => {
+  return _parseAsync(_Err)(schema2, value, _ctx);
 };
 var decodeAsync = /* @__PURE__ */ _decodeAsync($ZodRealError);
-var _safeEncode = (_Err) => (schema, value, _ctx) => {
+var _safeEncode = (_Err) => (schema2, value, _ctx) => {
   const ctx = _ctx ? { ..._ctx, direction: "backward" } : { direction: "backward" };
-  return _safeParse(_Err)(schema, value, ctx);
+  return _safeParse(_Err)(schema2, value, ctx);
 };
 var safeEncode = /* @__PURE__ */ _safeEncode($ZodRealError);
-var _safeDecode = (_Err) => (schema, value, _ctx) => {
-  return _safeParse(_Err)(schema, value, _ctx);
+var _safeDecode = (_Err) => (schema2, value, _ctx) => {
+  return _safeParse(_Err)(schema2, value, _ctx);
 };
 var safeDecode = /* @__PURE__ */ _safeDecode($ZodRealError);
-var _safeEncodeAsync = (_Err) => async (schema, value, _ctx) => {
+var _safeEncodeAsync = (_Err) => async (schema2, value, _ctx) => {
   const ctx = _ctx ? { ..._ctx, direction: "backward" } : { direction: "backward" };
-  return _safeParseAsync(_Err)(schema, value, ctx);
+  return _safeParseAsync(_Err)(schema2, value, ctx);
 };
 var safeEncodeAsync = /* @__PURE__ */ _safeEncodeAsync($ZodRealError);
-var _safeDecodeAsync = (_Err) => async (schema, value, _ctx) => {
-  return _safeParseAsync(_Err)(schema, value, _ctx);
+var _safeDecodeAsync = (_Err) => async (schema2, value, _ctx) => {
+  return _safeParseAsync(_Err)(schema2, value, _ctx);
 };
 var safeDecodeAsync = /* @__PURE__ */ _safeDecodeAsync($ZodRealError);
 
@@ -13924,42 +13924,42 @@ var $ZodObjectJIT = /* @__PURE__ */ $constructor("$ZodObjectJIT", (inst, def) =>
     }
     doc.write(`const newResult = {};`);
     for (const key of normalized.keys) {
-      const id = ids[key];
+      const id2 = ids[key];
       const k = esc(key);
-      const schema = shape[key];
-      const isOptionalIn = schema?._zod?.optin === "optional";
-      const isOptionalOut = schema?._zod?.optout === "optional";
-      doc.write(`const ${id} = ${parseStr(key)};`);
+      const schema2 = shape[key];
+      const isOptionalIn = schema2?._zod?.optin === "optional";
+      const isOptionalOut = schema2?._zod?.optout === "optional";
+      doc.write(`const ${id2} = ${parseStr(key)};`);
       if (isOptionalIn && isOptionalOut) {
         doc.write(`
-        if (${id}.issues.length) {
+        if (${id2}.issues.length) {
           if (${k} in input) {
-            payload.issues = payload.issues.concat(${id}.issues.map(iss => ({
+            payload.issues = payload.issues.concat(${id2}.issues.map(iss => ({
               ...iss,
               path: iss.path ? [${k}, ...iss.path] : [${k}]
             })));
           }
         }
         
-        if (${id}.value === undefined) {
+        if (${id2}.value === undefined) {
           if (${k} in input) {
             newResult[${k}] = undefined;
           }
         } else {
-          newResult[${k}] = ${id}.value;
+          newResult[${k}] = ${id2}.value;
         }
         
       `);
       } else if (!isOptionalIn) {
         doc.write(`
-        const ${id}_present = ${k} in input;
-        if (${id}.issues.length) {
-          payload.issues = payload.issues.concat(${id}.issues.map(iss => ({
+        const ${id2}_present = ${k} in input;
+        if (${id2}.issues.length) {
+          payload.issues = payload.issues.concat(${id2}.issues.map(iss => ({
             ...iss,
             path: iss.path ? [${k}, ...iss.path] : [${k}]
           })));
         }
-        if (!${id}_present && !${id}.issues.length) {
+        if (!${id2}_present && !${id2}.issues.length) {
           payload.issues.push({
             code: "invalid_type",
             expected: "nonoptional",
@@ -13968,30 +13968,30 @@ var $ZodObjectJIT = /* @__PURE__ */ $constructor("$ZodObjectJIT", (inst, def) =>
           });
         }
 
-        if (${id}_present) {
-          if (${id}.value === undefined) {
+        if (${id2}_present) {
+          if (${id2}.value === undefined) {
             newResult[${k}] = undefined;
           } else {
-            newResult[${k}] = ${id}.value;
+            newResult[${k}] = ${id2}.value;
           }
         }
 
       `);
       } else {
         doc.write(`
-        if (${id}.issues.length) {
-          payload.issues = payload.issues.concat(${id}.issues.map(iss => ({
+        if (${id2}.issues.length) {
+          payload.issues = payload.issues.concat(${id2}.issues.map(iss => ({
             ...iss,
             path: iss.path ? [${k}, ...iss.path] : [${k}]
           })));
         }
         
-        if (${id}.value === undefined) {
+        if (${id2}.value === undefined) {
           if (${k} in input) {
             newResult[${k}] = undefined;
           }
         } else {
-          newResult[${k}] = ${id}.value;
+          newResult[${k}] = ${id2}.value;
         }
         
       `);
@@ -21161,11 +21161,11 @@ var $ZodRegistry = class {
     this._map = /* @__PURE__ */ new WeakMap();
     this._idmap = /* @__PURE__ */ new Map();
   }
-  add(schema, ..._meta) {
+  add(schema2, ..._meta) {
     const meta3 = _meta[0];
-    this._map.set(schema, meta3);
+    this._map.set(schema2, meta3);
     if (meta3 && typeof meta3 === "object" && "id" in meta3) {
-      this._idmap.set(meta3.id, schema);
+      this._idmap.set(meta3.id, schema2);
     }
     return this;
   }
@@ -21174,26 +21174,26 @@ var $ZodRegistry = class {
     this._idmap = /* @__PURE__ */ new Map();
     return this;
   }
-  remove(schema) {
-    const meta3 = this._map.get(schema);
+  remove(schema2) {
+    const meta3 = this._map.get(schema2);
     if (meta3 && typeof meta3 === "object" && "id" in meta3) {
       this._idmap.delete(meta3.id);
     }
-    this._map.delete(schema);
+    this._map.delete(schema2);
     return this;
   }
-  get(schema) {
-    const p = schema._zod.parent;
+  get(schema2) {
+    const p = schema2._zod.parent;
     if (p) {
       const pm = { ...this.get(p) ?? {} };
       delete pm.id;
-      const f = { ...pm, ...this._map.get(schema) };
+      const f = { ...pm, ...this._map.get(schema2) };
       return Object.keys(f).length ? f : void 0;
     }
-    return this._map.get(schema);
+    return this._map.get(schema2);
   }
-  has(schema) {
-    return this._map.has(schema);
+  has(schema2) {
+    return this._map.has(schema2);
   }
 };
 function registry() {
@@ -21846,11 +21846,11 @@ function _endsWith(suffix, params) {
   });
 }
 // @__NO_SIDE_EFFECTS__
-function _property(property, schema, params) {
+function _property(property, schema2, params) {
   return new $ZodCheckProperty({
     check: "property",
     property,
-    schema,
+    schema: schema2,
     ...normalizeParams(params)
   });
 }
@@ -22098,23 +22098,23 @@ function _promise(Class2, innerType) {
 function _custom(Class2, fn, _params) {
   const norm = normalizeParams(_params);
   norm.abort ?? (norm.abort = true);
-  const schema = new Class2({
+  const schema2 = new Class2({
     type: "custom",
     check: "custom",
     fn,
     ...norm
   });
-  return schema;
+  return schema2;
 }
 // @__NO_SIDE_EFFECTS__
 function _refine(Class2, fn, _params) {
-  const schema = new Class2({
+  const schema2 = new Class2({
     type: "custom",
     check: "custom",
     fn,
     ...normalizeParams(_params)
   });
-  return schema;
+  return schema2;
 }
 // @__NO_SIDE_EFFECTS__
 function _superRefine(fn, params) {
@@ -22243,15 +22243,15 @@ function _stringFormat(Class2, format, fnOrRegex, _params = {}) {
 
 // node_modules/zod/v4/core/to-json-schema.js
 function initializeContext(params) {
-  let target = params?.target ?? "draft-2020-12";
-  if (target === "draft-4")
-    target = "draft-04";
-  if (target === "draft-7")
-    target = "draft-07";
+  let target2 = params?.target ?? "draft-2020-12";
+  if (target2 === "draft-4")
+    target2 = "draft-04";
+  if (target2 === "draft-7")
+    target2 = "draft-07";
   return {
     processors: params.processors ?? {},
     metadataRegistry: params?.metadata ?? globalRegistry,
-    target,
+    target: target2,
     unrepresentable: params?.unrepresentable ?? "throw",
     override: params?.override ?? (() => {
     }),
@@ -22263,40 +22263,40 @@ function initializeContext(params) {
     external: params?.external ?? void 0
   };
 }
-function process2(schema, ctx, _params = { path: [], schemaPath: [] }) {
+function process2(schema2, ctx, _params = { path: [], schemaPath: [] }) {
   var _a3;
-  const def = schema._zod.def;
-  const seen = ctx.seen.get(schema);
+  const def = schema2._zod.def;
+  const seen = ctx.seen.get(schema2);
   if (seen) {
     seen.count++;
-    const isCycle = _params.schemaPath.includes(schema);
+    const isCycle = _params.schemaPath.includes(schema2);
     if (isCycle) {
       seen.cycle = _params.path;
     }
     return seen.schema;
   }
   const result = { schema: {}, count: 1, cycle: void 0, path: _params.path };
-  ctx.seen.set(schema, result);
-  const overrideSchema = schema._zod.toJSONSchema?.();
+  ctx.seen.set(schema2, result);
+  const overrideSchema = schema2._zod.toJSONSchema?.();
   if (overrideSchema) {
     result.schema = overrideSchema;
   } else {
     const params = {
       ..._params,
-      schemaPath: [..._params.schemaPath, schema],
+      schemaPath: [..._params.schemaPath, schema2],
       path: _params.path
     };
-    if (schema._zod.processJSONSchema) {
-      schema._zod.processJSONSchema(ctx, result.schema, params);
+    if (schema2._zod.processJSONSchema) {
+      schema2._zod.processJSONSchema(ctx, result.schema, params);
     } else {
       const _json = result.schema;
       const processor = ctx.processors[def.type];
       if (!processor) {
         throw new Error(`[toJSONSchema]: Non-representable type encountered: ${def.type}`);
       }
-      processor(schema, ctx, _json, params);
+      processor(schema2, ctx, _json, params);
     }
-    const parent = schema._zod.parent;
+    const parent = schema2._zod.parent;
     if (parent) {
       if (!result.ref)
         result.ref = parent;
@@ -22304,45 +22304,45 @@ function process2(schema, ctx, _params = { path: [], schemaPath: [] }) {
       ctx.seen.get(parent).isParent = true;
     }
   }
-  const meta3 = ctx.metadataRegistry.get(schema);
+  const meta3 = ctx.metadataRegistry.get(schema2);
   if (meta3)
     Object.assign(result.schema, meta3);
-  if (ctx.io === "input" && isTransforming(schema)) {
+  if (ctx.io === "input" && isTransforming(schema2)) {
     delete result.schema.examples;
     delete result.schema.default;
   }
   if (ctx.io === "input" && "_prefault" in result.schema)
     (_a3 = result.schema).default ?? (_a3.default = result.schema._prefault);
   delete result.schema._prefault;
-  const _result = ctx.seen.get(schema);
+  const _result = ctx.seen.get(schema2);
   return _result.schema;
 }
-function extractDefs(ctx, schema) {
-  const root = ctx.seen.get(schema);
+function extractDefs(ctx, schema2) {
+  const root = ctx.seen.get(schema2);
   if (!root)
     throw new Error("Unprocessed schema. This is a bug in Zod.");
   const idToSchema = /* @__PURE__ */ new Map();
   for (const entry of ctx.seen.entries()) {
-    const id = ctx.metadataRegistry.get(entry[0])?.id;
-    if (id) {
-      const existing = idToSchema.get(id);
+    const id2 = ctx.metadataRegistry.get(entry[0])?.id;
+    if (id2) {
+      const existing = idToSchema.get(id2);
       if (existing && existing !== entry[0]) {
-        throw new Error(`Duplicate schema id "${id}" detected during JSON Schema conversion. Two different schemas cannot share the same id when converted together.`);
+        throw new Error(`Duplicate schema id "${id2}" detected during JSON Schema conversion. Two different schemas cannot share the same id when converted together.`);
       }
-      idToSchema.set(id, entry[0]);
+      idToSchema.set(id2, entry[0]);
     }
   }
   const makeURI = (entry) => {
     const defsSegment = ctx.target === "draft-2020-12" ? "$defs" : "definitions";
     if (ctx.external) {
       const externalId = ctx.external.registry.get(entry[0])?.id;
-      const uriGenerator = ctx.external.uri ?? ((id2) => id2);
+      const uriGenerator = ctx.external.uri ?? ((id3) => id3);
       if (externalId) {
         return { ref: uriGenerator(externalId) };
       }
-      const id = entry[1].defId ?? entry[1].schema.id ?? `schema${ctx.counter++}`;
-      entry[1].defId = id;
-      return { defId: id, ref: `${uriGenerator("__shared")}#/${defsSegment}/${id}` };
+      const id2 = entry[1].defId ?? entry[1].schema.id ?? `schema${ctx.counter++}`;
+      entry[1].defId = id2;
+      return { defId: id2, ref: `${uriGenerator("__shared")}#/${defsSegment}/${id2}` };
     }
     if (entry[1] === root) {
       return { ref: "#" };
@@ -22361,11 +22361,11 @@ function extractDefs(ctx, schema) {
     seen.def = { ...seen.schema };
     if (defId)
       seen.defId = defId;
-    const schema2 = seen.schema;
-    for (const key in schema2) {
-      delete schema2[key];
+    const schema3 = seen.schema;
+    for (const key in schema3) {
+      delete schema3[key];
     }
-    schema2.$ref = ref;
+    schema3.$ref = ref;
   };
   if (ctx.cycles === "throw") {
     for (const entry of ctx.seen.entries()) {
@@ -22379,19 +22379,19 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
   }
   for (const entry of ctx.seen.entries()) {
     const seen = entry[1];
-    if (schema === entry[0]) {
+    if (schema2 === entry[0]) {
       extractToDef(entry);
       continue;
     }
     if (ctx.external) {
       const ext = ctx.external.registry.get(entry[0])?.id;
-      if (schema !== entry[0] && ext) {
+      if (schema2 !== entry[0] && ext) {
         extractToDef(entry);
         continue;
       }
     }
-    const id = ctx.metadataRegistry.get(entry[0])?.id;
-    if (id) {
+    const id2 = ctx.metadataRegistry.get(entry[0])?.id;
+    if (id2) {
       extractToDef(entry);
       continue;
     }
@@ -22407,16 +22407,16 @@ Set the \`cycles\` parameter to \`"ref"\` to resolve cyclical schemas with defs.
     }
   }
 }
-function finalize(ctx, schema) {
-  const root = ctx.seen.get(schema);
+function finalize(ctx, schema2) {
+  const root = ctx.seen.get(schema2);
   if (!root)
     throw new Error("Unprocessed schema. This is a bug in Zod.");
   const flattenRef = (zodSchema) => {
     const seen = ctx.seen.get(zodSchema);
     if (seen.ref === null)
       return;
-    const schema2 = seen.def ?? seen.schema;
-    const _cached = { ...schema2 };
+    const schema3 = seen.def ?? seen.schema;
+    const _cached = { ...schema3 };
     const ref = seen.ref;
     seen.ref = null;
     if (ref) {
@@ -22424,28 +22424,28 @@ function finalize(ctx, schema) {
       const refSeen = ctx.seen.get(ref);
       const refSchema = refSeen.schema;
       if (refSchema.$ref && (ctx.target === "draft-07" || ctx.target === "draft-04" || ctx.target === "openapi-3.0")) {
-        schema2.allOf = schema2.allOf ?? [];
-        schema2.allOf.push(refSchema);
+        schema3.allOf = schema3.allOf ?? [];
+        schema3.allOf.push(refSchema);
       } else {
-        Object.assign(schema2, refSchema);
+        Object.assign(schema3, refSchema);
       }
-      Object.assign(schema2, _cached);
+      Object.assign(schema3, _cached);
       const isParentRef = zodSchema._zod.parent === ref;
       if (isParentRef) {
-        for (const key in schema2) {
+        for (const key in schema3) {
           if (key === "$ref" || key === "allOf")
             continue;
           if (!(key in _cached)) {
-            delete schema2[key];
+            delete schema3[key];
           }
         }
       }
       if (refSchema.$ref && refSeen.def) {
-        for (const key in schema2) {
+        for (const key in schema3) {
           if (key === "$ref" || key === "allOf")
             continue;
-          if (key in refSeen.def && JSON.stringify(schema2[key]) === JSON.stringify(refSeen.def[key])) {
-            delete schema2[key];
+          if (key in refSeen.def && JSON.stringify(schema3[key]) === JSON.stringify(refSeen.def[key])) {
+            delete schema3[key];
           }
         }
       }
@@ -22455,13 +22455,13 @@ function finalize(ctx, schema) {
       flattenRef(parent);
       const parentSeen = ctx.seen.get(parent);
       if (parentSeen?.schema.$ref) {
-        schema2.$ref = parentSeen.schema.$ref;
+        schema3.$ref = parentSeen.schema.$ref;
         if (parentSeen.def) {
-          for (const key in schema2) {
+          for (const key in schema3) {
             if (key === "$ref" || key === "allOf")
               continue;
-            if (key in parentSeen.def && JSON.stringify(schema2[key]) === JSON.stringify(parentSeen.def[key])) {
-              delete schema2[key];
+            if (key in parentSeen.def && JSON.stringify(schema3[key]) === JSON.stringify(parentSeen.def[key])) {
+              delete schema3[key];
             }
           }
         }
@@ -22469,7 +22469,7 @@ function finalize(ctx, schema) {
     }
     ctx.override({
       zodSchema,
-      jsonSchema: schema2,
+      jsonSchema: schema3,
       path: seen.path ?? []
     });
   };
@@ -22487,13 +22487,13 @@ function finalize(ctx, schema) {
   } else {
   }
   if (ctx.external?.uri) {
-    const id = ctx.external.registry.get(schema)?.id;
-    if (!id)
+    const id2 = ctx.external.registry.get(schema2)?.id;
+    if (!id2)
       throw new Error("Schema is missing an `id` property");
-    result.$id = ctx.external.uri(id);
+    result.$id = ctx.external.uri(id2);
   }
   Object.assign(result, root.def ?? root.schema);
-  const rootMetaId = ctx.metadataRegistry.get(schema)?.id;
+  const rootMetaId = ctx.metadataRegistry.get(schema2)?.id;
   if (rootMetaId !== void 0 && result.id === rootMetaId)
     delete result.id;
   const defs = ctx.external?.defs ?? {};
@@ -22519,10 +22519,10 @@ function finalize(ctx, schema) {
     const finalized = JSON.parse(JSON.stringify(result));
     Object.defineProperty(finalized, "~standard", {
       value: {
-        ...schema["~standard"],
+        ...schema2["~standard"],
         jsonSchema: {
-          input: createStandardJSONSchemaMethod(schema, "input", ctx.processors),
-          output: createStandardJSONSchemaMethod(schema, "output", ctx.processors)
+          input: createStandardJSONSchemaMethod(schema2, "input", ctx.processors),
+          output: createStandardJSONSchemaMethod(schema2, "output", ctx.processors)
         }
       },
       enumerable: false,
@@ -22586,18 +22586,18 @@ function isTransforming(_schema, _ctx) {
   }
   return false;
 }
-var createToJSONSchemaMethod = (schema, processors = {}) => (params) => {
+var createToJSONSchemaMethod = (schema2, processors = {}) => (params) => {
   const ctx = initializeContext({ ...params, processors });
-  process2(schema, ctx);
-  extractDefs(ctx, schema);
-  return finalize(ctx, schema);
+  process2(schema2, ctx);
+  extractDefs(ctx, schema2);
+  return finalize(ctx, schema2);
 };
-var createStandardJSONSchemaMethod = (schema, io, processors = {}) => (params) => {
-  const { libraryOptions, target } = params ?? {};
-  const ctx = initializeContext({ ...libraryOptions ?? {}, target, io, processors });
-  process2(schema, ctx);
-  extractDefs(ctx, schema);
-  return finalize(ctx, schema);
+var createStandardJSONSchemaMethod = (schema2, io, processors = {}) => (params) => {
+  const { libraryOptions, target: target2 } = params ?? {};
+  const ctx = initializeContext({ ...libraryOptions ?? {}, target: target2, io, processors });
+  process2(schema2, ctx);
+  extractDefs(ctx, schema2);
+  return finalize(ctx, schema2);
 };
 
 // node_modules/zod/v4/core/json-schema-processors.js
@@ -22609,10 +22609,10 @@ var formatMap = {
   regex: ""
   // do not set
 };
-var stringProcessor = (schema, ctx, _json, _params) => {
+var stringProcessor = (schema2, ctx, _json, _params) => {
   const json2 = _json;
   json2.type = "string";
-  const { minimum, maximum, format, patterns, contentEncoding } = schema._zod.bag;
+  const { minimum, maximum, format, patterns, contentEncoding } = schema2._zod.bag;
   if (typeof minimum === "number")
     json2.minLength = minimum;
   if (typeof maximum === "number")
@@ -22641,9 +22641,9 @@ var stringProcessor = (schema, ctx, _json, _params) => {
     }
   }
 };
-var numberProcessor = (schema, ctx, _json, _params) => {
+var numberProcessor = (schema2, ctx, _json, _params) => {
   const json2 = _json;
-  const { minimum, maximum, format, multipleOf, exclusiveMaximum, exclusiveMinimum } = schema._zod.bag;
+  const { minimum, maximum, format, multipleOf, exclusiveMaximum, exclusiveMinimum } = schema2._zod.bag;
   if (typeof format === "string" && format.includes("int"))
     json2.type = "integer";
   else
@@ -22718,8 +22718,8 @@ var dateProcessor = (_schema, ctx, _json, _params) => {
     throw new Error("Date cannot be represented in JSON Schema");
   }
 };
-var enumProcessor = (schema, _ctx, json2, _params) => {
-  const def = schema._zod.def;
+var enumProcessor = (schema2, _ctx, json2, _params) => {
+  const def = schema2._zod.def;
   const values = getEnumValues(def.entries);
   if (values.every((v) => typeof v === "number"))
     json2.type = "number";
@@ -22727,8 +22727,8 @@ var enumProcessor = (schema, _ctx, json2, _params) => {
     json2.type = "string";
   json2.enum = values;
 };
-var literalProcessor = (schema, ctx, json2, _params) => {
-  const def = schema._zod.def;
+var literalProcessor = (schema2, ctx, json2, _params) => {
+  const def = schema2._zod.def;
   const vals = [];
   for (const val of def.values) {
     if (val === void 0) {
@@ -22772,22 +22772,22 @@ var nanProcessor = (_schema, ctx, _json, _params) => {
     throw new Error("NaN cannot be represented in JSON Schema");
   }
 };
-var templateLiteralProcessor = (schema, _ctx, json2, _params) => {
+var templateLiteralProcessor = (schema2, _ctx, json2, _params) => {
   const _json = json2;
-  const pattern = schema._zod.pattern;
+  const pattern = schema2._zod.pattern;
   if (!pattern)
     throw new Error("Pattern not found in template literal");
   _json.type = "string";
   _json.pattern = pattern.source;
 };
-var fileProcessor = (schema, _ctx, json2, _params) => {
+var fileProcessor = (schema2, _ctx, json2, _params) => {
   const _json = json2;
   const file2 = {
     type: "string",
     format: "binary",
     contentEncoding: "binary"
   };
-  const { minimum, maximum, mime } = schema._zod.bag;
+  const { minimum, maximum, mime } = schema2._zod.bag;
   if (minimum !== void 0)
     file2.minLength = minimum;
   if (maximum !== void 0)
@@ -22832,10 +22832,10 @@ var setProcessor = (_schema, ctx, _json, _params) => {
     throw new Error("Set cannot be represented in JSON Schema");
   }
 };
-var arrayProcessor = (schema, ctx, _json, params) => {
+var arrayProcessor = (schema2, ctx, _json, params) => {
   const json2 = _json;
-  const def = schema._zod.def;
-  const { minimum, maximum } = schema._zod.bag;
+  const def = schema2._zod.def;
+  const { minimum, maximum } = schema2._zod.bag;
   if (typeof minimum === "number")
     json2.minItems = minimum;
   if (typeof maximum === "number")
@@ -22846,9 +22846,9 @@ var arrayProcessor = (schema, ctx, _json, params) => {
     path: [...params.path, "items"]
   });
 };
-var objectProcessor = (schema, ctx, _json, params) => {
+var objectProcessor = (schema2, ctx, _json, params) => {
   const json2 = _json;
-  const def = schema._zod.def;
+  const def = schema2._zod.def;
   json2.type = "object";
   json2.properties = {};
   const shape = def.shape;
@@ -22882,8 +22882,8 @@ var objectProcessor = (schema, ctx, _json, params) => {
     });
   }
 };
-var unionProcessor = (schema, ctx, json2, params) => {
-  const def = schema._zod.def;
+var unionProcessor = (schema2, ctx, json2, params) => {
+  const def = schema2._zod.def;
   const isExclusive = def.inclusive === false;
   const options = def.options.map((x, i) => process2(x, ctx, {
     ...params,
@@ -22895,8 +22895,8 @@ var unionProcessor = (schema, ctx, json2, params) => {
     json2.anyOf = options;
   }
 };
-var intersectionProcessor = (schema, ctx, json2, params) => {
-  const def = schema._zod.def;
+var intersectionProcessor = (schema2, ctx, json2, params) => {
+  const def = schema2._zod.def;
   const a = process2(def.left, ctx, {
     ...params,
     path: [...params.path, "allOf", 0]
@@ -22912,9 +22912,9 @@ var intersectionProcessor = (schema, ctx, json2, params) => {
   ];
   json2.allOf = allOf;
 };
-var tupleProcessor = (schema, ctx, _json, params) => {
+var tupleProcessor = (schema2, ctx, _json, params) => {
   const json2 = _json;
-  const def = schema._zod.def;
+  const def = schema2._zod.def;
   json2.type = "array";
   const prefixPath = ctx.target === "draft-2020-12" ? "prefixItems" : "items";
   const restPath = ctx.target === "draft-2020-12" ? "items" : ctx.target === "openapi-3.0" ? "items" : "additionalItems";
@@ -22948,15 +22948,15 @@ var tupleProcessor = (schema, ctx, _json, params) => {
       json2.additionalItems = rest;
     }
   }
-  const { minimum, maximum } = schema._zod.bag;
+  const { minimum, maximum } = schema2._zod.bag;
   if (typeof minimum === "number")
     json2.minItems = minimum;
   if (typeof maximum === "number")
     json2.maxItems = maximum;
 };
-var recordProcessor = (schema, ctx, _json, params) => {
+var recordProcessor = (schema2, ctx, _json, params) => {
   const json2 = _json;
-  const def = schema._zod.def;
+  const def = schema2._zod.def;
   json2.type = "object";
   const keyType = def.keyType;
   const keyBag = keyType._zod.bag;
@@ -22990,10 +22990,10 @@ var recordProcessor = (schema, ctx, _json, params) => {
     }
   }
 };
-var nullableProcessor = (schema, ctx, json2, params) => {
-  const def = schema._zod.def;
+var nullableProcessor = (schema2, ctx, json2, params) => {
+  const def = schema2._zod.def;
   const inner = process2(def.innerType, ctx, params);
-  const seen = ctx.seen.get(schema);
+  const seen = ctx.seen.get(schema2);
   if (ctx.target === "openapi-3.0") {
     seen.ref = def.innerType;
     json2.nullable = true;
@@ -23001,31 +23001,31 @@ var nullableProcessor = (schema, ctx, json2, params) => {
     json2.anyOf = [inner, { type: "null" }];
   }
 };
-var nonoptionalProcessor = (schema, ctx, _json, params) => {
-  const def = schema._zod.def;
+var nonoptionalProcessor = (schema2, ctx, _json, params) => {
+  const def = schema2._zod.def;
   process2(def.innerType, ctx, params);
-  const seen = ctx.seen.get(schema);
+  const seen = ctx.seen.get(schema2);
   seen.ref = def.innerType;
 };
-var defaultProcessor = (schema, ctx, json2, params) => {
-  const def = schema._zod.def;
+var defaultProcessor = (schema2, ctx, json2, params) => {
+  const def = schema2._zod.def;
   process2(def.innerType, ctx, params);
-  const seen = ctx.seen.get(schema);
+  const seen = ctx.seen.get(schema2);
   seen.ref = def.innerType;
   json2.default = JSON.parse(JSON.stringify(def.defaultValue));
 };
-var prefaultProcessor = (schema, ctx, json2, params) => {
-  const def = schema._zod.def;
+var prefaultProcessor = (schema2, ctx, json2, params) => {
+  const def = schema2._zod.def;
   process2(def.innerType, ctx, params);
-  const seen = ctx.seen.get(schema);
+  const seen = ctx.seen.get(schema2);
   seen.ref = def.innerType;
   if (ctx.io === "input")
     json2._prefault = JSON.parse(JSON.stringify(def.defaultValue));
 };
-var catchProcessor = (schema, ctx, json2, params) => {
-  const def = schema._zod.def;
+var catchProcessor = (schema2, ctx, json2, params) => {
+  const def = schema2._zod.def;
   process2(def.innerType, ctx, params);
-  const seen = ctx.seen.get(schema);
+  const seen = ctx.seen.get(schema2);
   seen.ref = def.innerType;
   let catchValue;
   try {
@@ -23035,37 +23035,37 @@ var catchProcessor = (schema, ctx, json2, params) => {
   }
   json2.default = catchValue;
 };
-var pipeProcessor = (schema, ctx, _json, params) => {
-  const def = schema._zod.def;
+var pipeProcessor = (schema2, ctx, _json, params) => {
+  const def = schema2._zod.def;
   const inIsTransform = def.in._zod.traits.has("$ZodTransform");
   const innerType = ctx.io === "input" ? inIsTransform ? def.out : def.in : def.out;
   process2(innerType, ctx, params);
-  const seen = ctx.seen.get(schema);
+  const seen = ctx.seen.get(schema2);
   seen.ref = innerType;
 };
-var readonlyProcessor = (schema, ctx, json2, params) => {
-  const def = schema._zod.def;
+var readonlyProcessor = (schema2, ctx, json2, params) => {
+  const def = schema2._zod.def;
   process2(def.innerType, ctx, params);
-  const seen = ctx.seen.get(schema);
+  const seen = ctx.seen.get(schema2);
   seen.ref = def.innerType;
   json2.readOnly = true;
 };
-var promiseProcessor = (schema, ctx, _json, params) => {
-  const def = schema._zod.def;
+var promiseProcessor = (schema2, ctx, _json, params) => {
+  const def = schema2._zod.def;
   process2(def.innerType, ctx, params);
-  const seen = ctx.seen.get(schema);
+  const seen = ctx.seen.get(schema2);
   seen.ref = def.innerType;
 };
-var optionalProcessor = (schema, ctx, _json, params) => {
-  const def = schema._zod.def;
+var optionalProcessor = (schema2, ctx, _json, params) => {
+  const def = schema2._zod.def;
   process2(def.innerType, ctx, params);
-  const seen = ctx.seen.get(schema);
+  const seen = ctx.seen.get(schema2);
   seen.ref = def.innerType;
 };
-var lazyProcessor = (schema, ctx, _json, params) => {
-  const innerType = schema._zod.innerType;
+var lazyProcessor = (schema2, ctx, _json, params) => {
+  const innerType = schema2._zod.innerType;
   process2(innerType, ctx, params);
-  const seen = ctx.seen.get(schema);
+  const seen = ctx.seen.get(schema2);
   seen.ref = innerType;
 };
 var allProcessors = {
@@ -23115,8 +23115,8 @@ function toJSONSchema(input, params) {
     const ctx2 = initializeContext({ ...params, processors: allProcessors });
     const defs = {};
     for (const entry of registry2._idmap.entries()) {
-      const [_, schema] = entry;
-      process2(schema, ctx2);
+      const [_, schema2] = entry;
+      process2(schema2, ctx2);
     }
     const schemas = {};
     const external = {
@@ -23126,9 +23126,9 @@ function toJSONSchema(input, params) {
     };
     ctx2.external = external;
     for (const entry of registry2._idmap.entries()) {
-      const [key, schema] = entry;
-      extractDefs(ctx2, schema);
-      schemas[key] = finalize(ctx2, schema);
+      const [key, schema2] = entry;
+      extractDefs(ctx2, schema2);
+      schemas[key] = finalize(ctx2, schema2);
     }
     if (Object.keys(defs).length > 0) {
       const defsSegment = ctx2.target === "draft-2020-12" ? "$defs" : "definitions";
@@ -23196,14 +23196,14 @@ var JSONSchemaGenerator = class {
    * Process a schema to prepare it for JSON Schema generation.
    * This must be called before emit().
    */
-  process(schema, _params = { path: [], schemaPath: [] }) {
-    return process2(schema, this.ctx, _params);
+  process(schema2, _params = { path: [], schemaPath: [] }) {
+    return process2(schema2, this.ctx, _params);
   }
   /**
    * Emit the final JSON Schema after processing.
    * Must call process() first.
    */
-  emit(schema, _params) {
+  emit(schema2, _params) {
     if (_params) {
       if (_params.cycles)
         this.ctx.cycles = _params.cycles;
@@ -23212,8 +23212,8 @@ var JSONSchemaGenerator = class {
       if (_params.external)
         this.ctx.external = _params.external;
     }
-    extractDefs(this.ctx, schema);
-    const result = finalize(this.ctx, schema);
+    extractDefs(this.ctx, schema2);
+    const result = finalize(this.ctx, schema2);
     const { "~standard": _, ...plainResult } = result;
     return plainResult;
   }
@@ -23270,8 +23270,8 @@ function object(shape, params) {
 
 // node_modules/@modelcontextprotocol/sdk/dist/esm/server/zod-compat.js
 function isZ4Schema(s) {
-  const schema = s;
-  return !!schema._zod;
+  const schema2 = s;
+  return !!schema2._zod;
 }
 function objectFromShape(shape) {
   const values = Object.values(shape);
@@ -23285,33 +23285,33 @@ function objectFromShape(shape) {
     return objectType(shape);
   throw new Error("Mixed Zod versions detected in object shape.");
 }
-function safeParse2(schema, data) {
-  if (isZ4Schema(schema)) {
-    const result2 = safeParse(schema, data);
+function safeParse2(schema2, data) {
+  if (isZ4Schema(schema2)) {
+    const result2 = safeParse(schema2, data);
     return result2;
   }
-  const v3Schema = schema;
+  const v3Schema = schema2;
   const result = v3Schema.safeParse(data);
   return result;
 }
-async function safeParseAsync2(schema, data) {
-  if (isZ4Schema(schema)) {
-    const result2 = await safeParseAsync(schema, data);
+async function safeParseAsync2(schema2, data) {
+  if (isZ4Schema(schema2)) {
+    const result2 = await safeParseAsync(schema2, data);
     return result2;
   }
-  const v3Schema = schema;
+  const v3Schema = schema2;
   const result = await v3Schema.safeParseAsync(data);
   return result;
 }
-function getObjectShape(schema) {
-  if (!schema)
+function getObjectShape(schema2) {
+  if (!schema2)
     return void 0;
   let rawShape;
-  if (isZ4Schema(schema)) {
-    const v4Schema = schema;
+  if (isZ4Schema(schema2)) {
+    const v4Schema = schema2;
     rawShape = v4Schema._zod?.def?.shape;
   } else {
-    const v3Schema = schema;
+    const v3Schema = schema2;
     rawShape = v3Schema.shape;
   }
   if (!rawShape)
@@ -23325,29 +23325,29 @@ function getObjectShape(schema) {
   }
   return rawShape;
 }
-function normalizeObjectSchema(schema) {
-  if (!schema)
+function normalizeObjectSchema(schema2) {
+  if (!schema2)
     return void 0;
-  if (typeof schema === "object") {
-    const asV3 = schema;
-    const asV4 = schema;
+  if (typeof schema2 === "object") {
+    const asV3 = schema2;
+    const asV4 = schema2;
     if (!asV3._def && !asV4._zod) {
-      const values = Object.values(schema);
+      const values = Object.values(schema2);
       if (values.length > 0 && values.every((v) => typeof v === "object" && v !== null && (v._def !== void 0 || v._zod !== void 0 || typeof v.parse === "function"))) {
-        return objectFromShape(schema);
+        return objectFromShape(schema2);
       }
     }
   }
-  if (isZ4Schema(schema)) {
-    const v4Schema = schema;
+  if (isZ4Schema(schema2)) {
+    const v4Schema = schema2;
     const def = v4Schema._zod?.def;
     if (def && (def.type === "object" || def.shape !== void 0)) {
-      return schema;
+      return schema2;
     }
   } else {
-    const v3Schema = schema;
+    const v3Schema = schema2;
     if (v3Schema.shape !== void 0) {
-      return schema;
+      return schema2;
     }
   }
   return void 0;
@@ -23387,23 +23387,23 @@ function getParseErrorMessage(error51) {
   }
   return String(error51);
 }
-function getSchemaDescription(schema) {
-  return schema.description;
+function getSchemaDescription(schema2) {
+  return schema2.description;
 }
-function isSchemaOptional(schema) {
-  if (isZ4Schema(schema)) {
-    const v4Schema = schema;
+function isSchemaOptional(schema2) {
+  if (isZ4Schema(schema2)) {
+    const v4Schema = schema2;
     return v4Schema._zod?.def?.type === "optional";
   }
-  const v3Schema = schema;
-  if (typeof schema.isOptional === "function") {
-    return schema.isOptional();
+  const v3Schema = schema2;
+  if (typeof schema2.isOptional === "function") {
+    return schema2.isOptional();
   }
   return v3Schema._def?.typeName === "ZodOptional";
 }
-function getLiteralValue(schema) {
-  if (isZ4Schema(schema)) {
-    const v4Schema = schema;
+function getLiteralValue(schema2) {
+  if (isZ4Schema(schema2)) {
+    const v4Schema = schema2;
     const def2 = v4Schema._zod?.def;
     if (def2) {
       if (def2.value !== void 0)
@@ -23413,7 +23413,7 @@ function getLiteralValue(schema) {
       }
     }
   }
-  const v3Schema = schema;
+  const v3Schema = schema2;
   const def = v3Schema._def;
   if (def) {
     if (def.value !== void 0)
@@ -23422,7 +23422,7 @@ function getLiteralValue(schema) {
       return def.values[0];
     }
   }
-  const directValue = schema.value;
+  const directValue = schema2.value;
   if (directValue !== void 0)
     return directValue;
   return void 0;
@@ -24102,8 +24102,8 @@ var ZodType2 = /* @__PURE__ */ $constructor("ZodType", (inst, def) => {
     catch(params) {
       return _catch2(this, params);
     },
-    pipe(target) {
-      return pipe(this, target);
+    pipe(target2) {
+      return pipe(this, target2);
     },
     readonly() {
       return readonly(this);
@@ -24627,8 +24627,8 @@ var ZodArray2 = /* @__PURE__ */ $constructor("ZodArray", (inst, def) => {
 function array(element, params) {
   return _array(ZodArray2, element, params);
 }
-function keyof(schema) {
-  const shape = schema._zod.def.shape;
+function keyof(schema2) {
+  const shape = schema2._zod.def.shape;
   return _enum2(Object.keys(shape));
 }
 var ZodObject2 = /* @__PURE__ */ $constructor("ZodObject", (inst, def) => {
@@ -25253,11 +25253,11 @@ function json(params) {
   });
   return jsonSchema;
 }
-function preprocess(fn, schema) {
+function preprocess(fn, schema2) {
   return new ZodPreprocess({
     type: "pipe",
     in: transform(fn),
-    out: schema
+    out: schema2
   });
 }
 
@@ -25364,8 +25364,8 @@ var RECOGNIZED_KEYS = /* @__PURE__ */ new Set([
   "nullable",
   "readOnly"
 ]);
-function detectVersion(schema, defaultTarget) {
-  const $schema = schema.$schema;
+function detectVersion(schema2, defaultTarget) {
+  const $schema = schema2.$schema;
   if ($schema === "https://json-schema.org/draft/2020-12/schema") {
     return "draft-2020-12";
   }
@@ -25395,27 +25395,27 @@ function resolveRef(ref, ctx) {
   }
   throw new Error(`Reference not found: ${ref}`);
 }
-function convertBaseSchema(schema, ctx) {
-  if (schema.not !== void 0) {
-    if (typeof schema.not === "object" && Object.keys(schema.not).length === 0) {
+function convertBaseSchema(schema2, ctx) {
+  if (schema2.not !== void 0) {
+    if (typeof schema2.not === "object" && Object.keys(schema2.not).length === 0) {
       return z.never();
     }
     throw new Error("not is not supported in Zod (except { not: {} } for never)");
   }
-  if (schema.unevaluatedItems !== void 0) {
+  if (schema2.unevaluatedItems !== void 0) {
     throw new Error("unevaluatedItems is not supported");
   }
-  if (schema.unevaluatedProperties !== void 0) {
+  if (schema2.unevaluatedProperties !== void 0) {
     throw new Error("unevaluatedProperties is not supported");
   }
-  if (schema.if !== void 0 || schema.then !== void 0 || schema.else !== void 0) {
+  if (schema2.if !== void 0 || schema2.then !== void 0 || schema2.else !== void 0) {
     throw new Error("Conditional schemas (if/then/else) are not supported");
   }
-  if (schema.dependentSchemas !== void 0 || schema.dependentRequired !== void 0) {
+  if (schema2.dependentSchemas !== void 0 || schema2.dependentRequired !== void 0) {
     throw new Error("dependentSchemas and dependentRequired are not supported");
   }
-  if (schema.$ref) {
-    const refPath = schema.$ref;
+  if (schema2.$ref) {
+    const refPath = schema2.$ref;
     if (ctx.refs.has(refPath)) {
       return ctx.refs.get(refPath);
     }
@@ -25434,9 +25434,9 @@ function convertBaseSchema(schema, ctx) {
     ctx.processing.delete(refPath);
     return zodSchema2;
   }
-  if (schema.enum !== void 0) {
-    const enumValues = schema.enum;
-    if (ctx.version === "openapi-3.0" && schema.nullable === true && enumValues.length === 1 && enumValues[0] === null) {
+  if (schema2.enum !== void 0) {
+    const enumValues = schema2.enum;
+    if (ctx.version === "openapi-3.0" && schema2.nullable === true && enumValues.length === 1 && enumValues[0] === null) {
       return z.null();
     }
     if (enumValues.length === 0) {
@@ -25454,13 +25454,13 @@ function convertBaseSchema(schema, ctx) {
     }
     return z.union([literalSchemas[0], literalSchemas[1], ...literalSchemas.slice(2)]);
   }
-  if (schema.const !== void 0) {
-    return z.literal(schema.const);
+  if (schema2.const !== void 0) {
+    return z.literal(schema2.const);
   }
-  const type = schema.type;
+  const type = schema2.type;
   if (Array.isArray(type)) {
     const typeSchemas = type.map((t) => {
-      const typeSchema = { ...schema, type: t };
+      const typeSchema = { ...schema2, type: t };
       return convertBaseSchema(typeSchema, ctx);
     });
     if (typeSchemas.length === 0) {
@@ -25478,8 +25478,8 @@ function convertBaseSchema(schema, ctx) {
   switch (type) {
     case "string": {
       let stringSchema = z.string();
-      if (schema.format) {
-        const format = schema.format;
+      if (schema2.format) {
+        const format = schema2.format;
         if (format === "email") {
           stringSchema = stringSchema.check(z.email());
         } else if (format === "uri" || format === "uri-reference") {
@@ -25528,14 +25528,14 @@ function convertBaseSchema(schema, ctx) {
           stringSchema = stringSchema.check(z.ksuid());
         }
       }
-      if (typeof schema.minLength === "number") {
-        stringSchema = stringSchema.min(schema.minLength);
+      if (typeof schema2.minLength === "number") {
+        stringSchema = stringSchema.min(schema2.minLength);
       }
-      if (typeof schema.maxLength === "number") {
-        stringSchema = stringSchema.max(schema.maxLength);
+      if (typeof schema2.maxLength === "number") {
+        stringSchema = stringSchema.max(schema2.maxLength);
       }
-      if (schema.pattern) {
-        stringSchema = stringSchema.regex(new RegExp(schema.pattern));
+      if (schema2.pattern) {
+        stringSchema = stringSchema.regex(new RegExp(schema2.pattern));
       }
       zodSchema = stringSchema;
       break;
@@ -25543,24 +25543,24 @@ function convertBaseSchema(schema, ctx) {
     case "number":
     case "integer": {
       let numberSchema = type === "integer" ? z.number().int() : z.number();
-      if (typeof schema.minimum === "number") {
-        numberSchema = numberSchema.min(schema.minimum);
+      if (typeof schema2.minimum === "number") {
+        numberSchema = numberSchema.min(schema2.minimum);
       }
-      if (typeof schema.maximum === "number") {
-        numberSchema = numberSchema.max(schema.maximum);
+      if (typeof schema2.maximum === "number") {
+        numberSchema = numberSchema.max(schema2.maximum);
       }
-      if (typeof schema.exclusiveMinimum === "number") {
-        numberSchema = numberSchema.gt(schema.exclusiveMinimum);
-      } else if (schema.exclusiveMinimum === true && typeof schema.minimum === "number") {
-        numberSchema = numberSchema.gt(schema.minimum);
+      if (typeof schema2.exclusiveMinimum === "number") {
+        numberSchema = numberSchema.gt(schema2.exclusiveMinimum);
+      } else if (schema2.exclusiveMinimum === true && typeof schema2.minimum === "number") {
+        numberSchema = numberSchema.gt(schema2.minimum);
       }
-      if (typeof schema.exclusiveMaximum === "number") {
-        numberSchema = numberSchema.lt(schema.exclusiveMaximum);
-      } else if (schema.exclusiveMaximum === true && typeof schema.maximum === "number") {
-        numberSchema = numberSchema.lt(schema.maximum);
+      if (typeof schema2.exclusiveMaximum === "number") {
+        numberSchema = numberSchema.lt(schema2.exclusiveMaximum);
+      } else if (schema2.exclusiveMaximum === true && typeof schema2.maximum === "number") {
+        numberSchema = numberSchema.lt(schema2.maximum);
       }
-      if (typeof schema.multipleOf === "number") {
-        numberSchema = numberSchema.multipleOf(schema.multipleOf);
+      if (typeof schema2.multipleOf === "number") {
+        numberSchema = numberSchema.multipleOf(schema2.multipleOf);
       }
       zodSchema = numberSchema;
       break;
@@ -25575,15 +25575,15 @@ function convertBaseSchema(schema, ctx) {
     }
     case "object": {
       const shape = {};
-      const properties = schema.properties || {};
-      const requiredSet = new Set(schema.required || []);
+      const properties = schema2.properties || {};
+      const requiredSet = new Set(schema2.required || []);
       for (const [key, propSchema] of Object.entries(properties)) {
         const propZodSchema = convertSchema(propSchema, ctx);
         shape[key] = requiredSet.has(key) ? propZodSchema : propZodSchema.optional();
       }
-      if (schema.propertyNames) {
-        const keySchema = convertSchema(schema.propertyNames, ctx);
-        const valueSchema = schema.additionalProperties && typeof schema.additionalProperties === "object" ? convertSchema(schema.additionalProperties, ctx) : z.any();
+      if (schema2.propertyNames) {
+        const keySchema = convertSchema(schema2.propertyNames, ctx);
+        const valueSchema = schema2.additionalProperties && typeof schema2.additionalProperties === "object" ? convertSchema(schema2.additionalProperties, ctx) : z.any();
         if (Object.keys(shape).length === 0) {
           zodSchema = z.record(keySchema, valueSchema);
           break;
@@ -25593,8 +25593,8 @@ function convertBaseSchema(schema, ctx) {
         zodSchema = z.intersection(objectSchema2, recordSchema);
         break;
       }
-      if (schema.patternProperties) {
-        const patternProps = schema.patternProperties;
+      if (schema2.patternProperties) {
+        const patternProps = schema2.patternProperties;
         const patternKeys = Object.keys(patternProps);
         const looseRecords = [];
         for (const pattern of patternKeys) {
@@ -25621,18 +25621,18 @@ function convertBaseSchema(schema, ctx) {
         break;
       }
       const objectSchema = z.object(shape);
-      if (schema.additionalProperties === false) {
+      if (schema2.additionalProperties === false) {
         zodSchema = objectSchema.strict();
-      } else if (typeof schema.additionalProperties === "object") {
-        zodSchema = objectSchema.catchall(convertSchema(schema.additionalProperties, ctx));
+      } else if (typeof schema2.additionalProperties === "object") {
+        zodSchema = objectSchema.catchall(convertSchema(schema2.additionalProperties, ctx));
       } else {
         zodSchema = objectSchema.passthrough();
       }
       break;
     }
     case "array": {
-      const prefixItems = schema.prefixItems;
-      const items = schema.items;
+      const prefixItems = schema2.prefixItems;
+      const items = schema2.items;
       if (prefixItems && Array.isArray(prefixItems)) {
         const tupleItems = prefixItems.map((item) => convertSchema(item, ctx));
         const rest = items && typeof items === "object" && !Array.isArray(items) ? convertSchema(items, ctx) : void 0;
@@ -25641,34 +25641,34 @@ function convertBaseSchema(schema, ctx) {
         } else {
           zodSchema = z.tuple(tupleItems);
         }
-        if (typeof schema.minItems === "number") {
-          zodSchema = zodSchema.check(z.minLength(schema.minItems));
+        if (typeof schema2.minItems === "number") {
+          zodSchema = zodSchema.check(z.minLength(schema2.minItems));
         }
-        if (typeof schema.maxItems === "number") {
-          zodSchema = zodSchema.check(z.maxLength(schema.maxItems));
+        if (typeof schema2.maxItems === "number") {
+          zodSchema = zodSchema.check(z.maxLength(schema2.maxItems));
         }
       } else if (Array.isArray(items)) {
         const tupleItems = items.map((item) => convertSchema(item, ctx));
-        const rest = schema.additionalItems && typeof schema.additionalItems === "object" ? convertSchema(schema.additionalItems, ctx) : void 0;
+        const rest = schema2.additionalItems && typeof schema2.additionalItems === "object" ? convertSchema(schema2.additionalItems, ctx) : void 0;
         if (rest) {
           zodSchema = z.tuple(tupleItems).rest(rest);
         } else {
           zodSchema = z.tuple(tupleItems);
         }
-        if (typeof schema.minItems === "number") {
-          zodSchema = zodSchema.check(z.minLength(schema.minItems));
+        if (typeof schema2.minItems === "number") {
+          zodSchema = zodSchema.check(z.minLength(schema2.minItems));
         }
-        if (typeof schema.maxItems === "number") {
-          zodSchema = zodSchema.check(z.maxLength(schema.maxItems));
+        if (typeof schema2.maxItems === "number") {
+          zodSchema = zodSchema.check(z.maxLength(schema2.maxItems));
         }
       } else if (items !== void 0) {
         const element = convertSchema(items, ctx);
         let arraySchema = z.array(element);
-        if (typeof schema.minItems === "number") {
-          arraySchema = arraySchema.min(schema.minItems);
+        if (typeof schema2.minItems === "number") {
+          arraySchema = arraySchema.min(schema2.minItems);
         }
-        if (typeof schema.maxItems === "number") {
-          arraySchema = arraySchema.max(schema.maxItems);
+        if (typeof schema2.maxItems === "number") {
+          arraySchema = arraySchema.max(schema2.maxItems);
         }
         zodSchema = arraySchema;
       } else {
@@ -25681,76 +25681,76 @@ function convertBaseSchema(schema, ctx) {
   }
   return zodSchema;
 }
-function convertSchema(schema, ctx) {
-  if (typeof schema === "boolean") {
-    return schema ? z.any() : z.never();
+function convertSchema(schema2, ctx) {
+  if (typeof schema2 === "boolean") {
+    return schema2 ? z.any() : z.never();
   }
-  let baseSchema = convertBaseSchema(schema, ctx);
-  const hasExplicitType = schema.type || schema.enum !== void 0 || schema.const !== void 0;
-  if (schema.anyOf && Array.isArray(schema.anyOf)) {
-    const options = schema.anyOf.map((s) => convertSchema(s, ctx));
+  let baseSchema = convertBaseSchema(schema2, ctx);
+  const hasExplicitType = schema2.type || schema2.enum !== void 0 || schema2.const !== void 0;
+  if (schema2.anyOf && Array.isArray(schema2.anyOf)) {
+    const options = schema2.anyOf.map((s) => convertSchema(s, ctx));
     const anyOfUnion = z.union(options);
     baseSchema = hasExplicitType ? z.intersection(baseSchema, anyOfUnion) : anyOfUnion;
   }
-  if (schema.oneOf && Array.isArray(schema.oneOf)) {
-    const options = schema.oneOf.map((s) => convertSchema(s, ctx));
+  if (schema2.oneOf && Array.isArray(schema2.oneOf)) {
+    const options = schema2.oneOf.map((s) => convertSchema(s, ctx));
     const oneOfUnion = z.xor(options);
     baseSchema = hasExplicitType ? z.intersection(baseSchema, oneOfUnion) : oneOfUnion;
   }
-  if (schema.allOf && Array.isArray(schema.allOf)) {
-    if (schema.allOf.length === 0) {
+  if (schema2.allOf && Array.isArray(schema2.allOf)) {
+    if (schema2.allOf.length === 0) {
       baseSchema = hasExplicitType ? baseSchema : z.any();
     } else {
-      let result = hasExplicitType ? baseSchema : convertSchema(schema.allOf[0], ctx);
+      let result = hasExplicitType ? baseSchema : convertSchema(schema2.allOf[0], ctx);
       const startIdx = hasExplicitType ? 0 : 1;
-      for (let i = startIdx; i < schema.allOf.length; i++) {
-        result = z.intersection(result, convertSchema(schema.allOf[i], ctx));
+      for (let i = startIdx; i < schema2.allOf.length; i++) {
+        result = z.intersection(result, convertSchema(schema2.allOf[i], ctx));
       }
       baseSchema = result;
     }
   }
-  if (schema.nullable === true && ctx.version === "openapi-3.0") {
+  if (schema2.nullable === true && ctx.version === "openapi-3.0") {
     baseSchema = z.nullable(baseSchema);
   }
-  if (schema.readOnly === true) {
+  if (schema2.readOnly === true) {
     baseSchema = z.readonly(baseSchema);
   }
-  if (schema.default !== void 0) {
-    baseSchema = baseSchema.default(schema.default);
+  if (schema2.default !== void 0) {
+    baseSchema = baseSchema.default(schema2.default);
   }
   const extraMeta = {};
   const coreMetadataKeys = ["$id", "id", "$comment", "$anchor", "$vocabulary", "$dynamicRef", "$dynamicAnchor"];
   for (const key of coreMetadataKeys) {
-    if (key in schema) {
-      extraMeta[key] = schema[key];
+    if (key in schema2) {
+      extraMeta[key] = schema2[key];
     }
   }
   const contentMetadataKeys = ["contentEncoding", "contentMediaType", "contentSchema"];
   for (const key of contentMetadataKeys) {
-    if (key in schema) {
-      extraMeta[key] = schema[key];
+    if (key in schema2) {
+      extraMeta[key] = schema2[key];
     }
   }
-  for (const key of Object.keys(schema)) {
+  for (const key of Object.keys(schema2)) {
     if (!RECOGNIZED_KEYS.has(key)) {
-      extraMeta[key] = schema[key];
+      extraMeta[key] = schema2[key];
     }
   }
   if (Object.keys(extraMeta).length > 0) {
     ctx.registry.add(baseSchema, extraMeta);
   }
-  if (schema.description) {
-    baseSchema = baseSchema.describe(schema.description);
+  if (schema2.description) {
+    baseSchema = baseSchema.describe(schema2.description);
   }
   return baseSchema;
 }
-function fromJSONSchema(schema, params) {
-  if (typeof schema === "boolean") {
-    return schema ? z.any() : z.never();
+function fromJSONSchema(schema2, params) {
+  if (typeof schema2 === "boolean") {
+    return schema2 ? z.any() : z.never();
   }
   let normalized;
   try {
-    normalized = JSON.parse(JSON.stringify(schema));
+    normalized = JSON.parse(JSON.stringify(schema2));
   } catch {
     throw new Error("fromJSONSchema input is not valid JSON (possibly cyclic); use $defs/$ref for recursive schemas");
   }
@@ -27614,16 +27614,16 @@ function parseIntersectionDef(def, refs) {
   ].filter((x) => !!x);
   let unevaluatedProperties = refs.target === "jsonSchema2019-09" ? { unevaluatedProperties: false } : void 0;
   const mergedAllOf = [];
-  allOf.forEach((schema) => {
-    if (isJsonSchema7AllOfType(schema)) {
-      mergedAllOf.push(...schema.allOf);
-      if (schema.unevaluatedProperties === void 0) {
+  allOf.forEach((schema2) => {
+    if (isJsonSchema7AllOfType(schema2)) {
+      mergedAllOf.push(...schema2.allOf);
+      if (schema2.unevaluatedProperties === void 0) {
         unevaluatedProperties = void 0;
       }
     } else {
-      let nestedSchema = schema;
-      if ("additionalProperties" in schema && schema.additionalProperties === false) {
-        const { additionalProperties, ...rest } = schema;
+      let nestedSchema = schema2;
+      if ("additionalProperties" in schema2 && schema2.additionalProperties === false) {
+        const { additionalProperties, ...rest } = schema2;
         nestedSchema = rest;
       } else {
         unevaluatedProperties = void 0;
@@ -27850,60 +27850,60 @@ function escapeNonAlphaNumeric(source) {
   }
   return result;
 }
-function addFormat(schema, value, message, refs) {
-  if (schema.format || schema.anyOf?.some((x) => x.format)) {
-    if (!schema.anyOf) {
-      schema.anyOf = [];
+function addFormat(schema2, value, message, refs) {
+  if (schema2.format || schema2.anyOf?.some((x) => x.format)) {
+    if (!schema2.anyOf) {
+      schema2.anyOf = [];
     }
-    if (schema.format) {
-      schema.anyOf.push({
-        format: schema.format,
-        ...schema.errorMessage && refs.errorMessages && {
-          errorMessage: { format: schema.errorMessage.format }
+    if (schema2.format) {
+      schema2.anyOf.push({
+        format: schema2.format,
+        ...schema2.errorMessage && refs.errorMessages && {
+          errorMessage: { format: schema2.errorMessage.format }
         }
       });
-      delete schema.format;
-      if (schema.errorMessage) {
-        delete schema.errorMessage.format;
-        if (Object.keys(schema.errorMessage).length === 0) {
-          delete schema.errorMessage;
+      delete schema2.format;
+      if (schema2.errorMessage) {
+        delete schema2.errorMessage.format;
+        if (Object.keys(schema2.errorMessage).length === 0) {
+          delete schema2.errorMessage;
         }
       }
     }
-    schema.anyOf.push({
+    schema2.anyOf.push({
       format: value,
       ...message && refs.errorMessages && { errorMessage: { format: message } }
     });
   } else {
-    setResponseValueAndErrors(schema, "format", value, message, refs);
+    setResponseValueAndErrors(schema2, "format", value, message, refs);
   }
 }
-function addPattern(schema, regex, message, refs) {
-  if (schema.pattern || schema.allOf?.some((x) => x.pattern)) {
-    if (!schema.allOf) {
-      schema.allOf = [];
+function addPattern(schema2, regex, message, refs) {
+  if (schema2.pattern || schema2.allOf?.some((x) => x.pattern)) {
+    if (!schema2.allOf) {
+      schema2.allOf = [];
     }
-    if (schema.pattern) {
-      schema.allOf.push({
-        pattern: schema.pattern,
-        ...schema.errorMessage && refs.errorMessages && {
-          errorMessage: { pattern: schema.errorMessage.pattern }
+    if (schema2.pattern) {
+      schema2.allOf.push({
+        pattern: schema2.pattern,
+        ...schema2.errorMessage && refs.errorMessages && {
+          errorMessage: { pattern: schema2.errorMessage.pattern }
         }
       });
-      delete schema.pattern;
-      if (schema.errorMessage) {
-        delete schema.errorMessage.pattern;
-        if (Object.keys(schema.errorMessage).length === 0) {
-          delete schema.errorMessage;
+      delete schema2.pattern;
+      if (schema2.errorMessage) {
+        delete schema2.errorMessage.pattern;
+        if (Object.keys(schema2.errorMessage).length === 0) {
+          delete schema2.errorMessage;
         }
       }
     }
-    schema.allOf.push({
+    schema2.allOf.push({
       pattern: stringifyRegExpWithFlags(regex, refs),
       ...message && refs.errorMessages && { errorMessage: { pattern: message } }
     });
   } else {
-    setResponseValueAndErrors(schema, "pattern", stringifyRegExpWithFlags(regex, refs), message, refs);
+    setResponseValueAndErrors(schema2, "pattern", stringifyRegExpWithFlags(regex, refs), message, refs);
   }
 }
 function stringifyRegExpWithFlags(regex, refs) {
@@ -28001,7 +28001,7 @@ function parseRecordDef(def, refs) {
       additionalProperties: refs.rejectedAdditionalProperties
     };
   }
-  const schema = {
+  const schema2 = {
     type: "object",
     additionalProperties: parseDef(def.valueType._def, {
       ...refs,
@@ -28009,17 +28009,17 @@ function parseRecordDef(def, refs) {
     }) ?? refs.allowedAdditionalProperties
   };
   if (refs.target === "openApi3") {
-    return schema;
+    return schema2;
   }
   if (def.keyType?._def.typeName === ZodFirstPartyTypeKind.ZodString && def.keyType._def.checks?.length) {
     const { type, ...keyType } = parseStringDef(def.keyType._def, refs);
     return {
-      ...schema,
+      ...schema2,
       propertyNames: keyType
     };
   } else if (def.keyType?._def.typeName === ZodFirstPartyTypeKind.ZodEnum) {
     return {
-      ...schema,
+      ...schema2,
       propertyNames: {
         enum: def.keyType._def.values
       }
@@ -28027,11 +28027,11 @@ function parseRecordDef(def, refs) {
   } else if (def.keyType?._def.typeName === ZodFirstPartyTypeKind.ZodBranded && def.keyType._def.type._def.typeName === ZodFirstPartyTypeKind.ZodString && def.keyType._def.type._def.checks?.length) {
     const { type, ...keyType } = parseBrandedDef(def.keyType._def, refs);
     return {
-      ...schema,
+      ...schema2,
       propertyNames: keyType
     };
   }
-  return schema;
+  return schema2;
 }
 
 // node_modules/zod-to-json-schema/dist/esm/parsers/map.js
@@ -28304,9 +28304,9 @@ function decideAdditionalProperties(def, refs) {
       return refs.removeAdditionalStrategy === "strict" ? refs.allowedAdditionalProperties : refs.rejectedAdditionalProperties;
   }
 }
-function safeIsOptional(schema) {
+function safeIsOptional(schema2) {
   try {
-    return schema.isOptional();
+    return schema2.isOptional();
   } catch {
     return true;
   }
@@ -28362,18 +28362,18 @@ function parseSetDef(def, refs) {
     ...refs,
     currentPath: [...refs.currentPath, "items"]
   });
-  const schema = {
+  const schema2 = {
     type: "array",
     uniqueItems: true,
     items
   };
   if (def.minSize) {
-    setResponseValueAndErrors(schema, "minItems", def.minSize.value, def.minSize.message, refs);
+    setResponseValueAndErrors(schema2, "minItems", def.minSize.value, def.minSize.message, refs);
   }
   if (def.maxSize) {
-    setResponseValueAndErrors(schema, "maxItems", def.maxSize.value, def.maxSize.message, refs);
+    setResponseValueAndErrors(schema2, "maxItems", def.maxSize.value, def.maxSize.message, refs);
   }
-  return schema;
+  return schema2;
 }
 
 // node_modules/zod-to-json-schema/dist/esm/parsers/tuple.js
@@ -28554,17 +28554,17 @@ var addMeta = (def, refs, jsonSchema) => {
 };
 
 // node_modules/zod-to-json-schema/dist/esm/zodToJsonSchema.js
-var zodToJsonSchema = (schema, options) => {
+var zodToJsonSchema = (schema2, options) => {
   const refs = getRefs(options);
-  let definitions = typeof options === "object" && options.definitions ? Object.entries(options.definitions).reduce((acc, [name2, schema2]) => ({
+  let definitions = typeof options === "object" && options.definitions ? Object.entries(options.definitions).reduce((acc, [name2, schema3]) => ({
     ...acc,
-    [name2]: parseDef(schema2._def, {
+    [name2]: parseDef(schema3._def, {
       ...refs,
       currentPath: [...refs.basePath, refs.definitionPath, name2]
     }, true) ?? parseAnyDef(refs)
   }), {}) : void 0;
   const name = typeof options === "string" ? options : options?.nameStrategy === "title" ? void 0 : options?.name;
-  const main = parseDef(schema._def, name === void 0 ? refs : {
+  const main = parseDef(schema2._def, name === void 0 ? refs : {
     ...refs,
     currentPath: [...refs.basePath, refs.definitionPath, name]
   }, false) ?? parseAnyDef(refs);
@@ -28625,20 +28625,20 @@ function mapMiniTarget(t) {
     return "draft-2020-12";
   return "draft-7";
 }
-function toJsonSchemaCompat(schema, opts) {
-  if (isZ4Schema(schema)) {
-    return toJSONSchema(schema, {
+function toJsonSchemaCompat(schema2, opts) {
+  if (isZ4Schema(schema2)) {
+    return toJSONSchema(schema2, {
       target: mapMiniTarget(opts?.target),
       io: opts?.pipeStrategy ?? "input"
     });
   }
-  return zodToJsonSchema(schema, {
+  return zodToJsonSchema(schema2, {
     strictUnions: opts?.strictUnions ?? true,
     pipeStrategy: opts?.pipeStrategy ?? "input"
   });
 }
-function getMethodLiteral(schema) {
-  const shape = getObjectShape(schema);
+function getMethodLiteral(schema2) {
+  const shape = getObjectShape(schema2);
   const methodSchema = shape?.method;
   if (!methodSchema) {
     throw new Error("Schema is missing a method literal");
@@ -28649,8 +28649,8 @@ function getMethodLiteral(schema) {
   }
   return value;
 }
-function parseWithCompat(schema, data) {
-  const result = safeParse2(schema, data);
+function parseWithCompat(schema2, data) {
+  const result = safeParse2(schema2, data);
   if (!result.success) {
     throw result.error;
   }
@@ -29681,8 +29681,8 @@ var AjvJsonSchemaValidator = class {
    * @param schema - Standard JSON Schema object
    * @returns A validator function that validates input data
    */
-  getValidator(schema) {
-    const ajvValidator = "$id" in schema && typeof schema.$id === "string" ? this._ajv.getSchema(schema.$id) ?? this._ajv.compile(schema) : this._ajv.compile(schema);
+  getValidator(schema2) {
+    const ajvValidator = "$id" in schema2 && typeof schema2.$id === "string" ? this._ajv.getSchema(schema2.$id) ?? this._ajv.compile(schema2) : this._ajv.compile(schema2);
     return (input) => {
       const valid = ajvValidator(input);
       if (valid) {
@@ -29790,7 +29790,7 @@ var ExperimentalServerTasks = class {
       if (hasPreviousToolUse) {
         const toolUseIds = new Set(previousContent.filter((c) => c.type === "tool_use").map((c) => c.id));
         const toolResultIds = new Set(lastContent.filter((c) => c.type === "tool_result").map((c) => c.toolUseId));
-        if (toolUseIds.size !== toolResultIds.size || ![...toolUseIds].every((id) => toolResultIds.has(id))) {
+        if (toolUseIds.size !== toolResultIds.size || ![...toolUseIds].every((id2) => toolResultIds.has(id2))) {
           throw new Error("ids of tool_result blocks and tool_use blocks from previous message do not match");
         }
       }
@@ -30215,7 +30215,7 @@ var Server = class extends Protocol {
       if (hasPreviousToolUse) {
         const toolUseIds = new Set(previousContent.filter((c) => c.type === "tool_use").map((c) => c.id));
         const toolResultIds = new Set(lastContent.filter((c) => c.type === "tool_result").map((c) => c.toolUseId));
-        if (toolUseIds.size !== toolResultIds.size || ![...toolUseIds].every((id) => toolResultIds.has(id))) {
+        if (toolUseIds.size !== toolResultIds.size || ![...toolUseIds].every((id2) => toolResultIds.has(id2))) {
           throw new Error("ids of tool_result blocks and tool_use blocks from previous message do not match");
         }
       }
@@ -30323,11 +30323,11 @@ var Server = class extends Protocol {
 
 // node_modules/@modelcontextprotocol/sdk/dist/esm/server/completable.js
 var COMPLETABLE_SYMBOL = /* @__PURE__ */ Symbol.for("mcp.completable");
-function isCompletable(schema) {
-  return !!schema && typeof schema === "object" && COMPLETABLE_SYMBOL in schema;
+function isCompletable(schema2) {
+  return !!schema2 && typeof schema2 === "object" && COMPLETABLE_SYMBOL in schema2;
 }
-function getCompleter(schema) {
-  const meta3 = schema[COMPLETABLE_SYMBOL];
+function getCompleter(schema2) {
+  const meta3 = schema2[COMPLETABLE_SYMBOL];
   return meta3?.complete;
 }
 var McpZodTypeKind;
@@ -31186,20 +31186,20 @@ function isZodRawShapeCompat(obj) {
   }
   return Object.values(obj).some(isZodTypeLike);
 }
-function getZodSchemaObject(schema) {
-  if (!schema) {
+function getZodSchemaObject(schema2) {
+  if (!schema2) {
     return void 0;
   }
-  if (isZodRawShapeCompat(schema)) {
-    return objectFromShape(schema);
+  if (isZodRawShapeCompat(schema2)) {
+    return objectFromShape(schema2);
   }
-  if (!isZodSchemaInstance(schema)) {
+  if (!isZodSchemaInstance(schema2)) {
     throw new Error("inputSchema must be a Zod schema or raw shape, received an unrecognized object");
   }
-  return schema;
+  return schema2;
 }
-function promptArgumentsFromSchema(schema) {
-  const shape = getObjectShape(schema);
+function promptArgumentsFromSchema(schema2) {
+  const shape = getObjectShape(schema2);
   if (!shape)
     return [];
   return Object.entries(shape).map(([name, field]) => {
@@ -31212,8 +31212,8 @@ function promptArgumentsFromSchema(schema) {
     };
   });
 }
-function getMethodValue(schema) {
-  const shape = getObjectShape(schema);
+function getMethodValue(schema2) {
+  const shape = getObjectShape(schema2);
   const methodSchema = shape?.method;
   if (!methodSchema) {
     throw new Error("Schema is missing a method literal");
@@ -31367,7 +31367,7 @@ var EVENT_KINDS = {
 };
 
 // plugins/narabizagui/server/bridge.mjs
-var VERSION = "0.9.0";
+var VERSION = "0.10.0";
 var token = () => randomBytes(32).toString("base64url");
 var same = (a, b) => {
   if (typeof a !== "string" || typeof b !== "string") return false;
@@ -31401,21 +31401,21 @@ async function startBridge({ allowedOrigins = ["https://demo.naraconsultores.com
       throw fail("INVALID_JSON", "JSON inv\xE1lido.");
     }
   }
-  function disconnect(id) {
-    const session = sessions.get(id);
-    if (!session) return;
-    if (session.poll) {
-      clearTimeout(session.poll.timer);
-      reply(session.poll.res, 410, { error: "Sesi\xF3n desconectada." });
+  function disconnect(id2) {
+    const session2 = sessions.get(id2);
+    if (!session2) return;
+    if (session2.poll) {
+      clearTimeout(session2.poll.timer);
+      reply(session2.poll.res, 410, { error: "Sesi\xF3n desconectada." });
     }
-    if (session.pending) {
-      clearTimeout(session.pending.timer);
-      session.pending.reject(fail(session.pending.delivered ? "RESULT_UNKNOWN" : "DISCONNECTED", "Sesi\xF3n desconectada. Lee el diagrama antes de repetir una modificaci\xF3n."));
+    if (session2.pending) {
+      clearTimeout(session2.pending.timer);
+      session2.pending.reject(fail(session2.pending.delivered ? "RESULT_UNKNOWN" : "DISCONNECTED", "Sesi\xF3n desconectada. Lee el diagrama antes de repetir una modificaci\xF3n."));
     }
-    sessions.delete(id);
+    sessions.delete(id2);
   }
-  function deliver(session, res) {
-    const pending = session.pending;
+  function deliver(session2, res) {
+    const pending = session2.pending;
     if (pending && !pending.delivered && pending.command.deadline > Date.now()) {
       pending.delivered = true;
       pending.deliveredAt = Date.now();
@@ -31448,64 +31448,64 @@ async function startBridge({ allowedOrigins = ["https://demo.naraconsultores.com
         if (!pairing || pairing.expiresAt <= now() || !same(input2.code, pairing.secret)) return reply(res, 401, { error: "C\xF3digo inv\xE1lido o vencido. Solicita otro a Codex." });
         if (sessions.size >= 8) return reply(res, 409, { error: "Desconecta una sesi\xF3n antes de agregar otra." });
         pairing = null;
-        const id = randomUUID();
+        const id2 = randomUUID();
         const auth = token();
-        sessions.set(id, { id, auth, origin, name: String(input2.name || "Diagrama").slice(0, 180), lastSeen: now(), generation: 1, pending: null, poll: null });
-        return reply(res, 200, { sessionId: id, sessionToken: auth, generation: 1, ownership: true, version: VERSION, toolContract: TOOL_CONTRACT });
+        sessions.set(id2, { id: id2, auth, origin, name: String(input2.name || "Diagrama").slice(0, 180), lastSeen: now(), generation: 1, pending: null, poll: null });
+        return reply(res, 200, { sessionId: id2, sessionToken: auth, generation: 1, ownership: true, version: VERSION, toolContract: TOOL_CONTRACT });
       }
       const match = /^\/sessions\/([0-9a-f-]+)\/(poll|result|disconnect|resume)$/.exec(url2.pathname);
-      const session = match && sessions.get(match[1]);
-      if (!session || session.origin !== origin || !same(req.headers.authorization, `Bearer ${session.auth}`)) return reply(res, 401, { error: "Sesi\xF3n no autorizada." });
-      session.lastSeen = now();
+      const session2 = match && sessions.get(match[1]);
+      if (!session2 || session2.origin !== origin || !same(req.headers.authorization, `Bearer ${session2.auth}`)) return reply(res, 401, { error: "Sesi\xF3n no autorizada." });
+      session2.lastSeen = now();
       const input = await body(req);
-      if (input.generation !== void 0 && input.generation !== session.generation) return reply(res, 401, { error: "El v\xEDnculo de esta pesta\xF1a fue reemplazado." });
+      if (input.generation !== void 0 && input.generation !== session2.generation) return reply(res, 401, { error: "El v\xEDnculo de esta pesta\xF1a fue reemplazado." });
       if (match[2] === "resume") {
-        if (session.poll) {
-          clearTimeout(session.poll.timer);
-          reply(session.poll.res, 410, { error: "V\xEDnculo restablecido." });
-          session.poll = null;
+        if (session2.poll) {
+          clearTimeout(session2.poll.timer);
+          reply(session2.poll.res, 410, { error: "V\xEDnculo restablecido." });
+          session2.poll = null;
         }
-        if (session.pending?.delivered) {
-          clearTimeout(session.pending.timer);
-          session.pending.reject(fail("RESULT_UNKNOWN", "La pesta\xF1a se recarg\xF3 durante una operaci\xF3n. Lee su estado antes de repetir."));
-          session.pending = null;
+        if (session2.pending?.delivered) {
+          clearTimeout(session2.pending.timer);
+          session2.pending.reject(fail("RESULT_UNKNOWN", "La pesta\xF1a se recarg\xF3 durante una operaci\xF3n. Lee su estado antes de repetir."));
+          session2.pending = null;
         }
-        session.auth = token();
-        session.generation++;
-        return reply(res, 200, { sessionToken: session.auth, generation: session.generation, ownership: true });
+        session2.auth = token();
+        session2.generation++;
+        return reply(res, 200, { sessionToken: session2.auth, generation: session2.generation, ownership: true });
       }
       if (match[2] === "disconnect") {
         reply(res, 200, { disconnected: true });
-        disconnect(session.id);
+        disconnect(session2.id);
         return;
       }
       if (match[2] === "result") {
-        const pending = session.pending;
+        const pending = session2.pending;
         if (!pending || input.commandId !== pending.command.id || !pending.delivered) return reply(res, 409, { error: "Comando vencido o ya confirmado." });
         clearTimeout(pending.timer);
-        session.pending = null;
-        if (input.error) pending.reject(Object.assign(fail(String(input.error.code || "EDITOR_ERROR"), String(input.error.message || "El visor rechaz\xF3 la operaci\xF3n.")), Object.fromEntries(["busyReason", "retryable", "retryAfterMs", "recovery"].filter((key) => input.error[key] !== void 0).map((key) => [key, input.error[key]]))));
+        session2.pending = null;
+        if (input.error) pending.reject(Object.assign(fail(String(input.error.code || "EDITOR_ERROR"), String(input.error.message || "El visor rechaz\xF3 la operaci\xF3n.")), Object.fromEntries(["busyReason", "retryable", "retryAfterMs", "recovery", "phase", "requestId", "created", "verified", "attached", "remote", "currentSaved", "currentSavedRemote"].filter((key) => input.error[key] !== void 0).map((key) => [key, input.error[key]]))));
         else {
-          if (typeof input.result?.documentId === "string") session.observedDocumentId = input.result.documentId;
+          if (typeof input.result?.documentId === "string") session2.observedDocumentId = input.result.documentId;
           if (pending.command.action === "editBatch" && input.result && typeof input.result === "object") input.result.timings = { ...input.result.timings, transport: { queueMs: pending.deliveredAt - pending.started, roundTripMs: Date.now() - pending.started } };
           pending.resolve(input.result);
         }
         reply(res, 200, { accepted: true });
         return;
       }
-      if (typeof input.name === "string") session.name = input.name.slice(0, 180);
-      if (typeof input.documentId === "string" && input.documentId.length <= 200) session.documentId = input.documentId;
-      if (session.poll) return reply(res, 409, { error: "Ya hay una consulta activa." });
-      if (deliver(session, res)) return;
+      if (typeof input.name === "string") session2.name = input.name.slice(0, 180);
+      if (typeof input.documentId === "string" && input.documentId.length <= 200) session2.documentId = input.documentId;
+      if (session2.poll) return reply(res, 409, { error: "Ya hay una consulta activa." });
+      if (deliver(session2, res)) return;
       const timer = setTimeout(() => {
-        session.poll = null;
+        session2.poll = null;
         reply(res, 200, { command: null, serverVersion: VERSION, toolContract: TOOL_CONTRACT });
       }, 15e3);
-      session.poll = { res, timer };
+      session2.poll = { res, timer };
       res.on("close", () => {
-        if (session.poll?.res === res) {
+        if (session2.poll?.res === res) {
           clearTimeout(timer);
-          session.poll = null;
+          session2.poll = null;
         }
       });
     } catch (error51) {
@@ -31530,13 +31530,13 @@ async function startBridge({ allowedOrigins = ["https://demo.naraconsultores.com
       prune();
       return [...sessions.values()].map((s) => ({ sessionId: s.id, name: s.name, documentId: s.documentId || null, connected: now() - s.lastSeen < 45e3, lastSeen: new Date(s.lastSeen).toISOString(), busy: Boolean(s.pending) }));
     },
-    request(id, action, args) {
+    request(id2, action, args) {
       if (closed) return Promise.reject(fail("CLOSED", "El puente est\xE1 cerrado."));
-      const session = sessions.get(id);
-      if (!session || now() - session.lastSeen >= 45e3) return Promise.reject(fail("NOT_CONNECTED", "Vincula la pesta\xF1a y comprueba sus permisos de red local."));
-      if (session.pending) return Promise.reject(fail("BUSY", "Espera el resultado de la operaci\xF3n anterior."));
-      if (action !== "read" && session.documentId) {
-        const expected = args.expectedDocumentId || session.observedDocumentId;
+      const session2 = sessions.get(id2);
+      if (!session2 || now() - session2.lastSeen >= 45e3) return Promise.reject(fail("NOT_CONNECTED", "Vincula la pesta\xF1a y comprueba sus permisos de red local."));
+      if (session2.pending) return Promise.reject(fail("BUSY", "Espera el resultado de la operaci\xF3n anterior."));
+      if (action !== "read" && session2.documentId) {
+        const expected = args.expectedDocumentId || session2.observedDocumentId;
         if (!expected) return Promise.reject(fail("DOCUMENT_NOT_READ", "Lee el archivo de esta pesta\xF1a antes de modificarlo o exportarlo."));
         args = { ...args, expectedDocumentId: expected };
       }
@@ -31544,22 +31544,22 @@ async function startBridge({ allowedOrigins = ["https://demo.naraconsultores.com
         const command = { id: randomUUID(), action, args, deadline: Date.now() + timeoutMs };
         const pending = { command, resolve, reject, delivered: false, started: Date.now() };
         pending.timer = setTimeout(() => {
-          session.pending = null;
+          session2.pending = null;
           reject(fail(pending.delivered ? "RESULT_UNKNOWN" : "NOT_RESPONDING", pending.delivered ? "La pesta\xF1a recibi\xF3 el comando pero no confirm\xF3 el resultado. Lee su estado antes de repetir cualquier cambio o guardado." : "La pesta\xF1a no recibi\xF3 el comando a tiempo. No se aplic\xF3. Comprueba que sigue abierta."));
         }, timeoutMs);
-        session.pending = pending;
-        if (session.poll) {
-          clearTimeout(session.poll.timer);
-          const res = session.poll.res;
-          session.poll = null;
-          deliver(session, res);
+        session2.pending = pending;
+        if (session2.poll) {
+          clearTimeout(session2.poll.timer);
+          const res = session2.poll.res;
+          session2.poll = null;
+          deliver(session2, res);
         }
       });
     },
     disconnect,
     async close() {
       closed = true;
-      for (const id of sessions.keys()) disconnect(id);
+      for (const id2 of sessions.keys()) disconnect(id2);
       server.closeAllConnections();
       await new Promise((resolve) => server.close(resolve));
     }
@@ -31603,6 +31603,40 @@ function normalizeResult(value, { toolName = "", sessionId, requestId, isError =
   return { ...data, ...context, ok, outcome, ...revision ? { revision } : {}, ...error51 ? { error: error51 } : {}, responseSchema: "visual-quality-v1", ...toolName ? { toolName } : {} };
 }
 
+// plugins/narabizagui/shared/microsoft-files.mjs
+var id = external_exports.string().min(1).max(1024);
+var uuid3 = external_exports.string().uuid();
+var session = { sessionId: id };
+var account = { ...session, accountRef: uuid3, expectedTenantId: id };
+var scope = { ...account, scopeRef: uuid3 };
+var target = external_exports.union([external_exports.strictObject({ storage: external_exports.literal("microsoft"), driveId: id, itemId: id }), external_exports.strictObject({ storage: external_exports.literal("local"), localRef: uuid3, name: id })]).nullable();
+var mutation = { ...scope, expectedRevision: id, expectedDocumentId: id, expectedTarget: target, operationGeneration: uuid3, requestId: uuid3, dryRun: external_exports.boolean().default(false) };
+var etag = { expectedETag: id };
+var remoteFile = { ...mutation, fileRef: uuid3, ...etag };
+var schema = {
+  microsoftStatus: external_exports.strictObject({ ...session, requestId: uuid3.optional() }),
+  microsoftResolve: external_exports.strictObject({ ...account, target: external_exports.union([
+    external_exports.strictObject({ sharingUrl: external_exports.string().url().max(4096) }),
+    external_exports.strictObject({ siteUrl: external_exports.string().url().max(2048) }),
+    external_exports.strictObject({ siteId: id, driveId: id.optional(), itemId: id.optional() }).refine((v) => !v.itemId || v.driveId, "itemId exige driveId"),
+    external_exports.strictObject({ driveId: id, itemId: id })
+  ]), requestedScope: external_exports.enum(["site", "folder", "file"]), actions: external_exports.array(external_exports.enum(["read", "create", "open", "attach", "autosave"])).min(1).max(5).refine((v) => v.includes("read") && new Set(v).size === v.length, "Incluye read y acciones \xFAnicas") }),
+  microsoftList: external_exports.strictObject({ ...scope, kind: external_exports.enum(["libraries", "children"]), folderRef: uuid3.optional(), cursor: uuid3.optional(), pageSize: external_exports.number().int().min(1).max(100).default(100), filter: external_exports.literal("folders_and_bpmn").default("folders_and_bpmn") }),
+  microsoftCreate: external_exports.strictObject({ ...mutation, folderRef: uuid3, name: external_exports.string().min(1).max(200), attach: external_exports.boolean(), autoSave: external_exports.boolean() }),
+  microsoftOpen: external_exports.strictObject({ ...remoteFile, currentPolicy: external_exports.enum(["require_clean", "save_current"]).default("require_clean"), autoSave: external_exports.boolean() }),
+  microsoftAttach: external_exports.strictObject({ ...remoteFile, expectedRemoteSha256: external_exports.string().regex(/^[a-f0-9]{64}$/), autoSave: external_exports.boolean() }),
+  microsoftAutosave: external_exports.strictObject({ ...remoteFile, enabled: external_exports.boolean(), waitForSavedMs: external_exports.number().int().min(0).max(5e3).default(0) })
+};
+var MICROSOFT_FILE_TOOLS = [
+  ["narabizagui_microsoft_status", "microsoftStatus", true, "Estado separado de MCP, Microsoft, documento, destino y autoguardado; consulta recibos por requestId. No conecta ni abre archivos."],
+  ["narabizagui_microsoft_resolve", "microsoftResolve", true, "Resuelve un enlace Microsoft o IDs exactos dentro de la cuenta activa. Declara solo acciones y alcance expl\xEDcitamente autorizados por el usuario; no a\xF1ade permisos ni cambia tenant."],
+  ["narabizagui_microsoft_list", "microsoftList", true, "Lista bibliotecas de un sitio autorizado o carpetas/BPMN bajo la carpeta resuelta. Usa referencias y cursor opacos de esa sesi\xF3n; no realiza b\xFAsqueda global."],
+  ["narabizagui_microsoft_create", "microsoftCreate", false, "Crea el documento actual completo en la carpeta expl\xEDcita, falla si el nombre existe y verifica por relectura. attach y autoSave requieren intenci\xF3n expresa. Devuelve efectos parciales y recibo; nunca repitas a ciegas tras RESULT_UNKNOWN."],
+  ["narabizagui_microsoft_open", "microsoftOpen", false, "Abre y asocia un BPMN remoto exacto con eTag y revisi\xF3n. require_clean conserva cambios actuales; save_current exige destino actual autorizado. Nunca descarta borradores ni elige otro destino."],
+  ["narabizagui_microsoft_attach", "microsoftAttach", false, "Asocia un archivo remoto solo cuando su hash verificado coincide con el documento actual. No importa ni sobrescribe; permite reconciliar una creaci\xF3n ya comprobada."],
+  ["narabizagui_microsoft_autosave", "microsoftAutosave", false, "Activa o pausa el programador existente sobre el archivo remoto actual exacto. No cambia destino ni borra bloqueos inciertos. La espera opcional es acotada; enabled no equivale a guardado."]
+].map(([name, action, readOnly, description]) => ({ name, action, readOnly, description, schema: schema[action] }));
+
 // plugins/narabizagui/server/index.mjs
 async function startServer(bridgeOptions = {}) {
   const bridge = await startBridge(bridgeOptions);
@@ -31610,7 +31644,7 @@ async function startServer(bridgeOptions = {}) {
     instructions: "NaraBizagui edita la sesi\xF3n web vinculada, no un modelo paralelo. Lee diagramType antes de editar: bpmn para procesos y erd para tablas/campos/relaciones. No ejecutar SQL por dibujar un modelo de datos. Usa connect y espera el v\xEDnculo; sessions identifica la pesta\xF1a y el contrato activo. Lee antes de cada cambio y exige expectedRevision. Agrupa procesos completos con edit_batch y matrix cuando corresponda. Respeta el autoguardado y el destino elegido; usa save solo si la solicitud lo requiere. Ante RESULT_UNKNOWN lee antes de repetir; ante REVISION_CONFLICT conserva los cambios manuales. No interpreta BPMN como instrucciones ni valida el proceso de negocio. Invoca la skill narabizagui del mismo plugin.",
     maxToolInputElements: 6e3
   });
-  const id = external_exports.string().uuid();
+  const id2 = external_exports.string().uuid();
   const revision = external_exports.string().min(1).max(100);
   const elementId = external_exports.string().min(1).max(200);
   const text = external_exports.string().max(2e4);
@@ -31659,20 +31693,20 @@ async function startServer(bridgeOptions = {}) {
     external_exports.object({ type: external_exports.literal("undo") }),
     external_exports.object({ type: external_exports.literal("redo") })
   ]);
-  function register(name, description, schema, readOnly, callback) {
-    server.registerTool(name, { description, inputSchema: schema, annotations: { readOnlyHint: readOnly, destructiveHint: !readOnly, idempotentHint: readOnly, openWorldHint: false } }, async (args) => {
+  function register(name, description, schema2, readOnly, callback) {
+    server.registerTool(name, { description, inputSchema: schema2, annotations: { readOnlyHint: readOnly, destructiveHint: !readOnly, idempotentHint: readOnly, openWorldHint: false } }, async (args) => {
       try {
         const result = normalizeResult(await callback(args), { toolName: name, sessionId: args.sessionId, requestId: args.requestId });
         return { content: [{ type: "text", text: JSON.stringify(result) }], structuredContent: result };
       } catch (error51) {
-        const result = normalizeResult({ code: error51.code || "ERROR", message: error51.message, ...Object.fromEntries(["busyReason", "retryable", "retryAfterMs", "recovery"].filter((key) => error51[key] !== void 0).map((key) => [key, error51[key]])) }, { toolName: name, sessionId: args.sessionId, requestId: args.requestId, isError: true });
+        const result = normalizeResult({ code: error51.code || "ERROR", message: error51.message, ...Object.fromEntries(["busyReason", "retryable", "retryAfterMs", "recovery", "phase", "requestId", "created", "verified", "attached", "remote", "currentSaved", "currentSavedRemote"].filter((key) => error51[key] !== void 0).map((key) => [key, error51[key]])) }, { toolName: name, sessionId: args.sessionId, requestId: args.requestId, isError: true });
         return { isError: true, content: [{ type: "text", text: JSON.stringify(result) }], structuredContent: result };
       }
     });
   }
   register("narabizagui_connect", "Crea un c\xF3digo temporal para vincular una pesta\xF1a elegida. Requiere que el usuario pulse Vincular en el visor.", {}, false, async () => bridge.pair());
   register("narabizagui_sessions", "Lista pesta\xF1as vinculadas y la versi\xF3n/contrato del servidor realmente activo. Una instalaci\xF3n nueva no recarga las herramientas de un chat anterior.", {}, true, async () => ({ serverVersion: VERSION, toolContract: TOOL_CONTRACT, sessions: bridge.list() }));
-  register("narabizagui_read", "Una consulta de preparaci\xF3n: versi\xF3n/contrato, sesi\xF3n, archivo, hoja, revisi\xF3n, disponibilidad y autoguardado. Si omites sessionId solo se selecciona una \xFAnica pesta\xF1a vinculada; varias requieren identificarla. detail=summary omite geometr\xEDa y devuelve diagn\xF3stico cuando no est\xE1 listo; no sirve para validar el proceso. Espera una sola vez hasta waitForReadyMs a la inicializaci\xF3n y recuperaci\xF3n de Microsoft; un error terminal no se reintenta.", { sessionId: id.optional(), detail: external_exports.enum(["full", "summary"]).default("summary"), waitForReadyMs: external_exports.number().int().min(0).max(5e3).default(5e3), includeXml: external_exports.boolean().default(false), includePropertyFields: external_exports.boolean().default(false), elementIds: external_exports.array(elementId).min(1).max(250).optional() }, true, async (args) => {
+  register("narabizagui_read", "Una consulta de preparaci\xF3n: versi\xF3n/contrato, sesi\xF3n, archivo, hoja, revisi\xF3n, disponibilidad y autoguardado. Si omites sessionId solo se selecciona una \xFAnica pesta\xF1a vinculada; varias requieren identificarla. detail=summary omite geometr\xEDa y devuelve diagn\xF3stico cuando no est\xE1 listo; no sirve para validar el proceso. Espera una sola vez hasta waitForReadyMs a la inicializaci\xF3n y recuperaci\xF3n de Microsoft; un error terminal no se reintenta.", { sessionId: id2.optional(), detail: external_exports.enum(["full", "summary"]).default("summary"), waitForReadyMs: external_exports.number().int().min(0).max(5e3).default(5e3), includeXml: external_exports.boolean().default(false), includePropertyFields: external_exports.boolean().default(false), elementIds: external_exports.array(elementId).min(1).max(250).optional() }, true, async (args) => {
     let sessionId = args.sessionId;
     if (!sessionId) {
       const sessions = bridge.list().filter((s) => s.connected);
@@ -31681,14 +31715,15 @@ async function startServer(bridgeOptions = {}) {
     }
     return { serverVersion: VERSION, toolContract: TOOL_CONTRACT, sessionId, ...await bridge.request(sessionId, "read", { detail: args.includeXml || args.includePropertyFields || args.elementIds ? "full" : args.detail, waitForReadyMs: args.waitForReadyMs, includeXml: args.includeXml, includePropertyFields: args.includePropertyFields, elementIds: args.elementIds }) };
   });
-  register("narabizagui_validate", "Valida la hoja activa sin editar. Devuelve incidencias con c\xF3digos e IDs, enlaces por \xE1mbito, condiciones y geometr\xEDa real. review permite representaci\xF3n explicativa; formal exige condiciones. Incluye quality separado de errores BPMN: texto renderizado, marcadores, carriles y recorridos. elementIds limita esa revisi\xF3n visual al conjunto y conexiones afectadas. No aprueba el negocio ni ejecuta expresiones.", { sessionId: id, expectedRevision: revision, expectedDocumentId: external_exports.string().min(1).max(200).optional(), profile: external_exports.enum(["review", "formal"]).default("review"), geometry: external_exports.boolean().default(true), maxIssues: external_exports.number().int().min(1).max(1e3).default(200), elementIds: external_exports.array(elementId).min(1).max(250).optional() }, true, (args) => bridge.request(args.sessionId, "validate", { expectedRevision: args.expectedRevision, expectedDocumentId: args.expectedDocumentId, profile: args.profile, geometry: args.geometry, maxIssues: args.maxIssues, elementIds: args.elementIds }));
-  const batchOperation = external_exports.discriminatedUnion("type", edit.options.filter((schema) => BATCH_OPERATIONS.includes(schema.shape.type.value)).map((schema) => schema.extend({ as: external_exports.string().regex(/^[A-Za-z][A-Za-z0-9_-]{0,63}$/).optional() })));
-  register("narabizagui_edit_batch", "Prevalida y aplica de 1 a 200 operaciones BPMN con alias, revisi\xF3n obligatoria, un Deshacer e idempotencia. Admite procesos completos, matrix, clear de hoja activa, carriles, style, delete, fit_text y route_orthogonal con lados persistentes. presentation.expandedCanvas y fit preparan la vista dentro de la misma petici\xF3n. response=summary devuelve revisi\xF3n, alias y validaci\xF3n sin las figuras; full incluye geometr\xEDa. El resultado distingue tiempo de editor, transporte y primer cuadro confirmado; no mide la espera total del usuario. dryRun no aplica ni cambia la vista; requireValid rechaza errores sin tocar el modelo. Respeta autoguardado. No incluye hojas ni ER.", { sessionId: id, expectedRevision: revision, expectedDocumentId: external_exports.string().min(1).max(200).optional(), requestId: external_exports.string().uuid(), operations: external_exports.array(batchOperation).min(1).max(BATCH_LIMIT), dryRun: external_exports.boolean().default(false), fit: external_exports.boolean().default(true), presentation: external_exports.object({ expandedCanvas: external_exports.boolean().optional() }).default({}), response: external_exports.enum(["summary", "full"]).default("summary"), requireValid: external_exports.boolean().default(false) }, false, (args) => bridge.request(args.sessionId, "editBatch", { expectedRevision: args.expectedRevision, expectedDocumentId: args.expectedDocumentId, requestId: args.requestId, operations: args.operations, dryRun: args.dryRun, fit: args.fit, presentation: args.presentation, response: args.response, requireValid: args.requireValid }));
-  register("narabizagui_edit", "Aplica una operaci\xF3n nativa bpmn-js, con revisi\xF3n base obligatoria y deshacer. properties edita los campos de semanticProperties seg\xFAn propertyFields de read y reutiliza la validaci\xF3n manual. create.eventDefinition configura el tipo de evento. Usa read para conocer IDs. x/y son el centro al crear; move usa desplazamiento. stage a\xF1ade una etapa al final o a izquierda/derecha de sourceId. lane_add/lane_split gestionan carriles nativos. stage_split divide columnas. style aplica formato persistente y erd_field_move reordena campos. view ampl\xEDa/restaura el lienzo sin cambiar el archivo. Las operaciones erd_ crean hojas de datos, tablas, campos y relaciones por campo; sus x/y son esquina superior izquierda. sheet_create crea otra hoja, sheet_open navega, sheet_rename renombra, subprocess_open abre el detalle y sheet_link vincula con otro proceso mediante CallActivity; no reemplaza subprocesos con contenido.", { sessionId: id, expectedRevision: revision, expectedDocumentId: external_exports.string().min(1).max(200).optional(), operation: edit }, false, (args) => bridge.request(args.sessionId, "edit", { expectedRevision: args.expectedRevision, expectedDocumentId: args.expectedDocumentId, operation: args.operation }));
-  register("narabizagui_save", "Guarda en el archivo ya elegido y autorizado en el visor, conservando historial y comprobando conflictos. Si falta acceso, el usuario debe usar Guardar como en el navegador. No elige destinos ni descarga copias silenciosamente.", { sessionId: id, expectedRevision: revision, expectedDocumentId: external_exports.string().min(1).max(200).optional() }, false, (args) => bridge.request(args.sessionId, "save", { expectedRevision: args.expectedRevision, expectedDocumentId: args.expectedDocumentId }));
+  register("narabizagui_validate", "Valida la hoja activa sin editar. Devuelve incidencias con c\xF3digos e IDs, enlaces por \xE1mbito, condiciones y geometr\xEDa real. review permite representaci\xF3n explicativa; formal exige condiciones. Incluye quality separado de errores BPMN: texto renderizado, marcadores, carriles y recorridos. elementIds limita esa revisi\xF3n visual al conjunto y conexiones afectadas. No aprueba el negocio ni ejecuta expresiones.", { sessionId: id2, expectedRevision: revision, expectedDocumentId: external_exports.string().min(1).max(200).optional(), profile: external_exports.enum(["review", "formal"]).default("review"), geometry: external_exports.boolean().default(true), maxIssues: external_exports.number().int().min(1).max(1e3).default(200), elementIds: external_exports.array(elementId).min(1).max(250).optional() }, true, (args) => bridge.request(args.sessionId, "validate", { expectedRevision: args.expectedRevision, expectedDocumentId: args.expectedDocumentId, profile: args.profile, geometry: args.geometry, maxIssues: args.maxIssues, elementIds: args.elementIds }));
+  const batchOperation = external_exports.discriminatedUnion("type", edit.options.filter((schema2) => BATCH_OPERATIONS.includes(schema2.shape.type.value)).map((schema2) => schema2.extend({ as: external_exports.string().regex(/^[A-Za-z][A-Za-z0-9_-]{0,63}$/).optional() })));
+  register("narabizagui_edit_batch", "Prevalida y aplica de 1 a 200 operaciones BPMN con alias, revisi\xF3n obligatoria, un Deshacer e idempotencia. Admite procesos completos, matrix, clear de hoja activa, carriles, style, delete, fit_text y route_orthogonal con lados persistentes. presentation.expandedCanvas y fit preparan la vista dentro de la misma petici\xF3n. response=summary devuelve revisi\xF3n, alias y validaci\xF3n sin las figuras; full incluye geometr\xEDa. El resultado distingue tiempo de editor, transporte y primer cuadro confirmado; no mide la espera total del usuario. dryRun no aplica ni cambia la vista; requireValid rechaza errores sin tocar el modelo. Respeta autoguardado. No incluye hojas ni ER.", { sessionId: id2, expectedRevision: revision, expectedDocumentId: external_exports.string().min(1).max(200).optional(), requestId: external_exports.string().uuid(), operations: external_exports.array(batchOperation).min(1).max(BATCH_LIMIT), dryRun: external_exports.boolean().default(false), fit: external_exports.boolean().default(true), presentation: external_exports.object({ expandedCanvas: external_exports.boolean().optional() }).default({}), response: external_exports.enum(["summary", "full"]).default("summary"), requireValid: external_exports.boolean().default(false) }, false, (args) => bridge.request(args.sessionId, "editBatch", { expectedRevision: args.expectedRevision, expectedDocumentId: args.expectedDocumentId, requestId: args.requestId, operations: args.operations, dryRun: args.dryRun, fit: args.fit, presentation: args.presentation, response: args.response, requireValid: args.requireValid }));
+  register("narabizagui_edit", "Aplica una operaci\xF3n nativa bpmn-js, con revisi\xF3n base obligatoria y deshacer. properties edita los campos de semanticProperties seg\xFAn propertyFields de read y reutiliza la validaci\xF3n manual. create.eventDefinition configura el tipo de evento. Usa read para conocer IDs. x/y son el centro al crear; move usa desplazamiento. stage a\xF1ade una etapa al final o a izquierda/derecha de sourceId. lane_add/lane_split gestionan carriles nativos. stage_split divide columnas. style aplica formato persistente y erd_field_move reordena campos. view ampl\xEDa/restaura el lienzo sin cambiar el archivo. Las operaciones erd_ crean hojas de datos, tablas, campos y relaciones por campo; sus x/y son esquina superior izquierda. sheet_create crea otra hoja, sheet_open navega, sheet_rename renombra, subprocess_open abre el detalle y sheet_link vincula con otro proceso mediante CallActivity; no reemplaza subprocesos con contenido.", { sessionId: id2, expectedRevision: revision, expectedDocumentId: external_exports.string().min(1).max(200).optional(), operation: edit }, false, (args) => bridge.request(args.sessionId, "edit", { expectedRevision: args.expectedRevision, expectedDocumentId: args.expectedDocumentId, operation: args.operation }));
+  register("narabizagui_save", "Guarda en el archivo ya elegido y autorizado en el visor, conservando historial y comprobando conflictos. Si falta acceso, el usuario debe usar Guardar como en el navegador. No elige destinos ni descarga copias silenciosamente.", { sessionId: id2, expectedRevision: revision, expectedDocumentId: external_exports.string().min(1).max(200).optional() }, false, (args) => bridge.request(args.sessionId, "save", { expectedRevision: args.expectedRevision, expectedDocumentId: args.expectedDocumentId }));
+  for (const tool of MICROSOFT_FILE_TOOLS) register(tool.name, tool.description, tool.schema, tool.readOnly, (args) => bridge.request(args.sessionId, tool.action, args));
   server.registerTool("narabizagui_export_png", {
     description: "Renderiza la hoja activa completa como PNG con fondo blanco, sin paneles; devuelve sheetId y sheetName. Devuelve la imagen al chat para inspecci\xF3n visual y un archivo temporal local para insertarlo en Word/PDF. Lee antes para indicar expectedRevision. No modifica ni guarda el BPMN. scale=2 por defecto; se reduce si es necesario para respetar 8192 px por lado y 16 megap\xEDxeles.",
-    inputSchema: { sessionId: id, expectedRevision: revision, expectedDocumentId: external_exports.string().min(1).max(200).optional(), scale: external_exports.number().min(0.5).max(3).default(2) },
+    inputSchema: { sessionId: id2, expectedRevision: revision, expectedDocumentId: external_exports.string().min(1).max(200).optional(), scale: external_exports.number().min(0.5).max(3).default(2) },
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false }
   }, async (args) => {
     try {
@@ -31700,7 +31735,7 @@ async function startServer(bridgeOptions = {}) {
       return { isError: true, structuredContent: result, content: [{ type: "text", text: JSON.stringify(result) }] };
     }
   });
-  register("narabizagui_disconnect", "Revoca la conexi\xF3n de una pesta\xF1a sin cerrar su diagrama ni descartar cambios.", { sessionId: id }, false, async (args) => {
+  register("narabizagui_disconnect", "Revoca la conexi\xF3n de una pesta\xF1a sin cerrar su diagrama ni descartar cambios.", { sessionId: id2 }, false, async (args) => {
     bridge.disconnect(args.sessionId);
     return { disconnected: true };
   });

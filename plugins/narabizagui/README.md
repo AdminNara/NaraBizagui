@@ -1,8 +1,8 @@
 # NaraBizagui by NaraLab — plugin local
 
-La versión 0.9.1 incluye cuatro skills, scripts compartidos, nueve herramientas MCP y el contrato `visual-quality-v1`. El recorrido habitual es una consulta de preparación, un bloque de edición/presentación y una confirmación visual cuando corresponde. Conserva procesos completos, revisión obligatoria, prevalidación, idempotencia y Deshacer/Rehacer.
+La versión 0.10.0 incluye cuatro skills, scripts compartidos, dieciséis herramientas MCP y el contrato `visual-quality-v1`. El recorrido habitual es una consulta de preparación, un bloque de edición/presentación y una confirmación visual cuando corresponde. Conserva procesos completos, revisión obligatoria, prevalidación, idempotencia y Deshacer/Rehacer.
 
-La actualización 0.9.1 aplica la [regla común de responsables y etiquetas](shared/workflow.md#responsables-y-etiquetas-del-flujo) en modelado y revisión. Es una actualización de skills; conserva el servidor MCP 0.9.0 y sus capacidades.
+Modelado y revisión conservan la [regla común de responsables y etiquetas](shared/workflow.md#responsables-y-etiquetas-del-flujo). La web 0.11.0 y el servidor 0.10.0 incorporan composición proporcionada, rutas adaptativas y gestión acotada de archivos Microsoft.
 
 Con web 0.9.3, `share_connection` permite compartir un tramo de llegada (`end:"target"`) o salida (`end:"source"`) entre conexiones que conservan el mismo destino u origen, respectivamente. Recibe `elementId`, `withConnectionId`, `x`, `y` y `end`; admite alias en un bloque. Cada conexión conserva ID, extremos y selección independiente. No crea compuertas ni uniones semánticas implícitas. El editor muestra el mismo recorrido en la previsualización y al soltar, conserva los ajustes manuales viables y permite acoplar segmentos cercanos sin diagonales. La ampliación es compatible con el contrato previo, pero un servidor antiguo no expone la operación nueva: comprobar el esquema real y `capabilities.batchOperations`.
 
@@ -54,10 +54,17 @@ En un chat con el plugin activo pide conectar NaraBizagui. En la pestaña del BP
 | `narabizagui_read` | Revisión, hojas, elementos de la hoja activa, selección, guardado y XML completo opcional. |
 | `narabizagui_edit` | Una operación nativa con revisión obligatoria y deshacer; incluye crear, renombrar, abrir y vincular hojas. |
 | `narabizagui_validate` | Auditoría semántica y geométrica de la hoja activa, con IDs, revisión y cobertura. |
-| `narabizagui_edit_batch` | Hasta 50 operaciones BPMN compatibles, prevalidación en copia, aliases y un deshacer conjunto. |
+| `narabizagui_edit_batch` | Hasta 200 operaciones BPMN compatibles, prevalidación en copia, aliases y un deshacer conjunto. |
 | `narabizagui_save` | Guardado en el archivo autorizado, historial y comprobación. |
 | `narabizagui_export_png` | Hoja activa completa para el chat y archivo PNG temporal para Word/PDF. |
 | `narabizagui_disconnect` | Revocar una pestaña sin perder su trabajo. |
+| `narabizagui_microsoft_status` | Cuenta/tenant, documento, destino y recibos por requestId. |
+| `narabizagui_microsoft_resolve` | Resolver enlace o IDs Microsoft sin cambiar identidad ni permisos. |
+| `narabizagui_microsoft_list` | Bibliotecas o carpetas/BPMN dentro del alcance explícito. |
+| `narabizagui_microsoft_create` | Crear sin sobrescribir, verificar y asociar el documento actual. |
+| `narabizagui_microsoft_open` | Abrir un BPMN remoto conservando cambios y borradores. |
+| `narabizagui_microsoft_attach` | Asociar bytes idénticos sin importar ni sobrescribir. |
+| `narabizagui_microsoft_autosave` | Activar/pausar el programador y comprobar su destino exacto. |
 
 El puente escucha únicamente en `127.0.0.1`, en un puerto asignado al arrancar. Solo acepta el origen de la web publicada, exige un código aleatorio de un solo uso y autentica cada sesión. No permite ejecución de JavaScript arbitrario ni acceso general al disco. Los comandos que no reciben confirmación no se repiten automáticamente.
 
@@ -98,3 +105,9 @@ La web 0.9.0 permite redimensionar Task y CallActivity, ajustar texto a 16 px co
 ## Proyectos en paralelo
 
 Cada pestaña conserva su documento y cuenta. Usa una vinculación distinta por proyecto; identifica `sessionId`, archivo y `documentId` al leer. Envía `expectedDocumentId` junto con `expectedRevision` al editar/guardar. Si se omite, el puente utiliza el documento de la última lectura confirmada; no sustituye el destino por el de una pestaña nueva. Ante `DOCUMENT_MISMATCH` vuelve a identificar el documento y conserva el trabajo. Un archivo abierto en consulta por otra pestaña rechaza ediciones con `FILE_READ_ONLY`; pide transferir su edición mediante **Editar aquí**, sin forzarla ni desconectar la sesión original.
+
+## Archivos Microsoft mediante MCP
+
+La extensión microsoft-files-v1 añade siete herramientas para estado, resolución de enlaces/IDs, listado acotado, creación sin sobrescritura, apertura protegida, asociación de bytes idénticos y configuración verificable del autoguardado. Reutiliza la cuenta y los permisos del editor; el puente no obtiene tokens. El [contrato operativo](shared/microsoft-files.md) describe argumentos, consentimiento y recuperación. Las referencias son temporales y los recibos viven en memoria; no se promete idempotencia durable tras recargar. Una escritura sin confirmar se consulta antes de repetir. La capacidad nueva requiere la web y el servidor compatibles; instalar un paquete no recarga otro chat.
+
+Para elegir una distribución amplia, las skills consultan [composición del proceso](shared/composition.md): ancho útil, equilibrio ancho/alto/área, filas alternadas como alternativa y anclajes según el orden espacial. El [ejemplo ficticio antes/después y su evaluación local](shared/examples/compact-rows/README.md) conserva nueve actividades de 260×100 y la lógica, sin conexión a un cliente. Las ilustraciones y snapshots no acreditan ejecución MCP ni texto renderizado del editor. Esta documentación fuente no cambia por sí sola el runtime instalado.

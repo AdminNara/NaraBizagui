@@ -7,9 +7,11 @@ description: Crear o modificar procesos BPMN y modelos ER mediante el MCP de Nar
 
 Lee [el contrato común](../../shared/workflow.md) y, para operaciones o propiedades, [modelado](../../shared/modeling.md). Opera la pestaña vinculada por MCP. El navegador sirve para vinculación autorizada y evaluación visual; una capacidad faltante no autoriza editar el proceso por interfaz o JavaScript.
 
-Antes de un montaje o reorganización amplia, prepara un plan en el proyecto del usuario: fuentes vigentes y discrepancias resueltas, claves de actividades, responsables, etapas, decisiones y conexiones. Usa los requisitos ya establecidos. Los carriles representan responsables internos; participantes separados, procesos independientes. Las etapas ordenan la presentación y no crean esperas de negocio.
+Antes de un montaje o reorganización amplia, prepara un plan proporcional en el proyecto o en el turno: fuentes vigentes y discrepancias resueltas, claves de actividades, responsables, decisiones y conexiones. Usa los requisitos ya establecidos. Los carriles representan responsables internos; participantes separados, procesos independientes. Añade etapas solo cuando aclaren el negocio; no crean esperas.
 
 Aplica desde el plan y la asignación de responsables la [regla de responsables y etiquetas](../../shared/workflow.md#responsables-y-etiquetas-del-flujo). Contrasta las áreas, cargos o roles con las fuentes antes de crear o renombrar elementos. Antes de aplicar y al revisar el resultado, comprueba todas las etiquetas del conjunto afectado, incluidas tareas y anotaciones; no te limites a los carriles. En una corrección puntual, informa cualquier hallazgo ajeno al alcance sin modificarlo por inferencia.
+
+Para elegir distribución lee [composición del proceso](../../shared/composition.md): estima ancho útil, alto y área antes de dibujar; compara filas con una secuencia escalonada que desperdicia espacio. Evalúa columnas alineadas y sentido alternado sin invertir conexiones lógicas, conservando tamaños, texto, responsables y asociaciones. No es una plantilla obligatoria ni requiere dividir una hoja en dos flujos.
 
 Escala ese plan al modo de interacción definido en la skill coordinadora. Para una prueba visual genérica en voz basta un esquema corto; trata supuestos y pendientes fuera del lienzo. No bloquees el primer borrador por detalles que no cambien la lógica ni crees archivos locales del proceso sin que sean necesarios o solicitados. En texto exploratorio, resuelve el diseño con el usuario antes de ejecutar y entrega el conjunto consolidado. La solicitud explícita de ejecución autónoma elimina consultas de rutina dentro del alcance autorizado, sin autorizar reglas de negocio nuevas.
 
@@ -34,3 +36,5 @@ Para correcciones de texto, tamaño, rutas, documentos y notas, sigue [edición 
 ## Proyectos en paralelo
 
 Cada pestaña conserva su documento y cuenta. Usa una vinculación distinta por proyecto; identifica `sessionId`, archivo y `documentId` al leer. Envía `expectedDocumentId` junto con `expectedRevision` al editar/guardar. Si se omite, el puente utiliza el documento de la última lectura confirmada; no sustituye el destino por el de una pestaña nueva. Ante `DOCUMENT_MISMATCH` vuelve a identificar el documento y conserva el trabajo. Un archivo abierto en consulta por otra pestaña rechaza ediciones con `FILE_READ_ONLY`; pide transferir su edición mediante **Editar aquí**, sin forzarla ni desconectar la sesión original.
+
+Para gestionar una ubicación OneDrive/SharePoint expresamente solicitada, lee [el contrato de archivos Microsoft](../../shared/microsoft-files.md) y comprueba microsoft-files-v1. Una revisión sin cambios sigue siendo de solo lectura: no abre, crea, guarda ni activa autoguardado por inferencia.

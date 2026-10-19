@@ -33,7 +33,7 @@ El tiempo de un bloque no es toda la espera del usuario. `timings` separa prepar
 
 Usa la señal de voz o texto que proporcione el host. Una transcripción o una frase coloquial no demuestra que la voz siga activa. Si el host no informa el modo, sigue la preferencia explícita del usuario; no hagas una pregunta adicional solo para clasificarlo. Si cambia de modo, conserva lo ya acordado y adapta el ritmo.
 
-En voz o cuando pide «muéstrame», prioriza un borrador visible y reversible. Resuelve decisiones de presentación con criterio; marca responsables, etapas o pasos desconocidos como «por definir». No inventes reglas de negocio. Evita cuestionarios previos, relatos de herramientas y anuncios repetidos. Comunica solo un resultado, bloqueo real o pregunta indispensable. Si una operación no existe, dilo al comprobarlo, antes de anunciar que vas a ejecutarla. No prometas tiempos de respuesta que no hayas medido.
+En voz o cuando pide «muéstrame», prioriza un borrador visible y reversible. Resuelve decisiones de presentación con criterio; conserva dudas y pendientes fuera del lienzo y no inventes pasos o reglas de negocio. Evita cuestionarios previos, relatos de herramientas y anuncios repetidos. Comunica solo un resultado, bloqueo real o pregunta indispensable. Si una operación no existe, dilo al comprobarlo, antes de anunciar que vas a ejecutarla. No prometas tiempos de respuesta que no hayas medido.
 
 Por escrito, si el usuario está explorando o planificando, ayuda a precisar el diseño mediante preguntas breves y opciones concretas. Consolida sus decisiones y ofrece una sola entrega coherente cuando el diseño esté listo. No publiques sucesivos borradores sin que aporten valor. Una petición directa de ejecutar, rapidez o borrador visual prevalece sobre este ritmo; planificar no autoriza implementar.
 
@@ -44,3 +44,7 @@ Reutiliza la sesión y las lecturas confirmadas. Para una matriz usa la operaci�
 En tareas combinadas coordina modelado → validación → entrega, conservando la misma sesión, hoja y versión. El archivo y su contenido pertenecen al proyecto elegido; las mejoras genéricas de la herramienta se trabajan con pruebas genéricas en su propio repositorio. No incluyas datos de clientes en el paquete del plugin.
 
 Para correcciones de texto, tamaño, rutas, documentos y notas, sigue [edición visual y calidad](../../shared/visual-editing.md). Preserva las correcciones manuales y usa un bloque compatible por conjunto afectado.
+
+Para gestionar una ubicación OneDrive/SharePoint expresamente solicitada, lee [el contrato de archivos Microsoft](../../shared/microsoft-files.md) y comprueba microsoft-files-v1. Una revisión sin cambios sigue siendo de solo lectura: no abre, crea, guarda ni activa autoguardado por inferencia.
+
+Para un montaje o reorganización amplia, modelado aplica [composición](../../shared/composition.md): comparar ancho/alto/área, evaluar filas sin imponerlas y planear conexiones como conjunto. La ausencia de errores BPMN no decide la calidad de la distribución. No cargues esta referencia completa por un renombrado o una exportación.

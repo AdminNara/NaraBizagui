@@ -1,5 +1,5 @@
-import {boxesOverlap,lineHitsBox,segments} from './geometry.mjs';
-import {routeMetrics,simplifyOrthogonal,anchorPoint} from './routing.mjs';
+import {boxesOverlap,lineHitsBox,segments,segmentAlongBox} from './geometry.mjs';
+import {routeMetrics,simplifyOrthogonal,anchorPoint,routeOrthogonal} from './routing.mjs';
 const activity=e=>/Task$/.test(e.type)||e.type==='bpmn:CallActivity'||e.type==='bpmn:SubProcess'&&e.expanded!==true;
 export function reviewVisualQuality(snapshot,{elementIds,maxIssues=200}={}){
   const elements=snapshot.elements||[],index=new Map(elements.map(e=>[e.id,e])),scope=elementIds?new Set(elementIds):null,issues=[];let total=0;
@@ -15,8 +15,21 @@ export function reviewVisualQuality(snapshot,{elementIds,maxIssues=200}={}){
       const metrics=routeMetrics(e.waypoints),simple=simplifyOrthogonal(e.waypoints),first=e.waypoints[0],last=e.waypoints.at(-1),minimum=Math.abs(first.x-last.x)+Math.abs(first.y-last.y);
       if(!metrics.orthogonal)add('ROUTE_DIAGONAL',[e.id],'La conexión contiene un tramo diagonal.');
       if(simple.length<e.waypoints.length)add('ROUTE_REDUNDANT_POINTS',[e.id],'El recorrido conserva puntos colineales o repetidos que se pueden eliminar.');
+      if(metrics.reversals)add('ROUTE_REVERSAL',[e.id],'La conexión avanza y retrocede inmediatamente sobre el mismo tramo.',{metrics});
       if(metrics.shortLegs&&metrics.bends)add('ROUTE_SHORT_LEG',[e.id],'La conexión tiene un tramo corto junto a un quiebre.',{metrics});
       if(metrics.length>minimum*2.5&&metrics.length-minimum>200)add('ROUTE_DETOUR',[e.id],'La conexión hace un rodeo largo; evitar cruces no basta para considerarla una buena ruta.',{metrics,minimum});
+      for(const shape of [index.get(e.sourceId),index.get(e.targetId)].filter(Boolean)){
+        if(segments(e).some(([a,b])=>lineHitsBox(a,b,shape)))add('ROUTE_THROUGH_ENDPOINT',[e.id,shape.id],'El recorrido atraviesa una de sus propias figuras.');
+        if(segments(e).some(([a,b])=>segmentAlongBox(a,b,shape)))add('ROUTE_ON_FIGURE_BORDER',[e.id,shape.id],'El recorrido circula sobre el borde de una figura en lugar de separarse de ella.');
+      }
+      const source=index.get(e.sourceId),target=index.get(e.targetId);
+      if(source&&target&&source!==target&&!e.routing?.sharedWith){
+        const gap=Math.max(0,source.x-target.x-target.width,target.x-source.x-source.width)+Math.max(0,source.y-target.y-target.height,target.y-source.y-source.height);
+        if(metrics.length>gap+80&&metrics.bends>1)try{
+          const alternative=routeOrthogonal(snapshot,{elementId:e.id,sourceSide:'auto',targetSide:'auto',sourceOffset:.5,targetOffset:.5});
+          if(metrics.length>alternative.metrics.length*1.6&&metrics.length-alternative.metrics.length>80)add('ROUTE_AVOIDABLE_DETOUR',[e.id],'Existe un recorrido local más corto con lados automáticos. Revisa la intención y usa Recalcular solo esta conexión si corresponde.',{metrics,alternative:alternative.metrics,preservesManualRoute:true,suggestedOperation:{type:'route_orthogonal',elementId:e.id,sourceSide:'auto',targetSide:'auto',sourceOffset:.5,targetOffset:.5}});
+        }catch(error){if(!['ROUTE_BLOCKED','ROUTE_GEOMETRY_MISSING','ROUTE_SELF_LOOP'].includes(error.code))throw error;}
+      }
       for(const [end,point]of [['source',first],['target',last]]){
         const anchor=e.routing?.[end],shape=index.get(e[end+'Id']);
         if(anchor&&shape){try{const expected=anchorPoint(shape,anchor.side,anchor.offset);if(Math.hypot(point.x-expected.x,point.y-expected.y)>2)add('ROUTE_ANCHOR_CHANGED',[e.id,shape.id],'El extremo ya no coincide con el lado de anclaje elegido.',{end,expected,actual:point});}catch{add('ROUTE_ANCHOR_INVALID',[e.id],'El anclaje guardado no tiene un lado y una posición válidos.',{end});}}

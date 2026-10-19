@@ -87,7 +87,8 @@ test('bundled plugin starts outside the checkout without npm install and serves 
   });
   await client.connect(transport);
   const discovered = (await client.listTools()).tools;
-  assert.equal(discovered.length, 9);
+  assert.equal(discovered.length, 16);
+  for (const suffix of ['status','resolve','list','create','open','attach','autosave']) assert.ok(discovered.some(tool=>tool.name==='narabizagui_microsoft_'+suffix));
   const editSchema=JSON.stringify(discovered.find(tool=>tool.name==='narabizagui_edit').inputSchema);
   for(const operation of ['matrix','clear','fit','lane_split','lane_add','style','delete','fit_text','route_orthogonal','share_connection','compact_container'])assert.ok(editSchema.includes('"'+operation+'"'),'Missing structural operation '+operation);
   assert.ok(JSON.stringify(discovered.find(tool=>tool.name==='narabizagui_read').inputSchema).includes('summary'));

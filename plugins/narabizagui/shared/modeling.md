@@ -6,6 +6,8 @@
 
 Usa `lane_split`/`lane_add` para responsables internos, `stage` para columnas y `move_elements` para transferencias conjuntas conservando conexiones. Las etapas no modifican la lógica. Las conexiones se corrigen con `route` y las etiquetas externas con `label.bounds`; utiliza los límites realmente devueltos por `read`, pues el texto ajusta su altura.
 
+Una fila visual no es una etapa ni un carril nuevo. Para reorganizar conserva IDs y asignaciones; evalúa [composición](composition.md) antes de mover y enruta según el nuevo orden espacial. `matrix` construye un conjunto nuevo; no reemplaces un proceso existente para compactarlo.
+
 `read` devuelve solo la hoja activa; `includeXml` contiene el archivo completo. `sheet_create/open/rename`, `subprocess_open` y `sheet_link` conservan planos nativos. Vincular una hoja usa `CallActivity.calledElement`, requiere un subproceso vacío y no permite autorreferencia. No reemplaces contenido para resolver falta de capacidad.
 
 En ER utiliza `erd_sheet_create`, `erd_table_create/update`, `erd_field_upsert/delete/move`, `erd_relationship_create/update` y `erd_delete`. Conserva tipo, PK/FK y nulabilidad al actualizar. Eliminar una tabla/campo también elimina relaciones; evalúa ese impacto. `style` conserva formato. No introduzcas ER en bloques BPMN.

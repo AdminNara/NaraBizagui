@@ -19,4 +19,8 @@ Cuando exista una sesión o imagen autorizada, complementa el análisis con una 
 
 Entrega hallazgos verificables, alcance cubierto y pendientes; separa validación técnica, contenido del proceso y aceptación del cliente. Si el usuario pidió además corregir, devuelve los hallazgos a modelado; una solicitud de análisis sola no autoriza aplicar cambios.
 
+Para evaluar distribución usa los criterios de [composición](../../shared/composition.md): compara ancho/alto/área y legibilidad, filas/columnas y anclajes según el orden espacial, conservando dirección lógica, responsables y asociaciones. No impongas dos columnas a todo proceso. Revisa documentos reutilizados y distingue resultados temporales de consulta/selección de datos realmente persistidos. El [ejemplo genérico y su evaluación](../../shared/examples/compact-rows/README.md) separan invariantes comprobables de la confirmación visual pendiente.
+
 Consulta [edición visual y calidad](../../shared/visual-editing.md) para interpretar texto, rutas y documentos. Esta skill sigue siendo de solo lectura; remite las correcciones autorizadas a modelado.
+
+Para gestionar una ubicación OneDrive/SharePoint expresamente solicitada, lee [el contrato de archivos Microsoft](../../shared/microsoft-files.md) y comprueba microsoft-files-v1. Una revisión sin cambios sigue siendo de solo lectura: no abre, crea, guarda ni activa autoguardado por inferencia.

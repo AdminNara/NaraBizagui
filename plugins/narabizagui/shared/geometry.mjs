@@ -26,3 +26,6 @@ export function lineHitsBox(a, b, box, padding = 0) {
   return high >= 0 && low <= 1;
 }
 export const boxesOverlap = (a, b) => a.x < b.x + b.width - .01 && a.x + a.width > b.x + .01 && a.y < b.y + b.height - .01 && a.y + a.height > b.y + .01;
+export const segmentAlongBox = (a,b,box) =>
+  same(a.x,b.x)&&(same(a.x,box.x)||same(a.x,box.x+box.width))&&Math.min(a.y,b.y)<box.y+box.height-.01&&Math.max(a.y,b.y)>box.y+.01||
+  same(a.y,b.y)&&(same(a.y,box.y)||same(a.y,box.y+box.height))&&Math.min(a.x,b.x)<box.x+box.width-.01&&Math.max(a.x,b.x)>box.x+.01;

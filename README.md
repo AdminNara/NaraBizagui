@@ -16,11 +16,17 @@ python -m http.server 8766 --bind 127.0.0.1
 
 Abrir `http://127.0.0.1:8766/`. No hay servidor de documentos ni base de datos.
 
+## Versión 0.11.0
+
+- Rutas adaptativas al mover actividades y recálculo local explícito, conservando los trazados manuales.
+- Plugin 0.10.0 con criterios de composición proporcionada y ejemplos genéricos antes/después.
+- Dieciséis herramientas MCP: las siete nuevas gestionan archivos Microsoft dentro de una cuenta y un destino expresamente autorizados. Crear no sobrescribe archivos existentes; las operaciones verifican documento, revisión, eTag y resultado.
+
 ## Archivos
 
 - **Archivo → Nuevo archivo:** inicia un BPMN sin datos de cliente.
 - **Archivo → Abrir:** reúne Equipo, OneDrive/SharePoint y recientes de Microsoft. En Edge/Chrome de escritorio se conserva acceso al archivo local autorizado.
-- **Guardado automático:** conserva los cambios aplicados tras una pausa de unos dos segundos, en el archivo Microsoft abierto o en el archivo local autorizado. Un documento nuevo necesita primero un destino mediante **Guardar → Opciones**. El indicador permanece junto a Guardar y muestra cambios pendientes, guardando, guardado o conflicto; **Más → Preferencias** permite pausarlo. Espera a **Guardado** antes de cerrar.
+- **Guardado automático:** conserva los cambios aplicados tras una pausa de unos dos segundos, en el archivo Microsoft abierto o en el archivo local autorizado. Un documento nuevo necesita primero un destino mediante **Guardar → Opciones** o las herramientas MCP `microsoft-files-v1` con una carpeta Microsoft explícita. El indicador permanece junto a Guardar y muestra cambios pendientes, guardando, guardado o conflicto; **Más → Preferencias** permite pausarlo. Espera a **Guardado** antes de cerrar.
 - **Guardar:** permite guardar inmediatamente; **Guardar como** elige otro destino. El guardado automático local requiere permiso de escritura y File System Access (Edge/Chrome de escritorio). En navegadores que solo descargan copias se conserva la exportación manual.
 - **Archivo → Exportar:** descarga una copia editable BPMN con todas las hojas o una imagen SVG/PNG de la hoja activa, conservando el destino del original.
 - **Información del archivo:** reúne ubicación, estado, revisiones locales y consulta de versiones Microsoft del archivo abierto. El historial local permite descargar revisiones conservadas en este navegador; borrar datos del navegador elimina ese historial. La consulta Microsoft es de lectura y no restaura versiones.
