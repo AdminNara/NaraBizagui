@@ -17,6 +17,7 @@ class NaraAutoSave {
     const s=this.state();
     this.bind(s);
     if(this.running||s.saving)return this.render('saving','Guardando…');
+    if(s.uncertain||['SAVE_UNCERTAIN','SAVE_NOT_VERIFIED'].includes(this.blocked?.code)){this.cancel();return this.render('blocked','Guardado sin confirmar','Usa Archivo → Comprobar archivo actual para verificar el contenido. El indicador de cambios no confirma que el archivo se haya guardado.');}
     if(!this.enabled){this.cancel();return this.render('paused',s.dirty?'Sin guardar · Autoguardado pausado':'Autoguardado pausado');}
     if(this.blocked){this.cancel();return this.render('blocked',this.blocked.code==='EXTERNAL_CHANGE'?'Conflicto · Sin guardar':'Sin guardar · Revisa el aviso',this.blocked.message);}
     if(s.pending){if(s.dirty&&s.target)this.schedule(500);return this.render('draft','Edición sin aplicar');}
@@ -27,7 +28,7 @@ class NaraAutoSave {
   }
   async flush(){
     this.cancel();const s=this.state();this.bind(s);
-    if(this.running||!this.enabled||this.blocked||!s.dirty||!s.target){this.refresh();return false;}
+    if(this.running||!this.enabled||this.blocked||s.uncertain||!s.dirty||!s.target){this.refresh();return false;}
     if(s.busy||s.pending||s.saving){this.refresh();return false;}
     this.running=true;this.render('saving','Guardando…');
     try{return await this.save(s);}

@@ -34,6 +34,12 @@
     return model;
   }
   function empty(name) { return {version:1,id:id('ERD'),name:text(name,'Nombre de hoja'),tables:[],relationships:[]}; }
+  function duplicate(original,name){
+    const model=clone(validate(original)),ids=new Map(),fresh=old=>{if(!ids.has(old))ids.set(old,id('ER'));return ids.get(old);};model.id=fresh(model.id);model.name=text(name,'Nombre de hoja');
+    for(const table of model.tables){table.id=fresh(table.id);for(const field of table.fields)field.id=fresh(field.id);}
+    for(const relation of model.relationships){relation.id=fresh(relation.id);for(const key of ['sourceTableId','targetTableId','sourceFieldId','targetFieldId'])relation[key]=fresh(relation[key]);}
+    return validate(model);
+  }
   function makeField(input={}) {return {id:input.id||id('Field'),name:text(input.name||'id','Nombre de campo'),dataType:text(input.dataType||'bigint','Tipo de dato',80),primaryKey:!!input.primaryKey,foreignKey:!!input.foreignKey,nullable:input.nullable===undefined?!input.primaryKey:!!input.nullable};}
   function apply(original,op) {
     const model=clone(validate(original));let affectedId;
@@ -70,6 +76,6 @@
     }else throw error('ER_OPERATION','Operación de modelo de datos no admitida.');
     validate(model);return {model,affectedId};
   }
-  globalThis.NaraERModel=Object.freeze({empty,apply,validate,clone,height,table,field,cards,visualStyle});
+  globalThis.NaraERModel=Object.freeze({empty,apply,validate,clone,duplicate,height,table,field,cards,visualStyle});
   globalThis.NaraERModdle={name:'Nara',uri:'https://naralab.io/schema/diagrams/1',prefix:'nara',xml:{tagAlias:'lowerCase'},types:[{name:'EntityRelationship',superClass:['Element'],properties:[{name:'id',isAttr:true,type:'String'},{name:'name',isAttr:true,type:'String'},{name:'version',isAttr:true,type:'String'},{name:'json',isBody:true,type:'String'}]},{name:'VisualStyle',superClass:['Element'],properties:[{name:'json',isBody:true,type:'String'}]},{name:'ConnectionRouting',superClass:['Element'],properties:[{name:'json',isBody:true,type:'String'}]}]};
 })();

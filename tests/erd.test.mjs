@@ -9,6 +9,12 @@ const context={crypto:{randomUUID}};
 vm.runInNewContext(await readFile(new URL('../erd-model.js',import.meta.url),'utf8'),context);
 const M=context.NaraERModel;
 function fixture(){let model=M.empty('Datos genéricos');let r=M.apply(model,{type:'erd_table_create',name:'Origen',x:10,y:20});model=r.model;const source=r.affectedId;r=M.apply(model,{type:'erd_table_create',name:'Destino',x:450,y:120,fields:[{name:'id',primaryKey:true},{name:'origen_id',dataType:'bigint'}]});model=r.model;return{model,source,target:r.affectedId};}
+test('duplicating an ER sheet remaps all IDs and field relationships without altering its source',()=>{
+  let {model,source,target}=fixture();model=M.apply(model,{type:'erd_relationship_create',sourceTableId:source,sourceFieldId:model.tables[0].fields[0].id,targetTableId:target,targetFieldId:model.tables[1].fields[1].id,sourceCardinality:'1',targetCardinality:'N'}).model;
+  const before=JSON.stringify(model),copy=M.duplicate(model,'Copia'),oldIds=new Set([model.id,...model.tables.flatMap(t=>[t.id,...t.fields.map(f=>f.id)]),...model.relationships.map(r=>r.id)]);
+  assert.equal(JSON.stringify(model),before);assert.equal(copy.name,'Copia');assert.ok([copy.id,...copy.tables.flatMap(t=>[t.id,...t.fields.map(f=>f.id)]),...copy.relationships.map(r=>r.id)].every(id=>!oldIds.has(id)));
+  assert.equal(copy.relationships[0].sourceTableId,copy.tables[0].id);assert.equal(copy.relationships[0].targetFieldId,copy.tables[1].fields[1].id);assert.equal(copy.tables[0].x,model.tables[0].x);assert.equal(copy.tables[1].fields[1].foreignKey,true);assert.equal(M.validate(copy),copy);
+});
 
 test('ER edits preserve stable IDs and delete only relations attached to the removed field',()=>{
   let {model,source,target}=fixture();const original=JSON.stringify(model),sourceField=M.table(model,source).fields[0].id,targetField=M.table(model,target).fields[1].id;

@@ -39,6 +39,12 @@ test('pausing autosave cancels a pending write and reenabling schedules it',asyn
   const f=scheduler();f.auto.refresh();f.auto.enable(false);await f.auto.flush();assert.equal(f.writes(),0);assert.equal(f.timers.size,0);
   f.auto.enable(true);await f.auto.flush();assert.equal(f.writes(),1);
 });
+test('an uncertain destination never appears saved even without dirty changes or after pausing',async()=>{
+  const f=scheduler();f.s.dirty=false;f.s.uncertain=true;f.auto.refresh();
+  assert.equal(f.renders.at(-1)[1],'Guardado sin confirmar');f.auto.enable(false);assert.equal(f.renders.at(-1)[1],'Guardado sin confirmar');
+  f.auto.enable(true);f.auto.reset();await f.auto.flush();assert.equal(f.writes(),0);assert.equal(f.timers.size,0);
+  f.s.uncertain=false;f.auto.reset();assert.equal(f.renders.at(-1)[0],'saved');
+});
 test('conflicts and ambiguous writes stop retries even when more changes occur',async()=>{
   for(const code of ['EXTERNAL_CHANGE','SAVE_UNCERTAIN','SAVE_NOT_VERIFIED']){
     const f=scheduler();let writes=0;f.auto.save=async()=>{writes++;throw Object.assign(new Error('generic failure'),{code});};

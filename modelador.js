@@ -45,7 +45,7 @@ const modeler = new BpmnJS({
 });
 window.bpmnModeler = modeler;
 const semanticProperties = window.NaraBpmnProperties.mount(modeler, byId('semanticFields'), () => basePropertyDraftPending());
-window.NaraAppVersion = '0.9.3';
+window.NaraAppVersion = '0.9.4';
 window.NaraAppBuild = document.querySelector('meta[name=narabizagui-build]')?.content || 'unknown';
 window.diagramReady = false;
 window.diagramError = null;
@@ -875,7 +875,7 @@ window.addEventListener('focus', () => pollFile());
 document.addEventListener('visibilitychange', () => {if(document.visibilityState==='visible')pollFile();});
 let autoSavePointer=false;
 window.naraAutoSave=new window.NaraAutoSave({
-  state:()=>({target:(standalone||detached)?browserFiles.handle:activeDiagram,document:browserDocumentVersion,dirty,saving,pending:Boolean(window.NaraPropertyDraftPending?.()||autoSavePointer||modeler.get('directEditing').isActive()),busy:!ready||loadingDiagram||filePolling||Boolean(window.NaraMicrosoftDialogOpen)}),
+  state:()=>({target:(standalone||detached)?browserFiles.handle:activeDiagram,document:browserDocumentVersion,dirty,saving,uncertain:!!browserFiles.handle&&(browserFiles.uncertain===browserFiles.handle||!!browserFiles.handle.uncertain),pending:Boolean(window.NaraPropertyDraftPending?.()||autoSavePointer||modeler.get('directEditing').isActive()),busy:!ready||loadingDiagram||filePolling||Boolean(window.NaraMicrosoftDialogOpen)}),
   save:()=>saveBpmn(true),
   render:(kind,message,detail)=>{byId('dirtyState').textContent=message;byId('dirtyState').dataset.saveState=kind;byId('dirtyState').title=detail||'El guardado automático conserva los cambios aplicados en el archivo elegido.';}
 });
