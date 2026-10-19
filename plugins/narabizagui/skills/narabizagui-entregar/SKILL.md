@@ -19,6 +19,6 @@ Un archivo puede contener varias hojas; el PNG incluye únicamente la activa. Ex
 
 Entrega enlaces utilizables a los archivos, qué se comprobó y cualquier limitación material. No presentes XML válido, una imagen o un guardado como aprobación funcional o de negocio.
 
-Para correcciones de texto, tamaño, rutas, documentos y notas, sigue [edición visual y calidad](../../shared/visual-editing.md). Preserva las correcciones manuales y usa un bloque compatible por conjunto afectado.
+Si el encuadre o la escala impiden leer la entrega, informa el límite y remite una reorganización solicitada a modelado con los criterios de [composición](../../shared/composition.md). Exportar no autoriza cambiar tamaños, rutas ni separar en dos flujos una hoja. Consulta [edición visual y calidad](../../shared/visual-editing.md) solo para interpretar hallazgos existentes.
 
 Para gestionar una ubicación OneDrive/SharePoint expresamente solicitada, lee [el contrato de archivos Microsoft](../../shared/microsoft-files.md) y comprueba microsoft-files-v1. Una revisión sin cambios sigue siendo de solo lectura: no abre, crea, guarda ni activa autoguardado por inferencia.

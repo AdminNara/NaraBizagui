@@ -77,3 +77,24 @@ test('a preparation summary waits out autosave so the next call can edit directl
  const f=fixture();f.context.saving=true;setTimeout(()=>{f.context.saving=false;},10);
  const result=await f.editor.read({detail:'summary',waitForReadyMs:1000});assert.equal(result.readiness.canEdit,true);assert.equal(f.counts.serialized,1);
 });
+
+test('Microsoft operations retain the opaque document identity and the read-only tab guard',async()=>{
+ const f=fixture(),c=f.context;c.browserFiles.documentId='microsoft:opaque-file-identity';
+ const state=await f.editor.read();assert.equal(state.documentId,'microsoft:opaque-file-identity');
+ assert.equal(f.editor.fileAdapter.state().documentId,state.documentId);
+ assert.equal(state.capabilities.documentGuard,true);assert.equal(state.capabilities.adaptiveRouting,true);
+ c.browserFiles.readOnly=true;
+ await assert.rejects(f.editor.fileAdapter.prepare(state.revision),{code:'FILE_READ_ONLY'});
+ assert.equal(c.browserFiles.documentId,state.documentId);assert.equal(f.counts.edits,0);
+});
+
+test('a partially attached Microsoft open reacquires the previous document identity on rollback',async()=>{
+ const f=fixture(),c=f.context,previousXml='<generic original="true"/>',remoteXml='<generic remote="true"/>',oldHandle={name:'Previous.bpmn'},remoteHandle={name:'Remote.bpmn'};let xml=previousXml,attaches=0;
+ c.modeler.saveXML=async()=>({xml});c.openDiagram=async next=>{xml=next;};c.browserDocumentVersion=1;c.browserFileContext=()=>{};c.setDirty=value=>{c.dirty=value;};
+ Object.assign(c.browserFiles,{handle:oldHandle,name:'Previous.bpmn',documentId:'local:original',hash:'previous-hash',baseXml:previousXml});
+ c.browserFiles.attach=async source=>{attaches++;c.browserFiles.handle=source.handle;c.browserFiles.documentId=source.handle===oldHandle?'local:original':'microsoft:remote';if(source.handle===remoteHandle)throw Error('Failure after changing file ownership');};
+ f.services.canvas.viewbox=()=>({x:0,y:0,width:100,height:100});f.services.naraSheets.open=()=>{};
+ const check=()=>{};check.identity=()=>{};
+ await assert.rejects(f.editor.fileAdapter.open({xml:remoteXml,handle:remoteHandle,name:'Remote.bpmn'},check,true),/Failure after changing file ownership/);
+ assert.equal(attaches,2);assert.equal(xml,previousXml);assert.equal(c.browserFiles.handle,oldHandle);assert.equal(c.browserFiles.documentId,'local:original');assert.equal(c.window.NaraMicrosoftRecovery,undefined);
+});

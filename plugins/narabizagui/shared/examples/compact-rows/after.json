@@ -1,0 +1,798 @@
+{
+  "fileName": "generic-after.bpmn",
+  "revision": "example-after-v1",
+  "diagramType": "bpmn",
+  "activeSheetId": "Collaboration_Generic",
+  "elementsFiltered": false,
+  "elementsTruncated": false,
+  "sourceKind": "synthetic-example",
+  "elements": [
+    {
+      "id": "Pool_Generic",
+      "type": "bpmn:Participant",
+      "name": "Gestión de solicitudes",
+      "documentation": "Proceso didáctico ficticio; sin fuentes de clientes.",
+      "parentId": "Collaboration_Generic",
+      "processRef": "Process_Generic",
+      "x": 80,
+      "y": 100,
+      "width": 906,
+      "height": 1280
+    },
+    {
+      "id": "Lane_1",
+      "type": "bpmn:Lane",
+      "name": "Recepción",
+      "parentId": "Pool_Generic",
+      "x": 110,
+      "y": 100,
+      "width": 876,
+      "height": 320
+    },
+    {
+      "id": "Lane_2",
+      "type": "bpmn:Lane",
+      "name": "Análisis",
+      "parentId": "Pool_Generic",
+      "x": 110,
+      "y": 420,
+      "width": 876,
+      "height": 320
+    },
+    {
+      "id": "Lane_3",
+      "type": "bpmn:Lane",
+      "name": "Registro",
+      "parentId": "Pool_Generic",
+      "x": 110,
+      "y": 740,
+      "width": 876,
+      "height": 640
+    },
+    {
+      "id": "Start_Generic",
+      "type": "bpmn:StartEvent",
+      "name": "Inicio",
+      "parentId": "Lane_1",
+      "flowScopeId": "Process_Generic",
+      "x": 172,
+      "y": 202,
+      "width": 36,
+      "height": 36,
+      "labelBounds": {
+        "x": 165,
+        "y": 250,
+        "width": 50,
+        "height": 20
+      }
+    },
+    {
+      "id": "Task_1",
+      "type": "bpmn:UserTask",
+      "name": "Recibir solicitud",
+      "documentation": "Actividad ficticia para evaluar composición.",
+      "parentId": "Lane_1",
+      "flowScopeId": "Process_Generic",
+      "x": 270,
+      "y": 170,
+      "width": 260,
+      "height": 100,
+      "visualStyle": {
+        "fontSize": 16
+      }
+    },
+    {
+      "id": "Task_2",
+      "type": "bpmn:UserTask",
+      "name": "Revisar datos",
+      "documentation": "Actividad ficticia para evaluar composición.",
+      "parentId": "Lane_1",
+      "flowScopeId": "Process_Generic",
+      "x": 590,
+      "y": 170,
+      "width": 260,
+      "height": 100,
+      "visualStyle": {
+        "fontSize": 16
+      }
+    },
+    {
+      "id": "Task_3",
+      "type": "bpmn:UserTask",
+      "name": "Consultar catálogo",
+      "documentation": "Consulta de solo lectura; no persiste datos.",
+      "parentId": "Lane_2",
+      "flowScopeId": "Process_Generic",
+      "x": 590,
+      "y": 490,
+      "width": 260,
+      "height": 100,
+      "visualStyle": {
+        "fontSize": 16
+      }
+    },
+    {
+      "id": "Task_4",
+      "type": "bpmn:UserTask",
+      "name": "Seleccionar alternativa",
+      "documentation": "La alternativa seleccionada es un dato temporal.",
+      "parentId": "Lane_2",
+      "flowScopeId": "Process_Generic",
+      "x": 270,
+      "y": 490,
+      "width": 260,
+      "height": 100,
+      "visualStyle": {
+        "fontSize": 16
+      }
+    },
+    {
+      "id": "Task_5",
+      "type": "bpmn:UserTask",
+      "name": "Preparar registro",
+      "documentation": "Actividad ficticia para evaluar composición.",
+      "parentId": "Lane_3",
+      "flowScopeId": "Process_Generic",
+      "x": 270,
+      "y": 790,
+      "width": 260,
+      "height": 100,
+      "visualStyle": {
+        "fontSize": 16
+      }
+    },
+    {
+      "id": "Task_6",
+      "type": "bpmn:UserTask",
+      "name": "Registrar resultado",
+      "documentation": "Persiste el registro en el sistema de ejemplo.",
+      "parentId": "Lane_3",
+      "flowScopeId": "Process_Generic",
+      "x": 590,
+      "y": 790,
+      "width": 260,
+      "height": 100,
+      "visualStyle": {
+        "fontSize": 16
+      }
+    },
+    {
+      "id": "Task_7",
+      "type": "bpmn:UserTask",
+      "name": "Verificar registro",
+      "documentation": "Actividad ficticia para evaluar composición.",
+      "parentId": "Lane_3",
+      "flowScopeId": "Process_Generic",
+      "x": 590,
+      "y": 970,
+      "width": 260,
+      "height": 100,
+      "visualStyle": {
+        "fontSize": 16
+      }
+    },
+    {
+      "id": "Task_8",
+      "type": "bpmn:UserTask",
+      "name": "Notificar resultado",
+      "documentation": "Actividad ficticia para evaluar composición.",
+      "parentId": "Lane_3",
+      "flowScopeId": "Process_Generic",
+      "x": 270,
+      "y": 970,
+      "width": 260,
+      "height": 100,
+      "visualStyle": {
+        "fontSize": 16
+      }
+    },
+    {
+      "id": "Task_9",
+      "type": "bpmn:UserTask",
+      "name": "Archivar constancia",
+      "documentation": "Actividad ficticia para evaluar composición.",
+      "parentId": "Lane_3",
+      "flowScopeId": "Process_Generic",
+      "x": 270,
+      "y": 1150,
+      "width": 260,
+      "height": 100,
+      "visualStyle": {
+        "fontSize": 16
+      }
+    },
+    {
+      "id": "End_Generic",
+      "type": "bpmn:EndEvent",
+      "name": "Fin",
+      "parentId": "Lane_3",
+      "flowScopeId": "Process_Generic",
+      "x": 900,
+      "y": 1182,
+      "width": 36,
+      "height": 36,
+      "labelBounds": {
+        "x": 893,
+        "y": 1232,
+        "width": 50,
+        "height": 20
+      }
+    },
+    {
+      "id": "Doc_1",
+      "type": "bpmn:DataObjectReference",
+      "name": "Solicitud",
+      "documentation": "Documento de entrada recibido.",
+      "parentId": "Lane_1",
+      "flowScopeId": "Process_Generic",
+      "x": 382,
+      "y": 325,
+      "width": 36,
+      "height": 50,
+      "labelBounds": {
+        "x": 320,
+        "y": 385,
+        "width": 160,
+        "height": 34
+      },
+      "visualStyle": {
+        "fontSize": 14
+      },
+      "semanticProperties": {
+        "documentFormat": "Documento",
+        "documentUse": "Entrada/Salida"
+      }
+    },
+    {
+      "id": "Doc_2",
+      "type": "bpmn:DataObjectReference",
+      "name": "Selección temporal",
+      "documentation": "Dato de trabajo; la selección no crea un archivo ni guarda un registro.",
+      "parentId": "Lane_2",
+      "flowScopeId": "Process_Generic",
+      "x": 382,
+      "y": 635,
+      "width": 36,
+      "height": 50,
+      "labelBounds": {
+        "x": 320,
+        "y": 695,
+        "width": 160,
+        "height": 34
+      },
+      "visualStyle": {
+        "fontSize": 14
+      },
+      "semanticProperties": {
+        "documentFormat": "Datos",
+        "documentUse": "Salida"
+      }
+    },
+    {
+      "id": "Doc_3",
+      "type": "bpmn:DataObjectReference",
+      "name": "Registro guardado",
+      "documentation": "Registro persistido únicamente por Registrar resultado.",
+      "parentId": "Lane_3",
+      "flowScopeId": "Process_Generic",
+      "x": 882,
+      "y": 890,
+      "width": 36,
+      "height": 50,
+      "labelBounds": {
+        "x": 750,
+        "y": 900,
+        "width": 120,
+        "height": 34
+      },
+      "visualStyle": {
+        "fontSize": 14
+      },
+      "semanticProperties": {
+        "documentFormat": "Datos",
+        "documentUse": "Entrada/Salida"
+      }
+    },
+    {
+      "id": "Doc_4",
+      "type": "bpmn:DataObjectReference",
+      "name": "Constancia",
+      "documentation": "Constancia de archivo del ejemplo.",
+      "parentId": "Lane_3",
+      "flowScopeId": "Process_Generic",
+      "x": 382,
+      "y": 1280,
+      "width": 36,
+      "height": 50,
+      "labelBounds": {
+        "x": 320,
+        "y": 1340,
+        "width": 160,
+        "height": 34
+      },
+      "visualStyle": {
+        "fontSize": 14
+      },
+      "semanticProperties": {
+        "documentFormat": "Documento",
+        "documentUse": "Salida"
+      }
+    },
+    {
+      "id": "Flow_1",
+      "type": "bpmn:SequenceFlow",
+      "sourceId": "Start_Generic",
+      "targetId": "Task_1",
+      "parentId": "Pool_Generic",
+      "flowScopeId": "Process_Generic",
+      "waypoints": [
+        {
+          "x": 208,
+          "y": 220
+        },
+        {
+          "x": 270,
+          "y": 220
+        }
+      ],
+      "routing": {
+        "mode": "orthogonal",
+        "source": {
+          "side": "right",
+          "offset": 0.5
+        },
+        "target": {
+          "side": "left",
+          "offset": 0.5
+        }
+      }
+    },
+    {
+      "id": "Flow_2",
+      "type": "bpmn:SequenceFlow",
+      "sourceId": "Task_1",
+      "targetId": "Task_2",
+      "parentId": "Pool_Generic",
+      "flowScopeId": "Process_Generic",
+      "waypoints": [
+        {
+          "x": 530,
+          "y": 220
+        },
+        {
+          "x": 590,
+          "y": 220
+        }
+      ],
+      "routing": {
+        "mode": "orthogonal",
+        "source": {
+          "side": "right",
+          "offset": 0.5
+        },
+        "target": {
+          "side": "left",
+          "offset": 0.5
+        }
+      }
+    },
+    {
+      "id": "Flow_3",
+      "type": "bpmn:SequenceFlow",
+      "sourceId": "Task_2",
+      "targetId": "Task_3",
+      "parentId": "Pool_Generic",
+      "flowScopeId": "Process_Generic",
+      "waypoints": [
+        {
+          "x": 780,
+          "y": 270
+        },
+        {
+          "x": 780,
+          "y": 490
+        }
+      ],
+      "routing": {
+        "mode": "orthogonal",
+        "source": {
+          "side": "bottom",
+          "offset": 0.7307692307692307
+        },
+        "target": {
+          "side": "top",
+          "offset": 0.7307692307692307
+        }
+      }
+    },
+    {
+      "id": "Flow_4",
+      "type": "bpmn:SequenceFlow",
+      "sourceId": "Task_3",
+      "targetId": "Task_4",
+      "parentId": "Pool_Generic",
+      "flowScopeId": "Process_Generic",
+      "waypoints": [
+        {
+          "x": 590,
+          "y": 540
+        },
+        {
+          "x": 530,
+          "y": 540
+        }
+      ],
+      "routing": {
+        "mode": "orthogonal",
+        "source": {
+          "side": "left",
+          "offset": 0.5
+        },
+        "target": {
+          "side": "right",
+          "offset": 0.5
+        }
+      }
+    },
+    {
+      "id": "Flow_5",
+      "type": "bpmn:SequenceFlow",
+      "sourceId": "Task_4",
+      "targetId": "Task_5",
+      "parentId": "Pool_Generic",
+      "flowScopeId": "Process_Generic",
+      "waypoints": [
+        {
+          "x": 300,
+          "y": 590
+        },
+        {
+          "x": 300,
+          "y": 790
+        }
+      ],
+      "routing": {
+        "mode": "orthogonal",
+        "source": {
+          "side": "bottom",
+          "offset": 0.11538461538461539
+        },
+        "target": {
+          "side": "top",
+          "offset": 0.11538461538461539
+        }
+      }
+    },
+    {
+      "id": "Flow_6",
+      "type": "bpmn:SequenceFlow",
+      "sourceId": "Task_5",
+      "targetId": "Task_6",
+      "parentId": "Pool_Generic",
+      "flowScopeId": "Process_Generic",
+      "waypoints": [
+        {
+          "x": 530,
+          "y": 840
+        },
+        {
+          "x": 590,
+          "y": 840
+        }
+      ],
+      "routing": {
+        "mode": "orthogonal",
+        "source": {
+          "side": "right",
+          "offset": 0.5
+        },
+        "target": {
+          "side": "left",
+          "offset": 0.5
+        }
+      }
+    },
+    {
+      "id": "Flow_7",
+      "type": "bpmn:SequenceFlow",
+      "sourceId": "Task_6",
+      "targetId": "Task_7",
+      "parentId": "Pool_Generic",
+      "flowScopeId": "Process_Generic",
+      "waypoints": [
+        {
+          "x": 720,
+          "y": 890
+        },
+        {
+          "x": 720,
+          "y": 970
+        }
+      ],
+      "routing": {
+        "mode": "orthogonal",
+        "source": {
+          "side": "bottom",
+          "offset": 0.5
+        },
+        "target": {
+          "side": "top",
+          "offset": 0.5
+        }
+      }
+    },
+    {
+      "id": "Flow_8",
+      "type": "bpmn:SequenceFlow",
+      "sourceId": "Task_7",
+      "targetId": "Task_8",
+      "parentId": "Pool_Generic",
+      "flowScopeId": "Process_Generic",
+      "waypoints": [
+        {
+          "x": 590,
+          "y": 1020
+        },
+        {
+          "x": 530,
+          "y": 1020
+        }
+      ],
+      "routing": {
+        "mode": "orthogonal",
+        "source": {
+          "side": "left",
+          "offset": 0.5
+        },
+        "target": {
+          "side": "right",
+          "offset": 0.5
+        }
+      }
+    },
+    {
+      "id": "Flow_9",
+      "type": "bpmn:SequenceFlow",
+      "sourceId": "Task_8",
+      "targetId": "Task_9",
+      "parentId": "Pool_Generic",
+      "flowScopeId": "Process_Generic",
+      "waypoints": [
+        {
+          "x": 400,
+          "y": 1070
+        },
+        {
+          "x": 400,
+          "y": 1150
+        }
+      ],
+      "routing": {
+        "mode": "orthogonal",
+        "source": {
+          "side": "bottom",
+          "offset": 0.5
+        },
+        "target": {
+          "side": "top",
+          "offset": 0.5
+        }
+      }
+    },
+    {
+      "id": "Flow_10",
+      "type": "bpmn:SequenceFlow",
+      "sourceId": "Task_9",
+      "targetId": "End_Generic",
+      "parentId": "Pool_Generic",
+      "flowScopeId": "Process_Generic",
+      "waypoints": [
+        {
+          "x": 530,
+          "y": 1200
+        },
+        {
+          "x": 900,
+          "y": 1200
+        }
+      ],
+      "routing": {
+        "mode": "orthogonal",
+        "source": {
+          "side": "right",
+          "offset": 0.5
+        },
+        "target": {
+          "side": "left",
+          "offset": 0.5
+        }
+      }
+    },
+    {
+      "id": "Data_1",
+      "type": "bpmn:DataOutputAssociation",
+      "sourceId": "Task_1",
+      "targetId": "Doc_1",
+      "parentId": "Pool_Generic",
+      "flowScopeId": "Process_Generic",
+      "waypoints": [
+        {
+          "x": 400,
+          "y": 270
+        },
+        {
+          "x": 400,
+          "y": 325
+        }
+      ],
+      "routing": {
+        "mode": "orthogonal",
+        "source": {
+          "side": "bottom",
+          "offset": 0.5
+        },
+        "target": {
+          "side": "top",
+          "offset": 0.5
+        }
+      }
+    },
+    {
+      "id": "Data_2",
+      "type": "bpmn:DataInputAssociation",
+      "sourceId": "Doc_1",
+      "targetId": "Task_2",
+      "parentId": "Pool_Generic",
+      "flowScopeId": "Process_Generic",
+      "waypoints": [
+        {
+          "x": 418,
+          "y": 350
+        },
+        {
+          "x": 655,
+          "y": 350
+        },
+        {
+          "x": 655,
+          "y": 270
+        }
+      ],
+      "routing": {
+        "mode": "orthogonal",
+        "source": {
+          "side": "right",
+          "offset": 0.5
+        },
+        "target": {
+          "side": "bottom",
+          "offset": 0.25
+        }
+      }
+    },
+    {
+      "id": "Data_3",
+      "type": "bpmn:DataOutputAssociation",
+      "sourceId": "Task_4",
+      "targetId": "Doc_2",
+      "parentId": "Pool_Generic",
+      "flowScopeId": "Process_Generic",
+      "waypoints": [
+        {
+          "x": 400,
+          "y": 590
+        },
+        {
+          "x": 400,
+          "y": 635
+        }
+      ],
+      "routing": {
+        "mode": "orthogonal",
+        "source": {
+          "side": "bottom",
+          "offset": 0.5
+        },
+        "target": {
+          "side": "top",
+          "offset": 0.5
+        }
+      }
+    },
+    {
+      "id": "Data_4",
+      "type": "bpmn:DataOutputAssociation",
+      "sourceId": "Task_6",
+      "targetId": "Doc_3",
+      "parentId": "Pool_Generic",
+      "flowScopeId": "Process_Generic",
+      "waypoints": [
+        {
+          "x": 850,
+          "y": 840
+        },
+        {
+          "x": 900,
+          "y": 840
+        },
+        {
+          "x": 900,
+          "y": 890
+        }
+      ],
+      "routing": {
+        "mode": "orthogonal",
+        "source": {
+          "side": "right",
+          "offset": 0.5
+        },
+        "target": {
+          "side": "top",
+          "offset": 0.5
+        }
+      }
+    },
+    {
+      "id": "Data_5",
+      "type": "bpmn:DataInputAssociation",
+      "sourceId": "Doc_3",
+      "targetId": "Task_7",
+      "parentId": "Pool_Generic",
+      "flowScopeId": "Process_Generic",
+      "waypoints": [
+        {
+          "x": 900,
+          "y": 940
+        },
+        {
+          "x": 900,
+          "y": 1020
+        },
+        {
+          "x": 850,
+          "y": 1020
+        }
+      ],
+      "routing": {
+        "mode": "orthogonal",
+        "source": {
+          "side": "bottom",
+          "offset": 0.5
+        },
+        "target": {
+          "side": "right",
+          "offset": 0.5
+        }
+      }
+    },
+    {
+      "id": "Data_6",
+      "type": "bpmn:DataOutputAssociation",
+      "sourceId": "Task_9",
+      "targetId": "Doc_4",
+      "parentId": "Pool_Generic",
+      "flowScopeId": "Process_Generic",
+      "waypoints": [
+        {
+          "x": 400,
+          "y": 1250
+        },
+        {
+          "x": 400,
+          "y": 1280
+        }
+      ],
+      "routing": {
+        "mode": "orthogonal",
+        "source": {
+          "side": "bottom",
+          "offset": 0.5
+        },
+        "target": {
+          "side": "top",
+          "offset": 0.5
+        }
+      }
+    }
+  ]
+}

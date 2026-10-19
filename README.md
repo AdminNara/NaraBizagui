@@ -16,6 +16,12 @@ python -m http.server 8766 --bind 127.0.0.1
 
 Abrir `http://127.0.0.1:8766/`. No hay servidor de documentos ni base de datos.
 
+## Versión 0.11.0
+
+- Rutas adaptativas al mover actividades y recálculo local explícito, conservando los trazados manuales.
+- Plugin 0.10.0 con criterios de composición proporcionada y ejemplos genéricos antes/después.
+- Dieciséis herramientas MCP: las siete nuevas gestionan archivos Microsoft dentro de una cuenta y un destino expresamente autorizados. Crear no sobrescribe archivos existentes; las operaciones verifican documento, revisión, eTag y resultado.
+
 ## Archivos
 
 - **Archivo → Nuevo archivo:** inicia un BPMN sin datos de cliente.

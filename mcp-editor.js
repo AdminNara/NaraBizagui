@@ -299,7 +299,7 @@
       finally{draft.destroy();host.remove();}
     },
     open:async(source,check,enabled)=>{
-      const previousXml=(await modeler.saveXML({format:true})).xml,previous={handle:browserFiles.handle,name:browserFiles.name,hash:browserFiles.hash,version:browserFiles.version,baseXml:browserFiles.baseXml,uncertain:browserFiles.uncertain},previousDirty=dirty,documentVersion=browserDocumentVersion;
+      const previousXml=(await modeler.saveXML({format:true})).xml,previous={handle:browserFiles.handle,name:browserFiles.name,hash:browserFiles.hash,version:browserFiles.version,baseXml:browserFiles.baseXml,uncertain:browserFiles.uncertain},previousDocumentId=browserFiles.documentId,previousDirty=dirty,documentVersion=browserDocumentVersion;
       const view=modeler.get('canvas').viewbox(),erView=window.NaraER?.active()?window.NaraER.view():null,sheetId=window.NaraER?.active()||modeler.get('canvas').getRootElement()?.id;
       check();loadingDiagram=true;
       try{
@@ -314,7 +314,12 @@
           await openDiagram(previousXml);
           if((await modeler.saveXML({format:true})).xml!==previousXml)throw error('RECOVERY_REQUIRED','La restauración no coincide con la instantánea.');
           let sameIdentity=true;try{check.identity();}catch{sameIdentity=false;}
-          Object.assign(browserFiles,previous);if(!sameIdentity){browserFiles.handle=null;browserFiles.hash=null;}
+          if(sameIdentity&&(browserFiles.handle!==previous.handle||browserFiles.documentId!==previousDocumentId)){
+            if(previous.handle)await browserFiles.attach({...previous,xml:previousXml});
+            else browserFiles.detach();
+          }else if(!sameIdentity)browserFiles.detach();
+          Object.assign(browserFiles,previous);if(sameIdentity&&!previous.handle)browserFiles.documentId=previousDocumentId;
+          if(!sameIdentity){browserFiles.handle=null;browserFiles.hash=null;}
           browserDocumentVersion++;revision=crypto.randomUUID();serialized=null;setDirty(sameIdentity?previousDirty:true);browserFileContext(previous.name);
           if(modeler.get('naraSheets').list().some(s=>s.id===sheetId))modeler.get('naraSheets').open(sheetId);
           if(erView)window.NaraER.restoreView(erView);else modeler.get('canvas').viewbox(view);

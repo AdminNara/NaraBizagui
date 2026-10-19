@@ -16103,8 +16103,8 @@
       const key = this.put(value, sessionId, scopeRef);
       return { ...value, [kind === "folder" ? "folderRef" : "fileRef"]: key };
     }
-    async checked(args, reference2, action, kind) {
-      const scope = this.scope(args, action), ref = this.ref(reference2, args.sessionId, kind);
+    async checked(args, reference3, action, kind) {
+      const scope = this.scope(args, action), ref = this.ref(reference3, args.sessionId, kind);
       if (ref.scopeRef !== args.scopeRef) throw problem("OUT_OF_SCOPE", "La referencia pertenece a otro alcance.");
       const item = await this.files.metadata(ref.driveId, ref.itemId);
       this.workspace.assert(scope.stamp);
@@ -16140,7 +16140,7 @@
       const remote = handle?.storageKind === "microsoft" ? handle.remoteInfo() : null;
       const targetMatches = Boolean(microsoft.connected && handle?.accountId === this.auth.account?.homeAccountId && handle?.generation === this.auth.generation && remote && remote.driveId === state.target?.driveId && remote.itemId === state.target?.itemId);
       const unresolved = [...this.receipts.values()].some((r) => r.identityKey === this.identityKey && r.public.phase === "result_unknown");
-      const autoSave = { ...state.autoSave, blocked: state.autoSave.blocked || (unresolved ? "RESULT_UNKNOWN" : null), targetMatches, effective: Boolean(state.autoSave.enabled && targetMatches && !state.autoSave.blocked && !unresolved && !state.unappliedProperties && !state.recoveryRequired && !this.active), lastVerifiedRevision: !state.dirty && targetMatches ? state.revision : null, lastVerifiedETag: remote?.eTag || null };
+      const autoSave = { ...state.autoSave, blocked: state.autoSave.blocked || (state.readOnly ? "FILE_READ_ONLY" : null) || (unresolved ? "RESULT_UNKNOWN" : null), targetMatches, effective: Boolean(state.autoSave.enabled && targetMatches && !state.readOnly && !state.autoSave.blocked && !unresolved && !state.unappliedProperties && !state.recoveryRequired && !this.active), lastVerifiedRevision: !state.dirty && targetMatches ? state.revision : null, lastVerifiedETag: remote?.eTag || null };
       let receipt;
       if (requestId) {
         const entry = this.receipts.get(requestId);

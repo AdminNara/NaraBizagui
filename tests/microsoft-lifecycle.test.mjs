@@ -120,3 +120,6 @@ test('V13: save_current reopening the same file expects the verified eTag from i
 test('a scoped create cannot associate or change autosave without those explicit actions',async()=>{
  const f=fixture(),scope=await f.resolve(undefined,'folder',['read','create','attach']);await assert.rejects(f.service.create(await f.args(scope,{folderRef:scope.folderRef,name:'Scoped',attach:true,autoSave:false})),{code:'OUT_OF_SCOPE'});assert.equal(f.writes(),0);assert.equal(f.state().target,null);
 });
+test('autosave reports a parallel-tab read-only lock as ineffective',async()=>{
+ const f=fixture(),scope=await f.resolve();await f.service.create(await f.args(scope,{folderRef:scope.folderRef,name:'Read-only QA',attach:true,autoSave:true}));f.change({readOnly:true});const status=await f.service.status({sessionId:'generic-session'});assert.equal(status.autoSave.enabled,true);assert.equal(status.autoSave.targetMatches,true);assert.equal(status.autoSave.effective,false);assert.equal(status.autoSave.blocked,'FILE_READ_ONLY');
+});

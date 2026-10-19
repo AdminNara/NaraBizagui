@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_Generic" targetNamespace="https://example.invalid/narabizagui/generic">
+<bpmn:collaboration id="Collaboration_Generic"><bpmn:participant id="Pool_Generic" name="Gestión de solicitudes" processRef="Process_Generic"><bpmn:documentation>Proceso didáctico ficticio; sin fuentes de clientes.</bpmn:documentation></bpmn:participant></bpmn:collaboration>
+<bpmn:process id="Process_Generic" isExecutable="false"><bpmn:laneSet id="LaneSet_Generic">
+<bpmn:lane id="Lane_1" name="Recepción"><bpmn:flowNodeRef>Start_Generic</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_1</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_2</bpmn:flowNodeRef></bpmn:lane>
+<bpmn:lane id="Lane_2" name="Análisis"><bpmn:flowNodeRef>Task_3</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_4</bpmn:flowNodeRef></bpmn:lane>
+<bpmn:lane id="Lane_3" name="Registro"><bpmn:flowNodeRef>Task_5</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_6</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_7</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_8</bpmn:flowNodeRef><bpmn:flowNodeRef>Task_9</bpmn:flowNodeRef><bpmn:flowNodeRef>End_Generic</bpmn:flowNodeRef></bpmn:lane>
+</bpmn:laneSet>
+<bpmn:startEvent id="Start_Generic" name="Inicio">
+<bpmn:outgoing>Flow_1</bpmn:outgoing>
+</bpmn:startEvent>
+<bpmn:userTask id="Task_1" name="Recibir solicitud"><bpmn:documentation>Actividad ficticia para evaluar composición.</bpmn:documentation>
+<bpmn:incoming>Flow_1</bpmn:incoming>
+<bpmn:outgoing>Flow_2</bpmn:outgoing>
+<bpmn:ioSpecification id="IO_Task_1"><bpmn:dataOutput id="Output_Data_1" /><bpmn:inputSet id="InputSet_Task_1"></bpmn:inputSet><bpmn:outputSet id="OutputSet_Task_1"><bpmn:dataOutputRefs>Output_Data_1</bpmn:dataOutputRefs></bpmn:outputSet></bpmn:ioSpecification>
+<bpmn:dataOutputAssociation id="Data_1"><bpmn:sourceRef>Output_Data_1</bpmn:sourceRef><bpmn:targetRef>Doc_1</bpmn:targetRef></bpmn:dataOutputAssociation>
+</bpmn:userTask>
+<bpmn:userTask id="Task_2" name="Revisar datos"><bpmn:documentation>Actividad ficticia para evaluar composición.</bpmn:documentation>
+<bpmn:incoming>Flow_2</bpmn:incoming>
+<bpmn:outgoing>Flow_3</bpmn:outgoing>
+<bpmn:ioSpecification id="IO_Task_2"><bpmn:dataInput id="Input_Data_2" /><bpmn:inputSet id="InputSet_Task_2"><bpmn:dataInputRefs>Input_Data_2</bpmn:dataInputRefs></bpmn:inputSet><bpmn:outputSet id="OutputSet_Task_2"></bpmn:outputSet></bpmn:ioSpecification>
+<bpmn:dataInputAssociation id="Data_2"><bpmn:sourceRef>Doc_1</bpmn:sourceRef><bpmn:targetRef>Input_Data_2</bpmn:targetRef></bpmn:dataInputAssociation>
+</bpmn:userTask>
+<bpmn:userTask id="Task_3" name="Consultar catálogo"><bpmn:documentation>Consulta de solo lectura; no persiste datos.</bpmn:documentation>
+<bpmn:incoming>Flow_3</bpmn:incoming>
+<bpmn:outgoing>Flow_4</bpmn:outgoing>
+</bpmn:userTask>
+<bpmn:userTask id="Task_4" name="Seleccionar alternativa"><bpmn:documentation>La alternativa seleccionada es un dato temporal.</bpmn:documentation>
+<bpmn:incoming>Flow_4</bpmn:incoming>
+<bpmn:outgoing>Flow_5</bpmn:outgoing>
+<bpmn:ioSpecification id="IO_Task_4"><bpmn:dataOutput id="Output_Data_3" /><bpmn:inputSet id="InputSet_Task_4"></bpmn:inputSet><bpmn:outputSet id="OutputSet_Task_4"><bpmn:dataOutputRefs>Output_Data_3</bpmn:dataOutputRefs></bpmn:outputSet></bpmn:ioSpecification>
+<bpmn:dataOutputAssociation id="Data_3"><bpmn:sourceRef>Output_Data_3</bpmn:sourceRef><bpmn:targetRef>Doc_2</bpmn:targetRef></bpmn:dataOutputAssociation>
+</bpmn:userTask>
+<bpmn:userTask id="Task_5" name="Preparar registro"><bpmn:documentation>Actividad ficticia para evaluar composición.</bpmn:documentation>
+<bpmn:incoming>Flow_5</bpmn:incoming>
+<bpmn:outgoing>Flow_6</bpmn:outgoing>
+</bpmn:userTask>
+<bpmn:userTask id="Task_6" name="Registrar resultado"><bpmn:documentation>Persiste el registro en el sistema de ejemplo.</bpmn:documentation>
+<bpmn:incoming>Flow_6</bpmn:incoming>
+<bpmn:outgoing>Flow_7</bpmn:outgoing>
+<bpmn:ioSpecification id="IO_Task_6"><bpmn:dataOutput id="Output_Data_4" /><bpmn:inputSet id="InputSet_Task_6"></bpmn:inputSet><bpmn:outputSet id="OutputSet_Task_6"><bpmn:dataOutputRefs>Output_Data_4</bpmn:dataOutputRefs></bpmn:outputSet></bpmn:ioSpecification>
+<bpmn:dataOutputAssociation id="Data_4"><bpmn:sourceRef>Output_Data_4</bpmn:sourceRef><bpmn:targetRef>Doc_3</bpmn:targetRef></bpmn:dataOutputAssociation>
+</bpmn:userTask>
+<bpmn:userTask id="Task_7" name="Verificar registro"><bpmn:documentation>Actividad ficticia para evaluar composición.</bpmn:documentation>
+<bpmn:incoming>Flow_7</bpmn:incoming>
+<bpmn:outgoing>Flow_8</bpmn:outgoing>
+<bpmn:ioSpecification id="IO_Task_7"><bpmn:dataInput id="Input_Data_5" /><bpmn:inputSet id="InputSet_Task_7"><bpmn:dataInputRefs>Input_Data_5</bpmn:dataInputRefs></bpmn:inputSet><bpmn:outputSet id="OutputSet_Task_7"></bpmn:outputSet></bpmn:ioSpecification>
+<bpmn:dataInputAssociation id="Data_5"><bpmn:sourceRef>Doc_3</bpmn:sourceRef><bpmn:targetRef>Input_Data_5</bpmn:targetRef></bpmn:dataInputAssociation>
+</bpmn:userTask>
+<bpmn:userTask id="Task_8" name="Notificar resultado"><bpmn:documentation>Actividad ficticia para evaluar composición.</bpmn:documentation>
+<bpmn:incoming>Flow_8</bpmn:incoming>
+<bpmn:outgoing>Flow_9</bpmn:outgoing>
+</bpmn:userTask>
+<bpmn:userTask id="Task_9" name="Archivar constancia"><bpmn:documentation>Actividad ficticia para evaluar composición.</bpmn:documentation>
+<bpmn:incoming>Flow_9</bpmn:incoming>
+<bpmn:outgoing>Flow_10</bpmn:outgoing>
+<bpmn:ioSpecification id="IO_Task_9"><bpmn:dataOutput id="Output_Data_6" /><bpmn:inputSet id="InputSet_Task_9"></bpmn:inputSet><bpmn:outputSet id="OutputSet_Task_9"><bpmn:dataOutputRefs>Output_Data_6</bpmn:dataOutputRefs></bpmn:outputSet></bpmn:ioSpecification>
+<bpmn:dataOutputAssociation id="Data_6"><bpmn:sourceRef>Output_Data_6</bpmn:sourceRef><bpmn:targetRef>Doc_4</bpmn:targetRef></bpmn:dataOutputAssociation>
+</bpmn:userTask>
+<bpmn:endEvent id="End_Generic" name="Fin">
+<bpmn:incoming>Flow_10</bpmn:incoming>
+</bpmn:endEvent>
+<bpmn:dataObject id="Object_Doc_1" /><bpmn:dataObjectReference id="Doc_1" name="Solicitud" dataObjectRef="Object_Doc_1"><bpmn:documentation>Documento de entrada recibido.</bpmn:documentation></bpmn:dataObjectReference>
+<bpmn:dataObject id="Object_Doc_2" /><bpmn:dataObjectReference id="Doc_2" name="Selección temporal" dataObjectRef="Object_Doc_2"><bpmn:documentation>Dato de trabajo; la selección no crea un archivo ni guarda un registro.</bpmn:documentation></bpmn:dataObjectReference>
+<bpmn:dataObject id="Object_Doc_3" /><bpmn:dataObjectReference id="Doc_3" name="Registro guardado" dataObjectRef="Object_Doc_3"><bpmn:documentation>Registro persistido únicamente por Registrar resultado.</bpmn:documentation></bpmn:dataObjectReference>
+<bpmn:dataObject id="Object_Doc_4" /><bpmn:dataObjectReference id="Doc_4" name="Constancia" dataObjectRef="Object_Doc_4"><bpmn:documentation>Constancia de archivo del ejemplo.</bpmn:documentation></bpmn:dataObjectReference>
+<bpmn:sequenceFlow id="Flow_1" sourceRef="Start_Generic" targetRef="Task_1" />
+<bpmn:sequenceFlow id="Flow_2" sourceRef="Task_1" targetRef="Task_2" />
+<bpmn:sequenceFlow id="Flow_3" sourceRef="Task_2" targetRef="Task_3" />
+<bpmn:sequenceFlow id="Flow_4" sourceRef="Task_3" targetRef="Task_4" />
+<bpmn:sequenceFlow id="Flow_5" sourceRef="Task_4" targetRef="Task_5" />
+<bpmn:sequenceFlow id="Flow_6" sourceRef="Task_5" targetRef="Task_6" />
+<bpmn:sequenceFlow id="Flow_7" sourceRef="Task_6" targetRef="Task_7" />
+<bpmn:sequenceFlow id="Flow_8" sourceRef="Task_7" targetRef="Task_8" />
+<bpmn:sequenceFlow id="Flow_9" sourceRef="Task_8" targetRef="Task_9" />
+<bpmn:sequenceFlow id="Flow_10" sourceRef="Task_9" targetRef="End_Generic" />
+</bpmn:process><bpmndi:BPMNDiagram id="Diagram_Generic"><bpmndi:BPMNPlane id="Plane_Generic" bpmnElement="Collaboration_Generic">
+<bpmndi:BPMNShape id="DI_Pool_Generic" bpmnElement="Pool_Generic" isHorizontal="true"><dc:Bounds x="80" y="100" width="906" height="1280" /></bpmndi:BPMNShape>
+<bpmndi:BPMNShape id="DI_Lane_1" bpmnElement="Lane_1"><dc:Bounds x="110" y="100" width="876" height="320" /></bpmndi:BPMNShape>
+<bpmndi:BPMNShape id="DI_Lane_2" bpmnElement="Lane_2"><dc:Bounds x="110" y="420" width="876" height="320" /></bpmndi:BPMNShape>
+<bpmndi:BPMNShape id="DI_Lane_3" bpmnElement="Lane_3"><dc:Bounds x="110" y="740" width="876" height="640" /></bpmndi:BPMNShape>
+<bpmndi:BPMNShape id="DI_Start_Generic" bpmnElement="Start_Generic"><dc:Bounds x="172" y="202" width="36" height="36" /><bpmndi:BPMNLabel labelStyle="LabelStyle_Document"><dc:Bounds x="165" y="250" width="50" height="20" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+<bpmndi:BPMNShape id="DI_Task_1" bpmnElement="Task_1"><dc:Bounds x="270" y="170" width="260" height="100" /><bpmndi:BPMNLabel labelStyle="LabelStyle_Activity" /></bpmndi:BPMNShape>
+<bpmndi:BPMNShape id="DI_Task_2" bpmnElement="Task_2"><dc:Bounds x="590" y="170" width="260" height="100" /><bpmndi:BPMNLabel labelStyle="LabelStyle_Activity" /></bpmndi:BPMNShape>
+<bpmndi:BPMNShape id="DI_Task_3" bpmnElement="Task_3"><dc:Bounds x="590" y="490" width="260" height="100" /><bpmndi:BPMNLabel labelStyle="LabelStyle_Activity" /></bpmndi:BPMNShape>
+<bpmndi:BPMNShape id="DI_Task_4" bpmnElement="Task_4"><dc:Bounds x="270" y="490" width="260" height="100" /><bpmndi:BPMNLabel labelStyle="LabelStyle_Activity" /></bpmndi:BPMNShape>
+<bpmndi:BPMNShape id="DI_Task_5" bpmnElement="Task_5"><dc:Bounds x="270" y="790" width="260" height="100" /><bpmndi:BPMNLabel labelStyle="LabelStyle_Activity" /></bpmndi:BPMNShape>
+<bpmndi:BPMNShape id="DI_Task_6" bpmnElement="Task_6"><dc:Bounds x="590" y="790" width="260" height="100" /><bpmndi:BPMNLabel labelStyle="LabelStyle_Activity" /></bpmndi:BPMNShape>
+<bpmndi:BPMNShape id="DI_Task_7" bpmnElement="Task_7"><dc:Bounds x="590" y="970" width="260" height="100" /><bpmndi:BPMNLabel labelStyle="LabelStyle_Activity" /></bpmndi:BPMNShape>
+<bpmndi:BPMNShape id="DI_Task_8" bpmnElement="Task_8"><dc:Bounds x="270" y="970" width="260" height="100" /><bpmndi:BPMNLabel labelStyle="LabelStyle_Activity" /></bpmndi:BPMNShape>
+<bpmndi:BPMNShape id="DI_Task_9" bpmnElement="Task_9"><dc:Bounds x="270" y="1150" width="260" height="100" /><bpmndi:BPMNLabel labelStyle="LabelStyle_Activity" /></bpmndi:BPMNShape>
+<bpmndi:BPMNShape id="DI_End_Generic" bpmnElement="End_Generic"><dc:Bounds x="900" y="1182" width="36" height="36" /><bpmndi:BPMNLabel labelStyle="LabelStyle_Document"><dc:Bounds x="893" y="1232" width="50" height="20" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+<bpmndi:BPMNShape id="DI_Doc_1" bpmnElement="Doc_1"><dc:Bounds x="382" y="325" width="36" height="50" /><bpmndi:BPMNLabel labelStyle="LabelStyle_Document"><dc:Bounds x="320" y="385" width="160" height="34" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+<bpmndi:BPMNShape id="DI_Doc_2" bpmnElement="Doc_2"><dc:Bounds x="382" y="635" width="36" height="50" /><bpmndi:BPMNLabel labelStyle="LabelStyle_Document"><dc:Bounds x="320" y="695" width="160" height="34" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+<bpmndi:BPMNShape id="DI_Doc_3" bpmnElement="Doc_3"><dc:Bounds x="882" y="890" width="36" height="50" /><bpmndi:BPMNLabel labelStyle="LabelStyle_Document"><dc:Bounds x="750" y="900" width="120" height="34" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+<bpmndi:BPMNShape id="DI_Doc_4" bpmnElement="Doc_4"><dc:Bounds x="382" y="1280" width="36" height="50" /><bpmndi:BPMNLabel labelStyle="LabelStyle_Document"><dc:Bounds x="320" y="1340" width="160" height="34" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+<bpmndi:BPMNEdge id="DI_Flow_1" bpmnElement="Flow_1"><di:waypoint x="208" y="220" /><di:waypoint x="270" y="220" /></bpmndi:BPMNEdge>
+<bpmndi:BPMNEdge id="DI_Flow_2" bpmnElement="Flow_2"><di:waypoint x="530" y="220" /><di:waypoint x="590" y="220" /></bpmndi:BPMNEdge>
+<bpmndi:BPMNEdge id="DI_Flow_3" bpmnElement="Flow_3"><di:waypoint x="780" y="270" /><di:waypoint x="780" y="490" /></bpmndi:BPMNEdge>
+<bpmndi:BPMNEdge id="DI_Flow_4" bpmnElement="Flow_4"><di:waypoint x="590" y="540" /><di:waypoint x="530" y="540" /></bpmndi:BPMNEdge>
+<bpmndi:BPMNEdge id="DI_Flow_5" bpmnElement="Flow_5"><di:waypoint x="300" y="590" /><di:waypoint x="300" y="790" /></bpmndi:BPMNEdge>
+<bpmndi:BPMNEdge id="DI_Flow_6" bpmnElement="Flow_6"><di:waypoint x="530" y="840" /><di:waypoint x="590" y="840" /></bpmndi:BPMNEdge>
+<bpmndi:BPMNEdge id="DI_Flow_7" bpmnElement="Flow_7"><di:waypoint x="720" y="890" /><di:waypoint x="720" y="970" /></bpmndi:BPMNEdge>
+<bpmndi:BPMNEdge id="DI_Flow_8" bpmnElement="Flow_8"><di:waypoint x="590" y="1020" /><di:waypoint x="530" y="1020" /></bpmndi:BPMNEdge>
+<bpmndi:BPMNEdge id="DI_Flow_9" bpmnElement="Flow_9"><di:waypoint x="400" y="1070" /><di:waypoint x="400" y="1150" /></bpmndi:BPMNEdge>
+<bpmndi:BPMNEdge id="DI_Flow_10" bpmnElement="Flow_10"><di:waypoint x="530" y="1200" /><di:waypoint x="900" y="1200" /></bpmndi:BPMNEdge>
+<bpmndi:BPMNEdge id="DI_Data_1" bpmnElement="Data_1"><di:waypoint x="400" y="270" /><di:waypoint x="400" y="325" /></bpmndi:BPMNEdge>
+<bpmndi:BPMNEdge id="DI_Data_2" bpmnElement="Data_2"><di:waypoint x="418" y="350" /><di:waypoint x="655" y="350" /><di:waypoint x="655" y="270" /></bpmndi:BPMNEdge>
+<bpmndi:BPMNEdge id="DI_Data_3" bpmnElement="Data_3"><di:waypoint x="400" y="590" /><di:waypoint x="400" y="635" /></bpmndi:BPMNEdge>
+<bpmndi:BPMNEdge id="DI_Data_4" bpmnElement="Data_4"><di:waypoint x="850" y="840" /><di:waypoint x="900" y="840" /><di:waypoint x="900" y="890" /></bpmndi:BPMNEdge>
+<bpmndi:BPMNEdge id="DI_Data_5" bpmnElement="Data_5"><di:waypoint x="900" y="940" /><di:waypoint x="900" y="1020" /><di:waypoint x="850" y="1020" /></bpmndi:BPMNEdge>
+<bpmndi:BPMNEdge id="DI_Data_6" bpmnElement="Data_6"><di:waypoint x="400" y="1250" /><di:waypoint x="400" y="1280" /></bpmndi:BPMNEdge>
+</bpmndi:BPMNPlane><bpmndi:BPMNLabelStyle id="LabelStyle_Activity"><dc:Font name="Arial" size="16" /></bpmndi:BPMNLabelStyle><bpmndi:BPMNLabelStyle id="LabelStyle_Document"><dc:Font name="Arial" size="14" /></bpmndi:BPMNLabelStyle></bpmndi:BPMNDiagram></bpmn:definitions>
