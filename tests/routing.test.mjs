@@ -1,10 +1,26 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {routeOrthogonal,anchorPoint,routeMetrics,simplifyOrthogonal} from '../plugins/narabizagui/shared/routing.mjs';
+import vm from 'node:vm';
+import {readFile} from 'node:fs/promises';
+const context={window:{NaraModelAudit:{simplifyOrthogonal}}};vm.runInNewContext(await readFile(new URL('../editor-visual.js',import.meta.url),'utf8'),context);
+const orthogonalizeWaypoints=(...args)=>JSON.parse(JSON.stringify(context.window.NaraVisual.orthogonalizeWaypoints(...args)));
 import {lineHitsBox} from '../plugins/narabizagui/shared/geometry.mjs';
 const source={id:'Task',type:'bpmn:Task',x:200,y:180,width:100,height:80},target={id:'Document',type:'bpmn:DataObjectReference',x:480,y:390,width:36,height:50};
 const flow={id:'Output',type:'bpmn:Association',sourceId:source.id,targetId:target.id,waypoints:[{x:300,y:220},{x:310,y:220},{x:310,y:250},{x:400,y:250},{x:400,y:415},{x:480,y:415}]};
 const snapshot=(extra=[])=>({elements:[structuredClone(source),structuredClone(target),structuredClone(flow),...extra]});
+
+test('dragged corners keep their position and endpoints while removing every diagonal',()=>{
+ const points=[{x:300,y:220},{x:330,y:220},{x:370,y:180},{x:480,y:170},{x:480,y:200}],before=structuredClone(points);
+ const result=orthogonalizeWaypoints(points,{sourceSide:'right',targetSide:'top'});
+ assert.ok(routeMetrics(result).orthogonal);assert.deepEqual(result[0],points[0]);assert.deepEqual(result.at(-1),points.at(-1));assert.ok(result.slice(1).some((p,i)=>Math.min(p.x,result[i].x)<=370&&Math.max(p.x,result[i].x)>=370&&Math.min(p.y,result[i].y)<=180&&Math.max(p.y,result[i].y)>=180));assert.deepEqual(points,before);
+});
+test('two offset endpoints keep horizontal or vertical docking with square elbows',()=>{
+ for(const [sourceSide,targetSide]of [['right','left'],['bottom','top']]){
+  const points=[{x:100,y:100},{x:260,y:190}],result=orthogonalizeWaypoints(points,{sourceSide,targetSide});assert.ok(routeMetrics(result).orthogonal);assert.equal(result.length,4);
+  const horizontal=sourceSide==='right';assert.equal(horizontal?result[0].y:result[0].x,horizontal?result[1].y:result[1].x);assert.deepEqual(result.at(-1),points.at(-1));
+ }
+});
 test('output to a document below/right is a simple L with fixed sides and no short hook',()=>{
  const before=snapshot(),copy=structuredClone(before),result=routeOrthogonal(before,{elementId:'Output',sourceSide:'bottom',targetSide:'left'});
  assert.deepEqual(result.waypoints,[{x:250,y:260},{x:250,y:415},{x:480,y:415}]);assert.equal(result.metrics.bends,1);assert.equal(result.metrics.shortLegs,0);assert.deepEqual(before,copy);

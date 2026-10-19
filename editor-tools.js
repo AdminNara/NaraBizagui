@@ -1,5 +1,13 @@
 'use strict';
 (() => {
+  function directionalTarget(source,direction,targets,allowed,isActive=()=>true){
+    const vertical=['top','bottom'].includes(direction),positive=['right','bottom'].includes(direction),main=vertical?'y':'x',cross=vertical?'x':'y',size=vertical?'height':'width',breadth=vertical?'width':'height';
+    const origin=source[main]+(positive?source[size]:0),center=source[cross]+source[breadth]/2;
+    return targets.filter(target=>target!==source&&!target.waypoints&&!target.labelTarget&&!['label','bpmn:Lane','bpmn:Group','bpmn:Process','bpmn:Collaboration'].includes(target.type)&&isActive(target))
+      .map(target=>({target,gap:positive?target[main]-origin:origin-target[main]-target[size],offset:Math.max(target[cross]-center,center-target[cross]-target[breadth],0)}))
+      .filter(({target,gap,offset})=>gap>=0&&gap<=300&&offset<=100&&!source.outgoing?.some(flow=>flow.target===target)&&allowed(source,target))
+      .sort((a,b)=>Math.hypot(a.gap,a.offset)-Math.hypot(b.gap,b.offset)||a.target.id.localeCompare(b.target.id))[0]?.target;
+  }
   const svg = content => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${content}</svg>`;
   window.NaraPaletteIcons = Object.freeze({
     Excel: svg('<path d="M9 3h12l6 6v20H9zM21 3v7h6"/><rect x="3" y="11" width="13" height="14" rx="1"/><path d="m6 15 7 7m0-7-7 7M19 15h5m-5 5h5m-5 5h5"/>'),
@@ -90,20 +98,33 @@
       return { x: middle.x + v[0] * source.width / 2, y: middle.y + v[1] * source.height / 2 };
     }
     function nearest(source, direction) {
-      const origin = midpoint(source), v = vectors[direction];
-      return elementRegistry.getAll().filter(target => {
-        if (target === source || target.waypoints || target.type === 'label' || canvas.findRoot(target) !== canvas.getRootElement()) return false;
-        if (source.outgoing?.some(flow => flow.target === target)) return false;
-        const p = midpoint(target), dx = p.x - origin.x, dy = p.y - origin.y;
-        return dx * v[0] + dy * v[1] > 0 && Math.hypot(dx, dy) < 360 && Math.abs(dx * v[1] - dy * v[0]) < 150 && rules.allowed('connection.create', { source, target });
-      }).sort((a,b) => Math.hypot(midpoint(a).x-origin.x,midpoint(a).y-origin.y) - Math.hypot(midpoint(b).x-origin.x,midpoint(b).y-origin.y))[0];
+      return directionalTarget(source,direction,elementRegistry.getAll(),(source,target)=>rules.allowed('connection.create',{source,target}),target=>canvas.findRoot(target)===canvas.getRootElement());
     }
+    function connectExisting(source,target,direction){
+      if(window.NaraPropertyDraftPending?.())throw Error('Aplica o descarta el texto pendiente en Propiedades.');
+      if(!source.outgoing?.some(flow=>flow.target===target))modeling.connect(source,target,undefined,{connectionStart:docking(source,direction)});
+      selection.select(target);hide();
+    }
+    // A quick-shape drop on a node connects it; empty-space drops stay native.
+    const existingDrop=event=>{
+      const c=event.context,target=(event.hover||c.target)?.labelTarget||(event.hover||c.target);
+      return c.naraQuickDirection&&target&&target!==c.source&&!target.waypoints&&rules.allowed('connection.create',{source:c.source,target})?target:null;
+    };
+    eventBus.on(['create.move','create.hover'],750,event=>{
+      const target=existingDrop(event);if(!target)return;
+      event.context.target=target;event.context.canExecute=true;
+      for(const marker of ['drop-not-ok','attach-ok','new-parent'])canvas.removeMarker(target,marker);
+      canvas.addMarker(target,'drop-ok');
+    });
+    eventBus.on('create.end',1500,event=>{
+      const target=existingDrop(event);if(!target)return;
+      canvas.removeMarker(target,'drop-ok');safe(()=>connectExisting(event.context.source,target,event.context.naraQuickDirection));return true;
+    });
     function append(source, id, direction, preferExisting) {
       if (window.NaraPropertyDraftPending?.()) return report('Aplica o descarta el texto pendiente en Propiedades.');
       const target = preferExisting && nearest(source, direction);
       if (target) {
-        modeling.connect(source, target, undefined, { connectionStart: docking(source, direction) });
-        selection.select(target); hide(); return;
+        connectExisting(source,target,direction);return;
       }
       const shape = elementFactory.createShape({ type: shapes[id][0] }), v = vectors[direction], center = midpoint(source);
       const distance = (v[0] ? (source.width + shape.width) / 2 : (source.height + shape.height) / 2) + 65;
@@ -115,7 +136,7 @@
     }
     // Wait for a small movement before starting a native drag. A double click can
     // then reuse a nearby BPMN node without creating two accidental shapes.
-    function gesture(button, start, click, doubleClick) {
+    function gesture(button, start, click, doubleClick,waitForDouble=true) {
       button.addEventListener('mousedown', down => {
         if (down.button !== 0) return;
         down.preventDefault(); down.stopPropagation();
@@ -129,7 +150,7 @@
       });
       button.onclick = event => {
         event.stopPropagation(); if (Date.now() < suppressClickUntil) return;
-        clearTimeout(clickTimer); clickTimer = setTimeout(() => safe(() => click(event)), 260);
+        clearTimeout(clickTimer);if(waitForDouble)clickTimer = setTimeout(() => safe(() => click(event)), 260);else safe(()=>click(event));
       };
       button.ondblclick = event => { event.preventDefault(); event.stopPropagation(); clearTimeout(clickTimer); safe(() => doubleClick(event)); };
     }
@@ -158,8 +179,8 @@
       layer.classList.toggle('connection-tools', !!element.waypoints);
       if (element.waypoints) {
         const panel = document.createElement('div'); panel.className = 'nara-quick-options';
-        const straight = button('Línea directa', 'nara-line-direct', '╱');
-        straight.onclick = () => safe(() => { naraVisual.manualRoute(element,[element.waypoints[0], element.waypoints.at(-1)]); hide(); });
+        const straight = button('Recorrido sencillo sin diagonales', 'nara-line-direct', '─');
+        straight.onclick = () => safe(() => { naraVisual.orthogonal(element,{preserveSides:true}); hide(); });
         const elbow = button('Línea en ángulo', 'nara-line-elbow', '┐');
         elbow.onclick = () => safe(() => { naraVisual.orthogonal(element,{preserveSides:true}); hide(); });
         const type = button('Cambiar tipo de conexión', 'bpmn-icon-connection-multi');
@@ -209,10 +230,11 @@
         const available = Object.keys(shapes).filter(id => entries[id]);
         if (available.length) {
           for (const direction of Object.keys(vectors)) {
-            const arrow = button('Conectar hacia ' + names[direction] + ' · arrastra o haz doble clic', 'nara-direction-arrow nara-arrow-' + direction, '➜');
+            const arrow = button('Conectar hacia ' + names[direction] + ' · clic al objeto cercano o arrastra', 'nara-direction-arrow nara-arrow-' + direction, '➜');
             arrow.dataset.direction = direction;
             arrow.onmouseenter = () => setSide(direction); arrow.onfocus = () => setSide(direction);
-            gesture(arrow, event => connect.start(event, element, docking(element,direction), true), event => { connect.start(event,element,docking(element,direction),true); hide(); }, () => append(element,available[0],direction,true));
+            const click=event=>{const target=nearest(element,direction);if(target)connectExisting(element,target,direction);else{connect.start(event,element,docking(element,direction),true);hide();}};
+            gesture(arrow, event => connect.start(event, element, docking(element,direction), true), click, ()=>{},false);
             layer.appendChild(arrow);
           }
           const panel = document.createElement('div'); panel.className = 'nara-quick-options'; panel.setAttribute('aria-label','Añadir y conectar');
@@ -220,7 +242,7 @@
             const quick = button(shapes[id][1] + ' · arrastra para colocar; doble clic para conectar cerca', 'nara-quick-shape ' + entries[id].className);
             quick.dataset.append = id;
             const preview = document.createElement('span'); preview.className = 'nara-shape-preview ' + entries[id].className; preview.setAttribute('aria-hidden','true'); quick.appendChild(preview);
-            gesture(quick, event => create.start(event, elementFactory.createShape({ type: shapes[id][0] }), { source: element }), () => append(element,id,side,false), () => append(element,id,side,true));
+            gesture(quick, event => create.start(event, elementFactory.createShape({ type: shapes[id][0] }), { source: element,naraQuickDirection:side }), () => append(element,id,side,false), () => append(element,id,side,true));
             panel.appendChild(quick);
           }
           layer.appendChild(panel);
@@ -265,5 +287,6 @@
     popupMenu.registerProvider('nara-actions', this);
   }
   DirectionTools.$inject = ['contextPad','popupMenu','eventBus','canvas','elementRegistry','elementFactory','modeling','rules','connect','create','dragging','selection','naraVisual'];
+  window.NaraConnectionTools={directionalTarget};
   window.NaraEditorTools = { __init__: ['naraDocumentSymbols','naraDirectionTools'], naraDocumentSymbols: ['type',DocumentSymbols], naraDirectionTools: ['type', DirectionTools] };
 })();
