@@ -16,7 +16,9 @@ python -m http.server 8766 --bind 127.0.0.1
 
 Abrir `http://127.0.0.1:8766/`. No hay servidor de documentos ni base de datos.
 
-## Versión 0.11.0
+## Versión 0.11.1
+
+- Las rutas automáticas cruzan los separadores de carril perpendicularmente y reservan al menos 16 px para tramos paralelos y codos. Los recorridos manuales se conservan; `quality` informa `ROUTE_LANE_BORDER_CLEARANCE` y propone un recálculo local que mantiene los anclajes.
 
 - Rutas adaptativas al mover actividades y recálculo local explícito, conservando los trazados manuales.
 - Plugin 0.10.0 con criterios de composición proporcionada y ejemplos genéricos antes/después.

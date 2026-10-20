@@ -1,9 +1,12 @@
 import {boxesOverlap,lineHitsBox,segments,segmentAlongBox} from './geometry.mjs';
-import {routeMetrics,simplifyOrthogonal,anchorPoint,routeOrthogonal} from './routing.mjs';
+import {routeMetrics,simplifyOrthogonal,anchorPoint,anchorPolicy,routeOrthogonal} from './routing.mjs';
+import {laneBoundaries,laneRouteConflicts} from './lane-routing.mjs';
 const activity=e=>/Task$/.test(e.type)||e.type==='bpmn:CallActivity'||e.type==='bpmn:SubProcess'&&e.expanded!==true;
 export function reviewVisualQuality(snapshot,{elementIds,maxIssues=200}={}){
   const elements=snapshot.elements||[],index=new Map(elements.map(e=>[e.id,e])),scope=elementIds?new Set(elementIds):null,issues=[];let total=0;
+  const borders=laneBoundaries(snapshot);
   if(scope)for(const e of elements)if(e.waypoints&&(scope.has(e.sourceId)||scope.has(e.targetId)))scope.add(e.id);
+  if(scope)for(const e of elements)if(e.waypoints?.length>1&&!scope.has(e.id)&&laneRouteConflicts(e.waypoints,borders.filter(b=>b.laneIds.some(id=>scope.has(id)))).length)scope.add(e.id);
   const add=(code,ids,message,details={})=>{if(scope&&!ids.some(id=>scope.has(id)))return;total++;if(issues.length<maxIssues)issues.push({code,severity:'warning',elementIds:ids,message,...details});};
   const affected=e=>!scope||scope.has(e.id),missingText=[];
   for(const e of elements){
@@ -16,6 +19,10 @@ export function reviewVisualQuality(snapshot,{elementIds,maxIssues=200}={}){
       if(!metrics.orthogonal)add('ROUTE_DIAGONAL',[e.id],'La conexión contiene un tramo diagonal.');
       if(simple.length<e.waypoints.length)add('ROUTE_REDUNDANT_POINTS',[e.id],'El recorrido conserva puntos colineales o repetidos que se pueden eliminar.');
       if(metrics.reversals)add('ROUTE_REVERSAL',[e.id],'La conexión avanza y retrocede inmediatamente sobre el mismo tramo.',{metrics});
+      for(const conflict of laneRouteConflicts(e.waypoints,borders)){
+        const operation={type:'route_orthogonal',elementId:e.id};for(const end of ['source','target']){operation[end+'Side']=anchorPolicy(e.routing,end)==='auto'?'auto':e.routing?.[end]?.side||'auto';if(e.routing?.[end]?.offset!==undefined)operation[end+'Offset']=e.routing[end].offset;}
+        add('ROUTE_LANE_BORDER_CLEARANCE',[e.id,...conflict.laneIds],'Un tramo paralelo o un codo está demasiado cerca del separador entre carriles. Reserva un corredor interior; el cruce perpendicular está permitido.',{...conflict,preservesManualRoute:true,suggestedOperation:operation});
+      }
       if(metrics.shortLegs&&metrics.bends)add('ROUTE_SHORT_LEG',[e.id],'La conexión tiene un tramo corto junto a un quiebre.',{metrics});
       if(metrics.length>minimum*2.5&&metrics.length-minimum>200)add('ROUTE_DETOUR',[e.id],'La conexión hace un rodeo largo; evitar cruces no basta para considerarla una buena ruta.',{metrics,minimum});
       for(const shape of [index.get(e.sourceId),index.get(e.targetId)].filter(Boolean)){

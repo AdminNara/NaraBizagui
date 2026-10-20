@@ -1,4 +1,5 @@
 import {same,pointEqual,lineHitsBox,segmentContact,boxesOverlap,segments,segmentAlongBox} from './geometry.mjs';
+import {laneBoundaries,segmentNearLaneBorder,pointNearLaneBorder,LANE_BORDER_CLEARANCE} from './lane-routing.mjs';
 
 export const SIDES=['top','right','bottom','left'];
 const vectors={top:[0,-1],right:[1,0],bottom:[0,1],left:[-1,0]};
@@ -70,6 +71,7 @@ export function routeOrthogonal(snapshot,options){
   const sourceOffset=options.sourceOffset??saved.source?.offset??.5,targetOffset=options.targetOffset??saved.target?.offset??.5,clearance=options.clearance??10;
   if(!Number.isFinite(clearance)||clearance<2||clearance>40)throw fail('INVALID_ROUTE','La separación debe estar entre 2 y 40.');
   const area={x:Math.min(source.x,target.x)-100,y:Math.min(source.y,target.y)-100,width:Math.max(source.x+source.width,target.x+target.width)-Math.min(source.x,target.x)+200,height:Math.max(source.y+source.height,target.y+target.height)-Math.min(source.y,target.y)+200};
+  const laneClearance=Math.max(LANE_BORDER_CLEARANCE,clearance),borders=laneBoundaries(snapshot).filter(b=>b.axis==='y'?b.value>=area.y-laneClearance&&b.value<=area.y+area.height+laneClearance&&b.from<=area.x+area.width&&b.to>=area.x:b.value>=area.x-laneClearance&&b.value<=area.x+area.width+laneClearance&&b.from<=area.y+area.height&&b.to>=area.y);
   const scope=index.get(connection.flowScopeId),insideScope=scope?.type==='bpmn:SubProcess'&&scope.id!==source.id&&scope.id!==target.id;
   const inBounds=p=>(!insideScope||p.x>=scope.x+4&&p.x<=scope.x+scope.width-4&&p.y>=scope.y+28&&p.y<=scope.y+scope.height-4);
   const ancestors=new Set();for(const node of [source,target])for(let p=index.get(node.parentId);p&&!ancestors.has(p.id);p=index.get(p.parentId))ancestors.add(p.id);
@@ -85,7 +87,7 @@ export function routeOrthogonal(snapshot,options){
   }
   const others=elements.filter(e=>e.id!==connection.id&&e.waypoints?.length>1);
   const segmentCost=(a,b)=>{
-    if(!axis(a,b)||!inBounds(a)||!inBounds(b)||obstacles.some(box=>lineHitsBox(a,b,box)||box.own&&segmentAlongBox(a,b,box)))return Infinity;
+    if(!axis(a,b)||!inBounds(a)||!inBounds(b)||obstacles.some(box=>lineHitsBox(a,b,box)||box.own&&segmentAlongBox(a,b,box))||borders.some(border=>segmentNearLaneBorder(a,b,border,laneClearance)))return Infinity;
     let penalty=0;
     for(const other of others){let crossing=false,overlap=false;for(const [c,d]of segments(other)){const contact=segmentContact(a,b,c,d);if(!contact)continue;
       const shared=[connection.sourceId,connection.targetId].some(id=>[other.sourceId,other.targetId].includes(id));
@@ -103,6 +105,7 @@ export function routeOrthogonal(snapshot,options){
   }
   function consider(raw,pair){
     const points=simplifyOrthogonal(raw);if(points.length<2||routeMetrics(points).reversals||!normal(points[0],points[1],pair.ss)||!normal(points.at(-1),points.at(-2),pair.ts))return;
+    if(points.slice(1,-1).some(p=>borders.some(b=>pointNearLaneBorder(p,b,laneClearance))))return;
     let score=0;for(let i=1;i<points.length;i++){const cost=segmentCost(points[i-1],points[i]);if(!Number.isFinite(cost))return;score+=cost+Math.max(0,8-distance(points[i-1],points[i]))*8;}
     score+=(points.length-2)*22;
     if(!best||score<best.score-.01||same(score,best.score)&&points.length<best.points.length)best={points,score,pair};
@@ -115,8 +118,9 @@ export function routeOrthogonal(snapshot,options){
   // crossings trigger a bounded local visibility-grid search, not a global tour.
   const perfect=best&&best.score<=distance(best.pair.a,best.pair.b)+22+.01;
   if(!perfect&&obstacles.length<=90){
-    const xs=[...new Set([...pairs.flatMap(p=>[p.a.x,p.b.x,p.as.x,p.bs.x]),...obstacles.flatMap(b=>[b.x-(b.own?clearance:0),b.x+b.width+(b.own?clearance:0)]),area.x,area.x+area.width])].sort((a,b)=>a-b);
-    const ys=[...new Set([...pairs.flatMap(p=>[p.a.y,p.b.y,p.as.y,p.bs.y]),...obstacles.flatMap(b=>[b.y-(b.own?clearance:0),b.y+b.height+(b.own?clearance:0)]),area.y,area.y+area.height])].sort((a,b)=>a-b);
+    const rails=axis=>borders.flatMap(b=>b.axis===axis?[b.value-laneClearance,b.value+laneClearance]:[b.from-laneClearance,b.to+laneClearance]).filter(v=>v>=area[axis]&&v<=area[axis]+(axis==='x'?area.width:area.height));
+    const xs=[...new Set([...pairs.flatMap(p=>[p.a.x,p.b.x,p.as.x,p.bs.x]),...obstacles.flatMap(b=>[b.x-(b.own?clearance:0),b.x+b.width+(b.own?clearance:0)]),...rails('x'),area.x,area.x+area.width])].sort((a,b)=>a-b);
+    const ys=[...new Set([...pairs.flatMap(p=>[p.a.y,p.b.y,p.as.y,p.bs.y]),...obstacles.flatMap(b=>[b.y-(b.own?clearance:0),b.y+b.height+(b.own?clearance:0)]),...rails('y'),area.y,area.y+area.height])].sort((a,b)=>a-b);
     if(xs.length*ys.length<=18000){
       const point=i=>({x:xs[i%xs.length],y:ys[Math.floor(i/xs.length)]}),edgeCache=new Map();
       const cost=(i,j)=>{const key=i<j?i+':'+j:j+':'+i;if(!edgeCache.has(key))edgeCache.set(key,segmentCost(point(i),point(j)));return edgeCache.get(key);};
@@ -128,6 +132,7 @@ export function routeOrthogonal(snapshot,options){
           const x=current.node%xs.length,y=Math.floor(current.node/xs.length),a=point(current.node);
           for(const next of [x>0?current.node-1:-1,x+1<xs.length?current.node+1:-1,y>0?current.node-xs.length:-1,y+1<ys.length?current.node+xs.length:-1]){
             if(next<0)continue;const b=point(next),dir=same(a.y,b.y)?(b.x>a.x?1:2):(b.y>a.y?3:4);if(current.dir&&dir!==current.dir&&Math.ceil(dir/2)===Math.ceil(current.dir/2)||!current.dir&&!normal(a,b,pair.ss)||next===end&&!normal(b,a,pair.ts))continue;
+            if(current.dir&&current.dir!==dir&&borders.some(border=>pointNearLaneBorder(a,border,laneClearance)))continue;
             const edge=cost(current.node,next);if(!Number.isFinite(edge))continue;
             const value=current.cost+edge+(current.dir&&current.dir!==dir?22:0),nextKey=next*5+dir;
             if(value>=(dist.get(nextKey)??Infinity))continue;dist.set(nextKey,value);previous.set(nextKey,key);heap.push({node:next,dir,cost:value,score:value+distance(b,pair.b)});

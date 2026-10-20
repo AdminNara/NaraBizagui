@@ -10,6 +10,7 @@ import {reviewVisualQuality} from './quality.mjs';
 import {intentionalSharedContact} from './connection-editing.mjs';
 export {projectRoute,planReconnectPreview,planMovedRoutes,shareConnectionTail,shareConnectionPath,intentionalSharedContact} from './connection-editing.mjs';
 export {reviewVisualQuality} from './quality.mjs';
+export {LANE_BORDER_CLEARANCE,laneBoundaries,laneRouteConflicts} from './lane-routing.mjs';
 export function validateSnapshot(snapshot, { profile = 'review', geometry = true, maxIssues = 200 } = {}) {
   if (!['review', 'formal'].includes(profile)) throw Error('profile must be review or formal');
   const issues = [], seen = new Set(); let detected = 0, errors = 0, warnings = 0;
