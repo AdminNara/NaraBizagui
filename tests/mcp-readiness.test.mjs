@@ -20,6 +20,11 @@ test('reads remain available during autosave and unchanged revisions serialize o
  assert.equal(second.revision,first.revision);assert.equal(second.elementsOmitted,true);assert.equal('elements'in second,false);assert.equal(second.totalElements,2);
  assert.equal(f.counts.serialized,1);assert.equal(f.counts.digested,1);
 });
+test('lane routing capabilities disclose a missing analysis module without breaking document reads',async()=>{
+ const f=fixture(),without=await f.editor.read();assert.equal(without.capabilities.laneBorderRouting,false);assert.equal(without.capabilities.laneBorderClearance,null);
+ f.context.window.NaraModelAudit={LANE_BORDER_CLEARANCE:16,laneRouteConflicts(){}};
+ const loaded=await f.editor.read();assert.equal(loaded.capabilities.laneBorderRouting,true);assert.equal(loaded.capabilities.laneBorderClearance,16);assert.equal(loaded.revision,without.revision);assert.equal(f.counts.serialized,1);
+});
 test('an edit waits for autosave, applies once and invalidates the cached serialization',async()=>{
  const f=fixture(),before=await f.editor.read();f.context.saving=true;setTimeout(()=>{f.context.saving=false;},10);
  const result=await f.editor.edit({expectedRevision:before.revision,operation:{type:'label',elementId:'Task',text:'Updated'}});
